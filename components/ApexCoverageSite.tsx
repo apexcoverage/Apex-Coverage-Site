@@ -1,6 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import { Phone, ShieldCheck, Car, Sparkles, ChevronRight, ArrowRight, CheckCircle2, Clock, CreditCard, Lock, Mail, MapPin, MousePointerClick, Stars, ChevronDown } from 'lucide-react';
 
 
 export default function ApexCoverageSite() {
@@ -83,4 +82,5 @@ return (
 <span className="flex items-center gap-2"><Lock className="h-4 w-4 text-[#cc0000]"/> Secure & private</span>
 </div>
 </div>
+
 }
