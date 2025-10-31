@@ -1,3 +1,5 @@
+// app/page.tsx
+import ApexCoverageSite from "../components/ApexCoverageSite";
 export default function Page() {
-  return <main style={{padding: 40, fontFamily: 'sans-serif'}}>OK ✅</main>;
+  return <ApexCoverageSite />;
 }
