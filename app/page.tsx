@@ -1,5 +1,6 @@
-// app/page.tsx
-import ApexCoverageSite from "../components/ApexCoverageSite";
+import ApexCoverageSite from '@/components/ApexCoverageSite';
+
+
 export default function Page() {
-  return <ApexCoverageSite />;
+return <ApexCoverageSite />;
 }
