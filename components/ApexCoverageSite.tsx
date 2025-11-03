@@ -137,10 +137,10 @@ export default function ApexCoverageSite() {
                     <h4 className="text-xl font-semibold mb-3">Frequently Asked Questions</h4>
                     <div className="divide-y divide-gray-200">
                       {[
-                        { q: "When will I hear back?", a: "Usually within one business day. Urgent requests get same-day turnaround." },
-                        { q: "Do you run my credit?", a: "Some carriers use credit-based insurance scores. We’ll tell you before any soft checks." },
+                        { q: "When will I hear back?", a: "Usually within one business day. Feel free to send us an email or call." },
+                        { q: "Do you run my credit?", a: "In some cases, credit-based coverage is necessary. We’ll tell you before any soft checks." },
                         { q: "Can I change deductibles later?", a: "Yes—most changes can be made mid-term or at renewal." },
-                        { q: "Do you insure modified cars?", a: "Yes. Tell us your mods and we’ll place you with enthusiast-friendly carriers." },
+                        { q: "Do you cover modified cars?", a: "Yes. Tell us your mods and we’ll put together a coverage that fits your needs." },
                       ].map((f, i) => (
                         <FAQItem key={i} i={i} q={f.q} a={f.a} />
                       ))}
@@ -404,3 +404,4 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
