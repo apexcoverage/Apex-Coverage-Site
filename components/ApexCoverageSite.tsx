@@ -2,8 +2,10 @@
 import React, { useState } from 'react';
 
 export default function ApexCoverageSite() {
-  const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const [consent, setConsent] = useState(false);
+  const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [faqOpen, setFaqOpen] = useState<number | null>(0);
+
 
   function FAQItem({ i, q, a }: { i: number; q: string; a: string }) {
     const open = faqOpen === i;
@@ -23,30 +25,100 @@ export default function ApexCoverageSite() {
   }
 
  async function onSubmitQuote(e: React.FormEvent) {
-  e.preventDefault();
-  const formEl = e.target as HTMLFormElement;
+    e.preventDefault();
+    const formEl = e.target as HTMLFormElement;
 
-  if (!consent) {
-    alert("Please accept the consent notice to proceed.");
-    return;
-  }
-
-  const fd = new FormData(formEl);
-  fd.set("consent", consent ? "true" : "false");
-
-  try {
-    const res = await fetch("/api/lead", { method: "POST", body: fd });
-    const data = await res.json();
-    if (!res.ok || data?.ok !== true) {
-      throw new Error(data?.error || "Upstream error");
+    if (!consent) {
+      alert("Please accept the consent notice to proceed.");
+      return;
     }
 
-    alert("Thanks! We received your info. A certified agent will follow up shortly.");
-    formEl.reset();
-    setConsent(false);
-  } catch (err: any) {
-    alert(`Submission failed: ${err?.message || err}`);
+    const fd = new FormData(formEl);
+    fd.set("consent", consent ? "true" : "false");
+
+    try {
+      setFormStatus("submitting");
+
+      const res = await fetch("/api/lead", { method: "POST", body: fd });
+      const data = await res.json();
+
+      if (!res.ok || data?.ok !== true) throw new Error(data?.error || "Upstream error");
+
+      setFormStatus("success");
+      formEl.reset();
+      setConsent(false);
+    } catch (err) {
+      console.error(err);
+      setFormStatus("error");
+    }
   }
+
+  return (
+    <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center px-4 py-10">
+      {formStatus === "idle" || formStatus === "submitting" ? (
+        <form onSubmit={onSubmitQuote} className="w-full max-w-lg bg-gray-50 p-6 rounded-2xl shadow-lg">
+          <h2 className="text-2xl font-semibold mb-4">Get Your Quote</h2>
+
+          {/* Example fields */}
+          <label className="block mb-2">Full Name</label>
+          <input name="name" required className="border w-full p-2 rounded mb-4" />
+
+          <label className="block mb-2">Email</label>
+          <input name="email" type="email" required className="border w-full p-2 rounded mb-4" />
+
+          <label className="block mb-2">Phone</label>
+          <input name="phone" type="tel" className="border w-full p-2 rounded mb-4" />
+
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mr-2"
+            />
+            <span>I consent to receive contact regarding my quote.</span>
+          </div>
+
+          <button
+            type="submit"
+            disabled={formStatus === "submitting"}
+            className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 disabled:opacity-50"
+          >
+            {formStatus === "submitting" ? "Submitting..." : "Get Quote"}
+          </button>
+        </form>
+      ) : formStatus === "success" ? (
+        <div className="text-center bg-green-50 p-8 rounded-2xl shadow-md">
+          <h2 className="text-3xl font-semibold text-green-700 mb-3">Quote Request Submitted!</h2>
+          <p className="text-gray-700 mb-6">
+            Thanks for reaching out. A certified agent from <strong>Apex Coverage</strong> will contact you soon to finalize your quote.
+          </p>
+          <button
+            onClick={() => setFormStatus("idle")}
+            className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700"
+          >
+            Start Another Quote
+          </button>
+        </div>
+      ) : (
+        <div className="text-center bg-red-50 p-8 rounded-2xl shadow-md">
+          <h2 className="text-3xl font-semibold text-red-700 mb-3">Something Went Wrong</h2>
+          <p className="text-gray-700 mb-6">
+            We couldn’t submit your quote. Please try again or contact{" "}
+            <a href="mailto:support@driveapexcoverage.com" className="underline">
+              support@driveapexcoverage.com
+            </a>.
+          </p>
+          <button
+            onClick={() => setFormStatus("idle")}
+            className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
   return (
@@ -346,6 +418,7 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
 
 
