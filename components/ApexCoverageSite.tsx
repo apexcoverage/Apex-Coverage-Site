@@ -46,7 +46,7 @@ export default function ApexCoverageSite() {
             <span>Licensed in VA • Apex Coverage</span>
           </div>
           <a href="tel:+15551234567" className="hover:opacity-90">
-            (555) 123-4567
+            (540) 699-0505
           </a>
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function ApexCoverageSite() {
                 </div>
                 <div>
                   <label className="text-sm">Phone</label>
-                  <input name="phone" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="(555) 123-4567" />
+                  <input name="phone" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="(540) 699-0505" />
                 </div>
                 <div>
                   <label className="text-sm">ZIP</label>
@@ -318,7 +318,7 @@ export default function ApexCoverageSite() {
           <div>
             <div className="font-semibold text-white">Contact</div>
             <ul className="mt-3 space-y-2 text-sm">
-              <li>(555) 123-4567</li>
+              <li>(540) 699-0505</li>
               <li>support@apexcoverage.com</li>
               <li>123 Business St, Richmond, VA</li>
             </ul>
@@ -333,3 +333,4 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
