@@ -80,7 +80,7 @@ export default function ApexCoverageSite() {
         <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Insurance built for real drivers.<br/>
+              Coverage built for real drivers.<br/>
               <span className="text-[#cc0000]">Protect what you build.</span>
             </h1>
             <p className="mt-4 text-gray-600 max-w-prose">
@@ -195,7 +195,7 @@ export default function ApexCoverageSite() {
               { title: 'Customizable limits', body: 'Dial in limits and deductibles that match your budget.' },
               { title: 'Flexible billing', body: 'Monthly, pay-in-full, or autopay with reminders.' },
               { title: 'Multi-car savings', body: 'Add vehicles or drivers and stack discounts.' },
-              { title: 'Fast documents', body: 'Instant proof of insurance and digital ID cards.' },
+              { title: 'Fast documents', body: 'Instant proof of coverage and digital ID cards.' },
             ].map((c) => (
               <div key={c.title} className="border rounded-xl p-5 hover:shadow-md transition">
                 <div className="mt-2 font-semibold">{c.title}</div>
@@ -333,6 +333,7 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
 
 
