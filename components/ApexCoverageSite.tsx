@@ -47,6 +47,8 @@ export default function ApexCoverageSite() {
     alert('Thanks! We received your info. A certified agent will follow up shortly.');
     formEl.reset();
     setConsent(false);
+  } catch (err: any) {
+    alert(`Submission failed: ${err?.message || err}`);
   }
 }
 
@@ -347,6 +349,7 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
 
 
