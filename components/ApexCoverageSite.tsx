@@ -35,7 +35,7 @@ export default function ApexCoverageSite() {
   fd.set('consent', consent ? 'true' : 'false'); // make explicit
 
   try {
-    const res = await fetch('https://script.google.com/macros/s/PASTE_NEW_URL/exec', {
+    const res = await fetch('https://script.google.com/macros/s/AKfycbx6Toz1Myi6ByCL89seNmmaRyFs6oNeOtmChTPXOe6aBhOdyEqAFa1OjJq3EhnPHr08/exec', {
       method: 'POST',
       body: fd,           // 👈 no JSON, no headers
       mode: 'cors'        // default, but explicit is fine
@@ -349,6 +349,7 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
 
 
