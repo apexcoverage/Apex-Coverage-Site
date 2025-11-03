@@ -6,7 +6,6 @@ export default function ApexCoverageSite() {
   const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
-
   function FAQItem({ i, q, a }: { i: number; q: string; a: string }) {
     const open = faqOpen === i;
     return (
@@ -24,7 +23,7 @@ export default function ApexCoverageSite() {
     );
   }
 
- async function onSubmitQuote(e: React.FormEvent) {
+  async function onSubmitQuote(e: React.FormEvent) {
     e.preventDefault();
     const formEl = e.target as HTMLFormElement;
 
@@ -38,10 +37,8 @@ export default function ApexCoverageSite() {
 
     try {
       setFormStatus("submitting");
-
       const res = await fetch("/api/lead", { method: "POST", body: fd });
       const data = await res.json();
-
       if (!res.ok || data?.ok !== true) throw new Error(data?.error || "Upstream error");
 
       setFormStatus("success");
@@ -52,74 +49,6 @@ export default function ApexCoverageSite() {
       setFormStatus("error");
     }
   }
-
-  return (
-    <div className="min-h-screen bg-white text-gray-900 flex flex-col items-center justify-center px-4 py-10">
-      {formStatus === "idle" || formStatus === "submitting" ? (
-        <form onSubmit={onSubmitQuote} className="w-full max-w-lg bg-gray-50 p-6 rounded-2xl shadow-lg">
-          <h2 className="text-2xl font-semibold mb-4">Get Your Quote</h2>
-
-          {/* Example fields */}
-          <label className="block mb-2">Full Name</label>
-          <input name="name" required className="border w-full p-2 rounded mb-4" />
-
-          <label className="block mb-2">Email</label>
-          <input name="email" type="email" required className="border w-full p-2 rounded mb-4" />
-
-          <label className="block mb-2">Phone</label>
-          <input name="phone" type="tel" className="border w-full p-2 rounded mb-4" />
-
-          <div className="flex items-center mb-4">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="mr-2"
-            />
-            <span>I consent to receive contact regarding my quote.</span>
-          </div>
-
-          <button
-            type="submit"
-            disabled={formStatus === "submitting"}
-            className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 disabled:opacity-50"
-          >
-            {formStatus === "submitting" ? "Submitting..." : "Get Quote"}
-          </button>
-        </form>
-      ) : formStatus === "success" ? (
-        <div className="text-center bg-green-50 p-8 rounded-2xl shadow-md">
-          <h2 className="text-3xl font-semibold text-green-700 mb-3">Quote Request Submitted!</h2>
-          <p className="text-gray-700 mb-6">
-            Thanks for reaching out. A certified agent from <strong>Apex Coverage</strong> will contact you soon to finalize your quote.
-          </p>
-          <button
-            onClick={() => setFormStatus("idle")}
-            className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700"
-          >
-            Start Another Quote
-          </button>
-        </div>
-      ) : (
-        <div className="text-center bg-red-50 p-8 rounded-2xl shadow-md">
-          <h2 className="text-3xl font-semibold text-red-700 mb-3">Something Went Wrong</h2>
-          <p className="text-gray-700 mb-6">
-            We couldn’t submit your quote. Please try again or contact{" "}
-            <a href="mailto:support@driveapexcoverage.com" className="underline">
-              support@driveapexcoverage.com
-            </a>.
-          </p>
-          <button
-            onClick={() => setFormStatus("idle")}
-            className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -189,53 +118,110 @@ export default function ApexCoverageSite() {
           <div className="relative">
             <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
             <div className="relative bg-white border rounded-2xl shadow-xl p-6" id="quote">
-              <h3 className="text-xl font-semibold mb-1">Get your quick quote</h3>
-              <p className="text-sm text-gray-600 mb-4">Takes less than 60 seconds. A certified agent will follow up.</p>
+              {formStatus === "success" ? (
+                // Success screen INSIDE the quote card
+                <div className="text-center">
+                  <h3 className="text-2xl font-semibold text-green-700 mb-2">Quote Request Submitted!</h3>
+                  <p className="text-gray-700 mb-6">
+                    Thanks for reaching out. A certified agent from <strong>Apex Coverage</strong> will contact you soon to finalize your quote.
+                  </p>
+                  <button
+                    onClick={() => setFormStatus("idle")}
+                    className="bg-red-600 text-white px-6 py-2 rounded-md font-semibold hover:bg-red-700"
+                  >
+                    Start Another Quote
+                  </button>
 
-              <form onSubmit={onSubmitQuote} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="text-sm">Full name</label>
-                  <input name="name" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Jane Driver" />
+                  {/* Optional FAQ under success */}
+                  <section className="mt-8 text-left">
+                    <h4 className="text-xl font-semibold mb-3">Frequently Asked Questions</h4>
+                    <div className="divide-y divide-gray-200">
+                      {[
+                        { q: "When will I hear back?", a: "Usually within one business day. Urgent requests get same-day turnaround." },
+                        { q: "Do you run my credit?", a: "Some carriers use credit-based insurance scores. We’ll tell you before any soft checks." },
+                        { q: "Can I change deductibles later?", a: "Yes—most changes can be made mid-term or at renewal." },
+                        { q: "Do you insure modified cars?", a: "Yes. Tell us your mods and we’ll place you with enthusiast-friendly carriers." },
+                      ].map((f, i) => (
+                        <FAQItem key={i} i={i} q={f.q} a={f.a} />
+                      ))}
+                    </div>
+                  </section>
                 </div>
-                <div>
-                  <label className="text-sm">Email</label>
-                  <input type="email" name="email" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="jane@example.com" />
-                </div>
-                <div>
-                  <label className="text-sm">Phone</label>
-                  <input name="phone" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="(540) 699-0505" />
-                </div>
-                <div>
-                  <label className="text-sm">ZIP</label>
-                  <input name="zip" pattern="\d{5}" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="23219" />
-                </div>
-                <div>
-                  <label className="text-sm">Date of birth</label>
-                  <input type="date" name="dob" required className="w-full mt-1 border rounded-md px-3 py-2" />
-                </div>
-                <div>
-                  <label className="text-sm">Vehicle year</label>
-                  <input name="year" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="2022" />
-                </div>
-                <div>
-                  <label className="text-sm">Make</label>
-                  <input name="make" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Toyota" />
-                </div>
-                <div>
-                  <label className="text-sm">Model</label>
-                  <input name="model" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Camry" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="inline-flex items-start gap-2 text-xs text-gray-600">
-                    <input type="checkbox" checked={consent} onChange={(e)=>setConsent(e.target.checked)} className="mt-1" />
-                    <span>By submitting, you consent to be contacted by Apex Coverage via phone, email, or text regarding your quote request. Consent not required for purchase.</span>
-                  </label>
-                </div>
-                <div className="sm:col-span-2">
-                  <button className="w-full bg-[#cc0000] hover:bg-red-700 text-white font-semibold py-2.5 rounded-md">See my estimate</button>
-                </div>
-                <p className="sm:col-span-2 text-[11px] text-gray-500">This is an estimate only. Final premium is dependent on underwriting approval.</p>
-              </form>
+              ) : (
+                <>
+                  <h3 className="text-xl font-semibold mb-1">Get your quick quote</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Takes less than 60 seconds. A certified agent will follow up.
+                  </p>
+
+                  {formStatus === "error" && (
+                    <div className="mb-3 rounded-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
+                      We couldn’t submit your quote. Please try again in a moment or email
+                      {" "}<a className="underline" href="mailto:support@driveapexcoverage.com">support@driveapexcoverage.com</a>.
+                    </div>
+                  )}
+
+                  <form onSubmit={onSubmitQuote} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="text-sm">Full name</label>
+                      <input name="name" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Jane Driver" />
+                    </div>
+                    <div>
+                      <label className="text-sm">Email</label>
+                      <input type="email" name="email" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="jane@example.com" />
+                    </div>
+                    <div>
+                      <label className="text-sm">Phone</label>
+                      <input name="phone" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="(540) 699-0505" />
+                    </div>
+                    <div>
+                      <label className="text-sm">ZIP</label>
+                      <input name="zip" pattern="\d{5}" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="23219" />
+                    </div>
+                    <div>
+                      <label className="text-sm">Date of birth</label>
+                      <input type="date" name="dob" required className="w-full mt-1 border rounded-md px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="text-sm">Vehicle year</label>
+                      <input name="year" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="2022" />
+                    </div>
+                    <div>
+                      <label className="text-sm">Make</label>
+                      <input name="make" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Toyota" />
+                    </div>
+                    <div>
+                      <label className="text-sm">Model</label>
+                      <input name="model" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Camry" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="inline-flex items-start gap-2 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={consent}
+                          onChange={(e)=>setConsent(e.target.checked)}
+                          className="mt-1"
+                        />
+                        <span>
+                          By submitting, you consent to be contacted by Apex Coverage via phone, email, or text regarding your quote request.
+                          Consent not required for purchase.
+                        </span>
+                      </label>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <button
+                        className="w-full bg-[#cc0000] hover:bg-red-700 text-white font-semibold py-2.5 rounded-md disabled:opacity-50"
+                        disabled={formStatus === "submitting"}
+                      >
+                        {formStatus === "submitting" ? "Submitting..." : "See my estimate"}
+                      </button>
+                    </div>
+                    <p className="sm:col-span-2 text-[11px] text-gray-500">
+                      This is an estimate only. Final premium is dependent on underwriting approval.
+                    </p>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -418,18 +404,3 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
