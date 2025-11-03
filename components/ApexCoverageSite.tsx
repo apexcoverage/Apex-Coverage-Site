@@ -22,25 +22,35 @@ export default function ApexCoverageSite() {
     );
   }
 
-  function onSubmitQuote(e: React.FormEvent) {
-    e.preventDefault();
-    const form = new FormData(e.target as HTMLFormElement);
-    if (!consent) {
+  async function onSubmitQuote(e: React.FormEvent) {
+  e.preventDefault();
+  const formEl = e.target as HTMLFormElement;
+
+  if (!consent) {
     alert('Please accept the consent notice to proceed.');
     return;
   }
-  const payload = Object.fromEntries(form.entries());
 
-  fetch("https://script.google.com/macros/s/AKfycbx6Toz1Myi6ByCL89seNmmaRyFs6oNeOtmChTPXOe6aBhOdyEqAFa1OjJq3EhnPHr08/exec", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  })
-    .then(() => {
-      alert('Thanks! We received your info. A certified agent will follow up shortly.');
-    (e.target as HTMLFormElement).reset();
+  const fd = new FormData(formEl);
+  fd.set('consent', consent ? 'true' : 'false'); // make explicit
+
+  try {
+    const res = await fetch('https://script.google.com/macros/s/PASTE_NEW_URL/exec', {
+      method: 'POST',
+      body: fd,           // 👈 no JSON, no headers
+      mode: 'cors'        // default, but explicit is fine
+    });
+
+    const text = await res.text(); // GAS returns text; ok either way
+    if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
+
+    alert('Thanks! We received your info. A certified agent will follow up shortly.');
+    formEl.reset();
     setConsent(false);
+  } catch (err: any) {
+    alert(`Submission failed: ${err?.message || err}`);
   }
+}
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -339,6 +349,7 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
 
 
