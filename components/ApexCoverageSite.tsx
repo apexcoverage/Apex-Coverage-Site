@@ -26,12 +26,18 @@ export default function ApexCoverageSite() {
     e.preventDefault();
     const form = new FormData(e.target as HTMLFormElement);
     if (!consent) {
-      alert('Please accept the consent notice to proceed.');
-      return;
-    }
-    const payload = Object.fromEntries(form.entries());
-    console.log('Quote form submitted:', payload);
-    alert('Thanks! We received your info. A certified agent will follow up shortly.');
+    alert('Please accept the consent notice to proceed.');
+    return;
+  }
+  const payload = Object.fromEntries(form.entries());
+
+  fetch("https://script.google.com/macros/s/AKfycbx6Toz1Myi6ByCL89seNmmaRyFs6oNeOtmChTPXOe6aBhOdyEqAFa1OjJq3EhnPHr08/exec", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+    .then(() => {
+      alert('Thanks! We received your info. A certified agent will follow up shortly.');
     (e.target as HTMLFormElement).reset();
     setConsent(false);
   }
@@ -333,6 +339,7 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
 
 
