@@ -319,8 +319,8 @@ export default function ApexCoverageSite() {
             <div className="font-semibold text-white">Contact</div>
             <ul className="mt-3 space-y-2 text-sm">
               <li>(540) 699-0505</li>
-              <li>support@apexcoverage.com</li>
-              <li>123 Business St, Richmond, VA</li>
+              <li>support@driveapexcoverage.com</li>
+              <li>571 Rolling St, Richmond, VA</li>
             </ul>
           </div>
         </div>
@@ -333,4 +333,5 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
