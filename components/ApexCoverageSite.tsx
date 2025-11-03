@@ -26,25 +26,17 @@ export default function ApexCoverageSite() {
   e.preventDefault();
   const formEl = e.target as HTMLFormElement;
 
-  if (!consent) {
-    alert('Please accept the consent notice to proceed.');
-    return;
-  }
+  if (!consent) { alert("Please accept the consent notice to proceed."); return; }
 
   const fd = new FormData(formEl);
-  fd.set('consent', consent ? 'true' : 'false'); // make explicit
+  fd.set("consent", consent ? "true" : "false");
 
   try {
-    const res = await fetch('https://script.google.com/macros/s/AKfycbx6Toz1Myi6ByCL89seNmmaRyFs6oNeOtmChTPXOe6aBhOdyEqAFa1OjJq3EhnPHr08/exec', {
-      method: 'POST',
-      body: fd,           // 👈 no JSON, no headers
-      mode: 'cors'        // default, but explicit is fine
-    });
+    const res = await fetch("/api/lead", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok || data?.ok !== true) throw new Error(data?.error || "Upstream error");
 
-    const text = await res.text(); // GAS returns text; ok either way
-    if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
-
-    alert('Thanks! We received your info. A certified agent will follow up shortly.');
+    alert("Thanks! We received your info. A certified agent will follow up shortly.');
     formEl.reset();
     setConsent(false);
   } catch (err: any) {
@@ -349,6 +341,7 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
 
 
