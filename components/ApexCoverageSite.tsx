@@ -22,21 +22,26 @@ export default function ApexCoverageSite() {
     );
   }
 
-  async function onSubmitQuote(e: React.FormEvent) {
+ async function onSubmitQuote(e: React.FormEvent) {
   e.preventDefault();
   const formEl = e.target as HTMLFormElement;
 
-  if (!consent) { alert("Please accept the consent notice to proceed."); return; }
+  if (!consent) {
+    alert("Please accept the consent notice to proceed.");
+    return;
+  }
 
   const fd = new FormData(formEl);
-fd.set('consent', consent ? 'true' : 'false');
+  fd.set("consent", consent ? "true" : "false");
 
-const res = await fetch('/api/lead', { method: 'POST', body: fd });
-const data = await res.json();
-if (!res.ok || data?.ok !== true) throw new Error(data?.error || 'Upstream error');
+  try {
+    const res = await fetch("/api/lead", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok || data?.ok !== true) {
+      throw new Error(data?.error || "Upstream error");
+    }
 
-
-    alert("Thanks! We received your info. A certified agent will follow up shortly.');
+    alert("Thanks! We received your info. A certified agent will follow up shortly.");
     formEl.reset();
     setConsent(false);
   } catch (err: any) {
@@ -341,6 +346,7 @@ if (!res.ok || data?.ok !== true) throw new Error(data?.error || 'Upstream error
     </div>
   );
 }
+
 
 
 
