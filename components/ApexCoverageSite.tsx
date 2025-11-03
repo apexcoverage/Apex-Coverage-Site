@@ -31,7 +31,7 @@ export default function ApexCoverageSite() {
     }
     const payload = Object.fromEntries(form.entries());
     console.log('Quote form submitted:', payload);
-    alert('Thanks! We received your info. A licensed agent will follow up shortly.');
+    alert('Thanks! We received your info. A certified agent will follow up shortly.');
     (e.target as HTMLFormElement).reset();
     setConsent(false);
   }
@@ -43,7 +43,7 @@ export default function ApexCoverageSite() {
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span>✅</span>
-            <span>Licensed in VA • Apex Coverage</span>
+            <span>Call for a FREE quote • Apex Coverage</span>
           </div>
           <a href="tel:+15551234567" className="hover:opacity-90">
             (540) 699-0505
@@ -84,7 +84,7 @@ export default function ApexCoverageSite() {
               <span className="text-[#cc0000]">Protect what you build.</span>
             </h1>
             <p className="mt-4 text-gray-600 max-w-prose">
-              Simple, reliable auto coverage — customized for your car, your drive, and your budget. Licensed agents, clear options, fast claims support.
+              Simple, reliable auto coverage — customized for your car, your drive, and your budget. For those who drive, not just commute.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a href="#quote" className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition">
@@ -105,7 +105,7 @@ export default function ApexCoverageSite() {
             <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
             <div className="relative bg-white border rounded-2xl shadow-xl p-6" id="quote">
               <h3 className="text-xl font-semibold mb-1">Get your quick quote</h3>
-              <p className="text-sm text-gray-600 mb-4">Takes about 60 seconds. A licensed agent will follow up.</p>
+              <p className="text-sm text-gray-600 mb-4">Takes less than 60 seconds. A certified agent will follow up.</p>
 
               <form onSubmit={onSubmitQuote} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2">
@@ -149,7 +149,7 @@ export default function ApexCoverageSite() {
                 <div className="sm:col-span-2">
                   <button className="w-full bg-[#cc0000] hover:bg-red-700 text-white font-semibold py-2.5 rounded-md">See my estimate</button>
                 </div>
-                <p className="sm:col-span-2 text-[11px] text-gray-500">This is an estimate only. Final premium depends on underwriting and state filings.</p>
+                <p className="sm:col-span-2 text-[11px] text-gray-500">This is an estimate only. Final premium is dependent on underwriting approval.</p>
               </form>
             </div>
           </div>
@@ -214,11 +214,11 @@ export default function ApexCoverageSite() {
               Why choose <span className="text-[#cc0000]">Apex</span>?
             </h2>
             <p className="mt-3 text-gray-600">
-              We pair modern online convenience with real licensed humans. No gimmicks. No surprises. Just coverage that works when you need it.
+              We pair modern online convenience with real humans. No gimmicks. No surprises. Just coverage that works when you need it.
             </p>
             <div className="mt-6 grid sm:grid-cols-2 gap-4">
               {[
-                { t: 'Licensed agents', s: 'Talk to experts who explain, not upsell.' },
+                { t: 'Certified agents', s: 'Talk to experts who explain, not upsell.' },
                 { t: 'Clear pricing', s: 'Transparent options before you buy.' },
                 { t: 'Claims help', s: 'Guidance from first call to settlement.' },
                 { t: 'Data privacy', s: 'Your info stays secure and encrypted.' },
@@ -255,7 +255,7 @@ export default function ApexCoverageSite() {
       <section id="reviews" className="max-w-7xl mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold">What drivers say</h2>
         <div className="mt-6 grid md:grid-cols-3 gap-6">
-          {['Straightforward and fast.', 'Actually explained my coverages.', 'Switched and saved $28/mo.'].map((t, i) => (
+          {['Straightforward and fast.', 'I was surprised how affordable it was.', 'Switched and saved $28/mo.'].map((t, i) => (
             <div key={i} className="border rounded-xl p-5">
               <div>★★★★★</div>
               <p className="mt-3 text-gray-700">“{t}”</p>
@@ -270,8 +270,8 @@ export default function ApexCoverageSite() {
         <div className="max-w-7xl mx-auto px-4 py-16">
           <h2 className="text-3xl font-bold">FAQs</h2>
           <div className="mt-4">
-            <FAQItem i={0} q="How fast can I get proof of insurance?" a="In most cases, digital ID cards are available immediately after binding and payment." />
-            <FAQItem i={1} q="Do you insure modified or performance cars?" a="Yes. We’ll review your build list and place you with carriers that support enthusiast vehicles." />
+            <FAQItem i={0} q="How fast can I get coverage?" a="In most cases, digital ID cards are available immediately after binding and payment." />
+            <FAQItem i={1} q="Do you cover modified or performance cars?" a="Yes. We’ll review your build list and work with your enthusiast needs." />
             <FAQItem i={2} q="Can I change my deductibles later?" a="Absolutely. Adjustments can be made at renewal or mid-term in most cases." />
             <FAQItem i={3} q="How do claims work?" a="Report a claim 24/7. We coordinate with the carrier and keep you updated from start to finish." />
           </div>
@@ -297,7 +297,7 @@ export default function ApexCoverageSite() {
               <div className="h-8 w-8 rounded" style={{ background: '#cc0000' }} />
               <span className="font-semibold text-white">Apex Coverage</span>
             </div>
-            <p className="mt-3 text-sm">Simple, reliable auto insurance for real drivers.</p>
+            <p className="mt-3 text-sm">For those who drive, not just commute.</p>
           </div>
           <div>
             <div className="font-semibold text-white">Company</div>
@@ -326,12 +326,13 @@ export default function ApexCoverageSite() {
         </div>
         <div className="border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-6 text-xs text-gray-400">
-            © {new Date().getFullYear()} Apex Coverage LLC. All rights reserved. Policy forms and rates subject to state approval. This site provides general info and is not a binding offer of insurance. <a href="#" className="underline">Privacy</a> • <a href="#" className="underline">Terms</a>
+            © {new Date().getFullYear()} Apex Coverage. All rights reserved. Policy forms and rates subject final approval. This site provides general info and is not a binding offer of insurance. <a href="#" className="underline">Privacy</a> • <a href="#" className="underline">Terms</a>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+
 
 
