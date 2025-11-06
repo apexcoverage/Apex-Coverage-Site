@@ -78,6 +78,7 @@ export default function ApexCoverageSite() {
             <li><a href="#coverages" className="hover:text-[#cc0000]">Coverages</a></li>
             <li><a href="#why" className="hover:text-[#cc0000]">Why Apex</a></li>
             <li><a href="#reviews" className="hover:text-[#cc0000]">Reviews</a></li>
+            <li><a href="/about" className="hover:text-[#cc0000]">About</a></li>
             <li><a href="#faq" className="hover:text-[#cc0000]">FAQ</a></li>
           </ul>
           <a href="#quote" className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-red-700 transition">
@@ -404,4 +405,5 @@ export default function ApexCoverageSite() {
     </div>
   );
 }
+
 
