@@ -17,10 +17,11 @@ export default function PressPage() {
 
         <h2 className="mt-8 text-2xl font-semibold">Boilerplate</h2>
         <p className="mt-2 text-gray-700 text-sm">
-          Apex Coverage is a modern, customer-first auto insurance agency serving Virginia.
+          Apex Coverage is a modern, customer-first agency serving those who drive, not just commute.
           We make coverage fast, transparent, and human for people who love to drive.
         </p>
       </section>
     </main>
   );
 }
+
