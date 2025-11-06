@@ -24,12 +24,13 @@ export default function QuotePage() {
               Let’s get you covered.
             </h1>
             <p className="mt-4 text-gray-600 max-w-prose">
-              Fill out a few details and a licensed agent will follow up with your options.
+              Fill out a few details and a certified agent will follow up with your options.
               It takes less than a minute.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-gray-600">
               <li>✔️ No obligation</li>
               <li>✔️ Clear pricing before you buy</li>
+              <li>✔️ We wont sell your information</li>
               <li>✔️ Help from real humans</li>
             </ul>
           </div>
@@ -44,3 +45,4 @@ export default function QuotePage() {
     </main>
   );
 }
+
