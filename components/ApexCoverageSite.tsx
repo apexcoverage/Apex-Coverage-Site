@@ -51,51 +51,19 @@ export default function ApexCoverageSite() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {/* Top bar */}
-      <div className="bg-black text-white text-sm">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span>✅</span>
-            <span>Call for a FREE quote • Apex Coverage</span>
-          </div>
-          <a href="tel:+15551234567" className="hover:opacity-90">
-            (540) 699-0505
-          </a>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
-        <nav className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded" style={{ background: '#cc0000' }} />
-            <span className="font-semibold tracking-tight">
-              Apex <span style={{ color: '#cc0000' }}>Coverage</span>
-            </span>
-          </div>
-          <ul className="hidden md:flex items-center gap-6 text-sm">
-            <li><a href="#coverages" className="hover:text-[#cc0000]">Coverages</a></li>
-            <li><a href="#why" className="hover:text-[#cc0000]">Why Apex</a></li>
-            <li><a href="#reviews" className="hover:text-[#cc0000]">Reviews</a></li>
-            <li><a href="/about" className="hover:text-[#cc0000]">About</a></li>
-            <li><a href="#faq" className="hover:text-[#cc0000]">FAQ</a></li>
-          </ul>
-          <a href="#quote" className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-red-700 transition">
-            Get a Quote
-          </a>
-        </nav>
-      </header>
-
+    <main className="min-h-screen bg-white text-gray-900">
       {/* Hero + Quote Card */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: 'linear-gradient(135deg, rgba(204,0,0,.10), transparent, rgba(204,0,0,.10))'
-        }}/>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(135deg, rgba(204,0,0,.10), transparent, rgba(204,0,0,.10))',
+          }}
+        />
         <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Coverage built for real drivers.<br/>
+              Coverage built for real drivers.<br />
               <span className="text-[#cc0000]">Protect what you build.</span>
             </h1>
             <p className="mt-4 text-gray-600 max-w-prose">
@@ -157,8 +125,10 @@ export default function ApexCoverageSite() {
 
                   {formStatus === "error" && (
                     <div className="mb-3 rounded-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
-                      We couldn’t submit your quote. Please try again in a moment or email
-                      {" "}<a className="underline" href="mailto:support@driveapexcoverage.com">support@driveapexcoverage.com</a>.
+                      We couldn’t submit your quote. Please try again in a moment or email{" "}
+                      <a className="underline" href="mailto:support@driveapexcoverage.com">
+                        support@driveapexcoverage.com
+                      </a>.
                     </div>
                   )}
 
@@ -200,7 +170,7 @@ export default function ApexCoverageSite() {
                         <input
                           type="checkbox"
                           checked={consent}
-                          onChange={(e)=>setConsent(e.target.checked)}
+                          onChange={(e) => setConsent(e.target.checked)}
                           className="mt-1"
                         />
                         <span>
@@ -243,7 +213,9 @@ export default function ApexCoverageSite() {
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h2 className="text-3xl font-bold">Coverage that fits your life</h2>
-            <p className="mt-3 text-gray-600">Choose your protection level and fine-tune deductibles. We’ll help you balance price and protection in plain English.</p>
+            <p className="mt-3 text-gray-600">
+              Choose your protection level and fine-tune deductibles. We’ll help you balance price and protection in plain English.
+            </p>
             <ul className="mt-6 space-y-3">
               {[
                 { t: 'Liability', d: 'Meets state requirements and protects you from at-fault damages.' },
@@ -306,17 +278,25 @@ export default function ApexCoverageSite() {
             </div>
           </div>
           <div className="relative border rounded-2xl p-6 bg-white">
-            <div className="absolute -inset-2 rounded-2xl" style={{
-              backgroundImage: 'linear-gradient(120deg, rgba(204,0,0,.12), transparent, rgba(204,0,0,.12))'
-            }}/>
+            <div
+              className="absolute -inset-2 rounded-2xl"
+              style={{
+                backgroundImage: 'linear-gradient(120deg, rgba(204,0,0,.12), transparent, rgba(204,0,0,.12))',
+              }}
+            />
             <h3 className="font-semibold">Switch & save in minutes</h3>
-            <p className="text-sm text-gray-600">Have a policy already? We’ll review it and show you options side-by-side.</p>
+            <p className="text-sm text-gray-600">
+              Have a policy already? We’ll review it and show you options side-by-side.
+            </p>
             <ul className="mt-4 space-y-2 text-sm">
               <li>✔️ Cancel-safe onboarding</li>
               <li>✔️ No hidden fees</li>
               <li>✔️ Digital ID cards</li>
             </ul>
-            <a href="#quote" className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#cc0000] text-white font-semibold hover:bg-red-700">
+            <a
+              href="#quote"
+              className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#cc0000] text-white font-semibold hover:bg-red-700"
+            >
               Start my quote
             </a>
           </div>
@@ -355,55 +335,14 @@ export default function ApexCoverageSite() {
         <div className="absolute inset-0 bg-[#cc0000]/5 -z-10" />
         <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-between gap-4">
           <h3 className="text-2xl font-bold">Ready to get covered?</h3>
-          <a href="#quote" className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700">
+          <a
+            href="#quote"
+            className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700"
+          >
             Start my quote
           </a>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-black text-gray-300">
-        <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded" style={{ background: '#cc0000' }} />
-              <span className="font-semibold text-white">Apex Coverage</span>
-            </div>
-            <p className="mt-3 text-sm">For those who drive, not just commute.</p>
-          </div>
-          <div>
-            <div className="font-semibold text-white">Company</div>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li><a href="#">About</a></li>
-              <li><a href="#">Careers</a></li>
-              <li><a href="#">Press</a></li>
-            </ul>
-          </div>
-          <div>
-            <div className="font-semibold text-white">Support</div>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li><a href="#">Make a claim</a></li>
-              <li><a href="#">Billing</a></li>
-              <li><a href="#">Help center</a></li>
-            </ul>
-          </div>
-          <div>
-            <div className="font-semibold text-white">Contact</div>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li>(540) 699-0505</li>
-              <li>support@driveapexcoverage.com</li>
-              <li>571 Rolling St, Richmond, VA</li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-white/10">
-          <div className="max-w-7xl mx-auto px-4 py-6 text-xs text-gray-400">
-            © {new Date().getFullYear()} Apex Coverage. All rights reserved. Policy forms and rates subject final approval. This site provides general info and is not a binding offer of insurance. <a href="#" className="underline">Privacy</a> • <a href="#" className="underline">Terms</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </main>
   );
 }
-
-
