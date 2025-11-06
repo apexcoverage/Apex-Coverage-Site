@@ -20,7 +20,7 @@ export default function Footer() {
         <div>
           <div className="font-semibold text-white">Support</div>
           <ul className="mt-3 space-y-2 text-sm">
-            <li><a href="#">Make a claim</a></li>
+            <li><a href="/claims">Make a claim</a></li>
             <li><a href="#">Billing</a></li>
             <li><a href="#">Help center</a></li>
           </ul>
