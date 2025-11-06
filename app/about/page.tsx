@@ -80,7 +80,7 @@ export default function AboutPage() {
               compare options and bind coverage without the headache.
             </p>
             <p className="mt-3 text-gray-600">
-              Today we serve drivers across Virginia with quick quotes, flexible
+              Today, we serve those who drive, not just commute, with quick quotes, flexible
               billing, and help when it matters most.
             </p>
           </div>
@@ -160,3 +160,4 @@ export default function AboutPage() {
     </main>
   );
 }
+
