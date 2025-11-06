@@ -70,7 +70,7 @@ export default function ApexCoverageSite() {
               Simple, reliable auto coverage — customized for your car, your drive, and your budget. For those who drive, not just commute.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="#quote" className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition">
+              <a href="/quote" className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition">
                 Start my quote
               </a>
               <a href="#why" className="inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-gray-50 transition">
@@ -294,7 +294,7 @@ export default function ApexCoverageSite() {
               <li>✔️ Digital ID cards</li>
             </ul>
             <a
-              href="#quote"
+              href="/quote"
               className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#cc0000] text-white font-semibold hover:bg-red-700"
             >
               Start my quote
@@ -336,7 +336,7 @@ export default function ApexCoverageSite() {
         <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-between gap-4">
           <h3 className="text-2xl font-bold">Ready to get covered?</h3>
           <a
-            href="#quote"
+            href="/quote"
             className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700"
           >
             Start my quote
@@ -346,3 +346,4 @@ export default function ApexCoverageSite() {
     </main>
   );
 }
+
