@@ -55,7 +55,7 @@ export default function Header() {
 
         <div className="flex items-center gap-3">
           <a
-            href="/#quote"
+            href="/quote"
             className="hidden sm:inline-flex items-center gap-2 bg-[#cc0000] text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-red-700 transition"
           >
             Get a Quote
@@ -79,7 +79,7 @@ export default function Header() {
               </li>
             ))}
             <li className="py-2">
-              <a href="/#quote" onClick={() => setOpen(false)} className="block font-semibold text-[#cc0000]">Get a Quote</a>
+              <a href="/quote" onClick={() => setOpen(false)} className="block font-semibold text-[#cc0000]">Get a Quote</a>
             </li>
           </ul>
         </div>
