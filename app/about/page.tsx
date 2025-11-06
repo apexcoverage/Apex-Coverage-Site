@@ -1,4 +1,6 @@
 // app/about/page.tsx
+import React from 'react';
+
 export const metadata = {
   title: 'About | Apex Coverage',
   description:
@@ -159,4 +161,5 @@ export default function AboutPage() {
     </main>
   );
 }
+
 
