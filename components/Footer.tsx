@@ -14,7 +14,7 @@ export default function Footer() {
           <ul className="mt-3 space-y-2 text-sm">
             <li><a href="/about">About</a></li>
             <li><a href="#">Careers</a></li>
-            <li><a href="#">Press</a></li>
+            <li><a href="/press">Press</a></li>
           </ul>
         </div>
         <div>
