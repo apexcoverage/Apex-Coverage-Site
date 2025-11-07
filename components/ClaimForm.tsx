@@ -18,7 +18,7 @@ async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
   fd.set("source", "website-claim");
 
   try {
-    const res = await fetch("/api/claim", { method: "POST", body: fd });
+    const res = await fetch("/api/claims", { method: "POST", body: fd });
 
     // Read as text first to avoid "Unexpected end of JSON input"
     const raw = await res.text();
