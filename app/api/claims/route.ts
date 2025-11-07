@@ -1,4 +1,4 @@
-// app/api/claim/route.ts
+// app/api/claims/route.ts
 import { NextResponse } from "next/server";
 
 const APPSCRIPT_WEBHOOK_URL = process.env.APPSCRIPT_WEBHOOK_URL;
@@ -74,3 +74,4 @@ export async function POST(req: Request) {
     );
   }
 }
+
