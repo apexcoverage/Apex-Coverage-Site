@@ -4,11 +4,11 @@ import { NextResponse } from "next/server";
 const APPSCRIPT_WEBHOOK_URL = process.env.APPSCRIPT_WEBHOOK_URL;
 
 export async function GET() {
-  // simple health check
-  return NextResponse.json({
-    ok: true,
-    hasWebhook: Boolean(APPSCRIPT_WEBHOOK_URL),
-  });
+  // health check (no cache so you always see current env state)
+  return NextResponse.json(
+    { ok: true, hasWebhook: Boolean(APPSCRIPT_WEBHOOK_URL) },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(req: Request) {
@@ -29,11 +29,12 @@ export async function POST(req: Request) {
         payload[k] = typeof v === "string" ? v : "";
       }
     } else {
+      // accept JSON or x-www-form-urlencoded posted as JSON upstream
       const body = await req.json().catch(() => ({}));
       payload = typeof body === "object" && body ? body : {};
     }
 
-    // Guarantee claim routing
+    // Guarantee correct routing to the claims branch in Apps Script
     payload.type = "claim";
     payload.source = payload.source || "website-claim";
 
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      cache: "no-store",
     });
 
     const upstreamText = await upstream.text();
@@ -52,17 +54,23 @@ export async function POST(req: Request) {
     }
 
     if (!upstream.ok || upstreamJson?.ok !== true) {
-      // Bubble actual upstream message (raw text if not JSON)
+      // Show status code + helpful snippet of upstream body
       const msg =
         (upstreamJson && (upstreamJson.error || upstreamJson.raw)) ||
-        upstreamText ||
+        (upstreamText ? upstreamText.slice(0, 500) : "") ||
         upstream.statusText ||
         "Upstream error";
-      return NextResponse.json({ ok: false, error: msg }, { status: 502 });
+      return NextResponse.json(
+        { ok: false, error: `AppsScript ${upstream.status}: ${msg}` },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: String(err?.message || err) },
+      { status: 500 }
+    );
   }
 }
