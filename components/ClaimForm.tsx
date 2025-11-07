@@ -5,34 +5,49 @@ export default function ClaimForm() {
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<{ ok?: boolean; error?: string }>({});
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setStatus({});
+async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  setSubmitting(true);
+  setStatus({});
 
-    const form = e.currentTarget;
-    const fd = new FormData(form);
+  const form = e.currentTarget;
+  const fd = new FormData(form);
 
-    // ✅ Critical flags that Apps Script expects
-    fd.set("type", "claim");
-    fd.set("source", "website-claim");
+  // Ensure correct routing flags
+  fd.set("type", "claim");
+  fd.set("source", "website-claim");
 
+  try {
+    const res = await fetch("/api/claim", { method: "POST", body: fd });
+
+    // Read as text first to avoid "Unexpected end of JSON input"
+    const raw = await res.text();
+    let data: any = null;
     try {
-      const res = await fetch("/api/claim", { method: "POST", body: fd });
-      const data = await res.json();
-
-      if (!res.ok || data?.ok !== true) {
-        throw new Error(data?.error || "Could not submit claim");
-      }
-
-      setStatus({ ok: true });
-      form.reset();
-    } catch (err: any) {
-      setStatus({ ok: false, error: err.message });
-    } finally {
-      setSubmitting(false);
+      data = raw ? JSON.parse(raw) : null;
+    } catch {
+      data = null;
     }
+
+    const ok = data?.ok === true;
+    if (!res.ok || !ok) {
+      const msg =
+        (data && (data.error || data.raw)) ||
+        raw ||
+        res.statusText ||
+        "Could not submit claim";
+      throw new Error(msg);
+    }
+
+    setStatus({ ok: true });
+    form.reset();
+  } catch (err: any) {
+    setStatus({ ok: false, error: String(err?.message || err) });
+  } finally {
+    setSubmitting(false);
   }
+}
+
 
   return (
     <form
