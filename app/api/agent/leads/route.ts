@@ -1,19 +1,105 @@
-// app/api/agent/leads/route.ts
 import { NextResponse } from "next/server";
 
-const AGENT_URL = process.env.APPSCRIPT_AGENT_URL!;
-const AGENT_SECRET = process.env.APPSCRIPT_AGENT_SECRET!;
+const AGENT_URL = process.env.APPSCRIPT_AGENT_WEBHOOK_URL;
+const AGENT_SECRET = process.env.AGENT_BACKEND_SECRET;
 
-export async function GET() {
+// Helper to call Apps Script via GET (list leads)
+async function callAgentListLeads() {
   if (!AGENT_URL || !AGENT_SECRET) {
-    return NextResponse.json({ ok:false, error:"Missing env vars" }, { status:500 });
+    throw new Error("Missing AGENT_URL or AGENT_SECRET env vars");
   }
-  const url = `${AGENT_URL}?agent=1&secret=${encodeURIComponent(AGENT_SECRET)}&action=listLeads`;
-  const r = await fetch(url, { cache: "no-store" });
-  const text = await r.text();
-  let data: any; try { data = JSON.parse(text); } catch { data = { ok:false, raw:text }; }
-  if (!r.ok || data?.ok !== true) {
-    return NextResponse.json({ ok:false, error:data?.error || r.statusText }, { status:502 });
+
+  const url = new URL(AGENT_URL);
+  url.searchParams.set("agent", "1");
+  url.searchParams.set("secret", AGENT_SECRET);
+  url.searchParams.set("action", "listLeads");
+
+  const res = await fetch(url.toString(), { method: "GET" });
+  const text = await res.text();
+
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error("Bad JSON from Apps Script (GET): " + text);
   }
-  return NextResponse.json(data);
+
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || text || res.statusText || "Upstream error");
+  }
+
+  return data;
+}
+
+// Helper to call Apps Script via POST (update lead)
+async function callAgentUpdateLead(id: number, patch: Record<string, any>) {
+  if (!AGENT_URL || !AGENT_SECRET) {
+    throw new Error("Missing AGENT_URL or AGENT_SECRET env vars");
+  }
+
+  const payload = {
+    agent: 1,
+    secret: AGENT_SECRET,
+    action: "updatelead",
+    id,
+    patch,
+  };
+
+  const res = await fetch(AGENT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error("Bad JSON from Apps Script (POST): " + text);
+  }
+
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || text || res.statusText || "Upstream error");
+  }
+
+  return data;
+}
+
+// GET /api/agent/leads  -> list leads for dashboard
+export async function GET() {
+  try {
+    const data = await callAgentListLeads();
+    return NextResponse.json({ ok: true, rows: data.rows || [] });
+  } catch (err: any) {
+    return NextResponse.json(
+      { ok: false, error: String(err?.message || err) },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/agent/leads  -> update lead status
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const { id, status } = body || {};
+
+    if (!id) {
+      return NextResponse.json(
+        { ok: false, error: "Missing id" },
+        { status: 400 }
+      );
+    }
+
+    // We only patch "status" for now
+    await callAgentUpdateLead(Number(id), { status: status || "" });
+
+    return NextResponse.json({ ok: true, id, status: status || "" });
+  } catch (err: any) {
+    return NextResponse.json(
+      { ok: false, error: String(err?.message || err) },
+      { status: 500 }
+    );
+  }
 }
