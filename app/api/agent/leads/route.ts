@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 
-const AGENT_URL = process.env.APPSCRIPT_AGENT_WEBHOOK_URL;
-const AGENT_SECRET = process.env.AGENT_BACKEND_SECRET;
+// Try new names first, then fall back to your older ones
+const AGENT_URL =
+  process.env.APPSCRIPT_AGENT_WEBHOOK_URL ||
+  process.env.APPSCRIPT_WEBHOOK_URL;
+
+const AGENT_SECRET =
+  process.env.AGENT_BACKEND_SECRET ||
+  process.env.AGENT_SECRET;
 
 // Helper to call Apps Script via GET (list leads)
 async function callAgentListLeads() {
   if (!AGENT_URL || !AGENT_SECRET) {
-    throw new Error("Missing AGENT_URL or AGENT_SECRET env vars");
+    throw new Error(
+      "Missing Apps Script env vars. Need APPSCRIPT_AGENT_WEBHOOK_URL or APPSCRIPT_WEBHOOK_URL, and AGENT_BACKEND_SECRET or AGENT_SECRET."
+    );
   }
 
   const url = new URL(AGENT_URL);
@@ -34,7 +42,9 @@ async function callAgentListLeads() {
 // Helper to call Apps Script via POST (update lead)
 async function callAgentUpdateLead(id: number, patch: Record<string, any>) {
   if (!AGENT_URL || !AGENT_SECRET) {
-    throw new Error("Missing AGENT_URL or AGENT_SECRET env vars");
+    throw new Error(
+      "Missing Apps Script env vars. Need APPSCRIPT_AGENT_WEBHOOK_URL or APPSCRIPT_WEBHOOK_URL, and AGENT_BACKEND_SECRET or AGENT_SECRET."
+    );
   }
 
   const payload = {
@@ -92,7 +102,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // We only patch "status" for now
     await callAgentUpdateLead(Number(id), { status: status || "" });
 
     return NextResponse.json({ ok: true, id, status: status || "" });
