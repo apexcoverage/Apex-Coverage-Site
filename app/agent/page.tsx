@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 type Lead = {
   id: number;
@@ -14,208 +14,210 @@ type Lead = {
   make: string;
   model: string;
   consent: string;
-  status: string;
+  status?: string;
+  agent?: string;
 };
 
-const AGENT_PASSWORD = 'apex2025'; 
-// ^ CHANGE THIS to whatever you want your internal password to be.
-// This is a simple gate, not bank-level security. It’s fine for a tiny internal tool.
+type ApiListResponse = {
+  ok: boolean;
+  rows?: Lead[];
+  error?: string;
+};
+
+// tweak these to your actual agents
+const AGENTS = [
+  "",
+  "Lewis",
+  "Brandon",
+  "Kelly",
+];
+
+const STATUS_OPTIONS = [
+  "",
+  "New",
+  "Attempted Contact",
+  "In Progress",
+  "Quoted",
+  "Won",
+  "Lost",
+  "Do Not Contact",
+];
 
 export default function AgentDashboardPage() {
-  const [inputPassword, setInputPassword] = useState('');
-  const [authed, setAuthed] = useState(false);
-
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<number | null>(null);
 
   async function loadLeads() {
     try {
       setLoading(true);
       setError(null);
-
-      const res = await fetch('/api/agent/leads');
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Error ${res.status}: ${text}`);
+      const res = await fetch("/api/agent/leads", { cache: "no-store" });
+      const data: ApiListResponse = await res.json();
+      if (!data.ok || !data.rows) {
+        throw new Error(data.error || "Failed to load leads");
       }
-      const data = await res.json();
-      if (!data.ok) {
-        throw new Error(data.error || 'Unknown error from /api/agent/leads');
-      }
-      setLeads(data.rows || []);
+      setLeads(data.rows);
     } catch (err: any) {
-      console.error('Failed to load leads', err);
-      setError(String(err.message || err));
+      console.error(err);
+      setError(err.message || "Error loading leads");
     } finally {
       setLoading(false);
     }
   }
 
-  // Load leads once we’re authenticated
   useEffect(() => {
-    if (authed) {
-      loadLeads();
-    }
-  }, [authed]);
+    loadLeads();
+  }, []);
 
-  // Simple password gate
-  if (!authed) {
-    return (
-      <main className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white border rounded-xl shadow-md p-6 w-full max-w-sm">
-          <h1 className="text-xl font-semibold mb-2">Apex Agent Portal</h1>
-          <p className="text-sm text-gray-600 mb-4">
-            This area is for internal use only.
-          </p>
-          <label className="block text-sm font-medium mb-1">
-            Agent password
-          </label>
-          <input
-            type="password"
-            value={inputPassword}
-            onChange={(e) => setInputPassword(e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-sm mb-3"
-            placeholder="Enter password"
-          />
-          <button
-            onClick={() => {
-              if (inputPassword === AGENT_PASSWORD) {
-                setAuthed(true);
-              } else {
-                alert('Incorrect password');
+  async function updateLead(id: number, patch: Partial<Lead>) {
+    setSavingId(id);
+    try {
+      const res = await fetch("/api/agent/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, patch }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || "Update failed");
+      }
+      // update local state
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === id
+            ? {
+                ...lead,
+                ...patch,
               }
-            }}
-            className="w-full bg-[#cc0000] text-white font-semibold rounded-md py-2 text-sm hover:bg-red-700"
-          >
-            Unlock dashboard
-          </button>
-        </div>
-      </main>
-    );
+            : lead
+        )
+      );
+    } catch (err: any) {
+      console.error(err);
+      alert(`Could not save changes: ${err.message || err}`);
+    } finally {
+      setSavingId(null);
+    }
   }
 
-  // Authenticated view
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <main className="min-h-screen bg-slate-50 text-gray-900">
+      <div className="max-w-7xl mx-auto px-4 py-10">
+        <header className="flex items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-xl font-semibold">Apex Agent Dashboard</h1>
-            <p className="text-xs text-gray-500">
-              Internal CRM view · pulled from Google Sheets “Leads” tab
+            <h1 className="text-3xl font-bold">Agent Dashboard</h1>
+            <p className="text-sm text-gray-600">
+              View and manage quote leads synced from Google Sheets.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={loadLeads}
-              className="px-3 py-1.5 rounded-md text-sm border bg-white hover:bg-gray-50"
-            >
-              {loading ? 'Refreshing…' : 'Refresh'}
-            </button>
-            <button
-              onClick={() => {
-                setAuthed(false);
-                setInputPassword('');
-              }}
-              className="px-3 py-1.5 rounded-md text-xs text-gray-600 border border-gray-300 bg-white hover:bg-gray-50"
-            >
-              Lock
-            </button>
-          </div>
-        </div>
-      </header>
+          <button
+            onClick={loadLeads}
+            className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium bg-white hover:bg-gray-50"
+          >
+            Refresh
+          </button>
+        </header>
 
-      <section className="max-w-7xl mx-auto px-4 py-6">
         {error && (
-          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-md">
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-3">
+        {loading ? (
+          <div className="text-sm text-gray-600">Loading leads…</div>
+        ) : leads.length === 0 ? (
           <div className="text-sm text-gray-600">
-            Showing <b>{leads.length}</b> leads
+            No leads found in the sheet yet.
           </div>
-        </div>
-
-        <div className="overflow-auto border rounded-xl bg-white shadow-sm">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100 text-xs uppercase text-gray-600">
-              <tr>
-                <th className="px-3 py-2 text-left">When</th>
-                <th className="px-3 py-2 text-left">Name</th>
-                <th className="px-3 py-2 text-left">Contact</th>
-                <th className="px-3 py-2 text-left">Vehicle</th>
-                <th className="px-3 py-2 text-left">ZIP</th>
-                <th className="px-3 py-2 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leads.map((lead) => {
-                const vehicle = [lead.year, lead.make, lead.model]
-                  .filter(Boolean)
-                  .join(' ');
-                return (
-                  <tr key={lead.id} className="border-t hover:bg-gray-50">
-                    <td className="px-3 py-2 align-top text-xs text-gray-500">
-                      {lead.when}
-                    </td>
-                    <td className="px-3 py-2 align-top">
-                      <div className="font-medium">{lead.name}</div>
-                      <div className="text-xs text-gray-500">
-                        DOB: {lead.dob || '—'}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 align-top text-xs">
-                      <div>
-                        <a
-                          className="text-[#cc0000] hover:underline"
-                          href={`mailto:${lead.email}`}
-                        >
-                          {lead.email}
-                        </a>
-                      </div>
-                      <div>
-                        <a
-                          className="text-[#cc0000] hover:underline"
-                          href={`tel:${lead.phone}`}
-                        >
-                          {lead.phone}
-                        </a>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 align-top text-xs">
-                      {vehicle || '—'}
-                    </td>
-                    <td className="px-3 py-2 align-top text-xs">
-                      {lead.zip || '—'}
-                    </td>
-                    <td className="px-3 py-2 align-top text-xs">
-                      {lead.status || (
-                        <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
-                          New
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {leads.length === 0 && !loading && (
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 text-left">
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-3 py-6 text-center text-sm text-gray-500"
-                  >
-                    No leads found yet.
-                  </td>
+                  <th className="px-3 py-2 font-semibold">When</th>
+                  <th className="px-3 py-2 font-semibold">Name</th>
+                  <th className="px-3 py-2 font-semibold">Vehicle</th>
+                  <th className="px-3 py-2 font-semibold">Contact</th>
+                  <th className="px-3 py-2 font-semibold">ZIP</th>
+                  <th className="px-3 py-2 font-semibold">Status</th>
+                  <th className="px-3 py-2 font-semibold">Agent</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {leads.map((lead) => {
+                  const vehicle = [lead.year, lead.make, lead.model]
+                    .filter(Boolean)
+                    .join(" ");
+                  const disabled = savingId === lead.id;
+                  return (
+                    <tr
+                      key={lead.id}
+                      className="border-t border-gray-100 hover:bg-gray-50"
+                    >
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-500">
+                        {lead.when}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{lead.name}</div>
+                        <div className="text-xs text-gray-500">
+                          DOB: {lead.dob || "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div>{vehicle || "—"}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="text-xs text-gray-700">
+                          {lead.phone || "—"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {lead.email || ""}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">{lead.zip}</td>
+                      <td className="px-3 py-2">
+                        <select
+                          className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
+                          value={lead.status || ""}
+                          disabled={disabled}
+                          onChange={(e) =>
+                            updateLead(lead.id, { status: e.target.value })
+                          }
+                        >
+                          {STATUS_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt || "—"}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
+                          value={lead.agent || ""}
+                          disabled={disabled}
+                          onChange={(e) =>
+                            updateLead(lead.id, { agent: e.target.value })
+                          }
+                        >
+                          {AGENTS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt || "Unassigned"}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </main>
   );
 }
