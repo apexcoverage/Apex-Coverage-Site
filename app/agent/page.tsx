@@ -38,16 +38,64 @@ const STATUS_OPTIONS = [
   "Do Not Contact",
 ];
 
+type WorksheetState = {
+  coveragePackage: string;
+  liability: string;
+  compDed: string;
+  collDed: string;
+  discounts: string[];
+  notes: string;
+};
+
+const COVERAGE_PACKAGES = [
+  "",
+  "Basic Liability",
+  "Standard Full Coverage",
+  "Premium Full Coverage",
+];
+
+const LIABILITY_LIMITS = [
+  "",
+  "25/50/25",
+  "50/100/50",
+  "100/300/100",
+  "250/500/250",
+];
+
+const DEDUCTIBLE_OPTIONS = ["", "0", "250", "500", "1000"];
+
+const DISCOUNT_OPTIONS = [
+  "Multi-car",
+  "Home/Auto",
+  "Safe Driver",
+  "Paid in Full",
+  "Low Mileage",
+  "Military",
+];
+
 export default function AgentDashboardPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<number | null>(null);
 
-  // NEW: search / filter state
+  // search / filter state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [agentFilter, setAgentFilter] = useState<string>("");
+
+  // worksheet state
+  const [activeWorksheetLead, setActiveWorksheetLead] = useState<Lead | null>(
+    null
+  );
+  const [worksheet, setWorksheet] = useState<WorksheetState>({
+    coveragePackage: "",
+    liability: "",
+    compDed: "",
+    collDed: "",
+    discounts: [],
+    notes: "",
+  });
 
   async function loadLeads() {
     try {
@@ -102,7 +150,7 @@ export default function AgentDashboardPage() {
     }
   }
 
-  // NEW: derive filtered list
+  // derive filtered list
   const visibleLeads = useMemo(() => {
     const s = search.trim().toLowerCase();
 
@@ -132,6 +180,35 @@ export default function AgentDashboardPage() {
       return true;
     });
   }, [leads, search, statusFilter, agentFilter]);
+
+  function openWorksheet(lead: Lead) {
+    setActiveWorksheetLead(lead);
+    // reset worksheet each time you open – we can make this smarter later
+    setWorksheet({
+      coveragePackage: "",
+      liability: "",
+      compDed: "",
+      collDed: "",
+      discounts: [],
+      notes: "",
+    });
+  }
+
+  function closeWorksheet() {
+    setActiveWorksheetLead(null);
+  }
+
+  function toggleDiscount(discount: string) {
+    setWorksheet((prev) => {
+      const exists = prev.discounts.includes(discount);
+      return {
+        ...prev,
+        discounts: exists
+          ? prev.discounts.filter((d) => d !== discount)
+          : [...prev.discounts, discount],
+      };
+    });
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 text-gray-900">
@@ -228,6 +305,7 @@ export default function AgentDashboardPage() {
                   <th className="px-3 py-2 font-semibold">ZIP</th>
                   <th className="px-3 py-2 font-semibold">Status</th>
                   <th className="px-3 py-2 font-semibold">Agent</th>
+                  <th className="px-3 py-2 font-semibold">Worksheet</th>
                 </tr>
               </thead>
               <tbody>
@@ -294,6 +372,15 @@ export default function AgentDashboardPage() {
                           ))}
                         </select>
                       </td>
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => openWorksheet(lead)}
+                          className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          Worksheet
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -302,6 +389,197 @@ export default function AgentDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Slide-out worksheet panel */}
+      {activeWorksheetLead && (
+        <div className="fixed inset-0 z-40 flex">
+          {/* overlay */}
+          <div
+            className="flex-1 bg-black/30"
+            onClick={closeWorksheet}
+          />
+          {/* panel */}
+          <div className="w-full max-w-md bg-white shadow-xl border-l border-slate-200 flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Quote Worksheet</h2>
+                <p className="text-xs text-slate-500">
+                  {activeWorksheetLead.name} • {activeWorksheetLead.zip} •{" "}
+                  {[activeWorksheetLead.year, activeWorksheetLead.make, activeWorksheetLead.model]
+                    .filter(Boolean)
+                    .join(" ")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeWorksheet}
+                className="rounded-full border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 text-sm">
+              {/* Coverage package */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Coverage Package
+                </label>
+                <select
+                  className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+                  value={worksheet.coveragePackage}
+                  onChange={(e) =>
+                    setWorksheet((prev) => ({
+                      ...prev,
+                      coveragePackage: e.target.value,
+                    }))
+                  }
+                >
+                  {COVERAGE_PACKAGES.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt || "Select package"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Liability limits */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Liability Limits
+                </label>
+                <select
+                  className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+                  value={worksheet.liability}
+                  onChange={(e) =>
+                    setWorksheet((prev) => ({
+                      ...prev,
+                      liability: e.target.value,
+                    }))
+                  }
+                >
+                  {LIABILITY_LIMITS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt || "Select limits"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Deductibles */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Comp Deductible
+                  </label>
+                  <select
+                    className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+                    value={worksheet.compDed}
+                    onChange={(e) =>
+                      setWorksheet((prev) => ({
+                        ...prev,
+                        compDed: e.target.value,
+                      }))
+                    }
+                  >
+                    {DEDUCTIBLE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt || "Select"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Collision Deductible
+                  </label>
+                  <select
+                    className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+                    value={worksheet.collDed}
+                    onChange={(e) =>
+                      setWorksheet((prev) => ({
+                        ...prev,
+                        collDed: e.target.value,
+                      }))
+                    }
+                  >
+                    {DEDUCTIBLE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt || "Select"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Discounts checklist */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-2">
+                  Discounts Applied
+                </label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {DISCOUNT_OPTIONS.map((disc) => {
+                    const checked = worksheet.discounts.includes(disc);
+                    return (
+                      <label
+                        key={disc}
+                        className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-2 py-1 hover:bg-slate-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-3 w-3"
+                          checked={checked}
+                          onChange={() => toggleDiscount(disc)}
+                        />
+                        <span>{disc}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Underwriting / Quote Notes
+                </label>
+                <textarea
+                  rows={4}
+                  className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm resize-y"
+                  value={worksheet.notes}
+                  onChange={(e) =>
+                    setWorksheet((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
+                  placeholder="Drivers, tickets, prior carrier, important underwriting details…"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 px-5 py-3 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeWorksheet}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // placeholder – later we can persist this somewhere
+                  alert("Worksheet info is kept locally for now.");
+                }}
+                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+              >
+                Save Notes (Local)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
