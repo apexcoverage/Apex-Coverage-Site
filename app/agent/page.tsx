@@ -25,12 +25,7 @@ type ApiListResponse = {
 };
 
 // tweak these to your actual agents
-const AGENTS = [
-  "",
-  "Lewis",
-  "Brandon",
-  "Kelly",
-];
+const AGENTS = ["", "Lewis", "Brandon", "Kelly"];
 
 const STATUS_OPTIONS = [
   "",
@@ -44,6 +39,42 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AgentDashboardPage() {
+  // -------------------------------
+  // 🔐 AUTHENTICATION STATE
+  // -------------------------------
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // restore auth from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("apex_agent_authed");
+    if (saved === "1") {
+      setIsAuthed(true);
+    }
+  }, []);
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+
+    const expected = process.env.NEXT_PUBLIC_AGENT_PORTAL_KEY;
+    if (!expected) {
+      setAuthError("Portal key missing in environment.");
+      return;
+    }
+
+    if (password === expected) {
+      setIsAuthed(true);
+      setAuthError(null);
+      localStorage.setItem("apex_agent_authed", "1");
+    } else {
+      setAuthError("Incorrect access code.");
+    }
+  }
+
+  // -------------------------------
+  // LEADS DATA
+  // -------------------------------
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +99,8 @@ export default function AgentDashboardPage() {
   }
 
   useEffect(() => {
-    loadLeads();
-  }, []);
+    if (isAuthed) loadLeads();
+  }, [isAuthed]);
 
   async function updateLead(id: number, patch: Partial<Lead>) {
     setSavingId(id);
@@ -83,15 +114,11 @@ export default function AgentDashboardPage() {
       if (!data.ok) {
         throw new Error(data.error || "Update failed");
       }
+
       // update local state
       setLeads((prev) =>
         prev.map((lead) =>
-          lead.id === id
-            ? {
-                ...lead,
-                ...patch,
-              }
-            : lead
+          lead.id === id ? { ...lead, ...patch } : lead
         )
       );
     } catch (err: any) {
@@ -102,6 +129,47 @@ export default function AgentDashboardPage() {
     }
   }
 
+  // -------------------------------
+  // 🔐 LOGIN SCREEN
+  // -------------------------------
+  if (!isAuthed) {
+    return (
+      <main className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm bg-white rounded-xl shadow-md p-6">
+          <h1 className="text-xl font-semibold text-center mb-4">
+            Apex Coverage – Agent Portal
+          </h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Access Code</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                placeholder="Enter agent code"
+              />
+            </div>
+
+            {authError && (
+              <div className="text-sm text-red-600">{authError}</div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full rounded-md bg-red-600 text-white py-2 font-semibold hover:bg-red-700"
+            >
+              Sign In
+            </button>
+          </form>
+        </div>
+      </main>
+    );
+  }
+
+  // -------------------------------
+  // MAIN DASHBOARD
+  // -------------------------------
   return (
     <main className="min-h-screen bg-slate-50 text-gray-900">
       <div className="max-w-7xl mx-auto px-4 py-10">
@@ -129,9 +197,7 @@ export default function AgentDashboardPage() {
         {loading ? (
           <div className="text-sm text-gray-600">Loading leads…</div>
         ) : leads.length === 0 ? (
-          <div className="text-sm text-gray-600">
-            No leads found in the sheet yet.
-          </div>
+          <div className="text-sm text-gray-600">No leads found.</div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
             <table className="min-w-full text-sm">
@@ -146,29 +212,32 @@ export default function AgentDashboardPage() {
                   <th className="px-3 py-2 font-semibold">Agent</th>
                 </tr>
               </thead>
+
               <tbody>
                 {leads.map((lead) => {
                   const vehicle = [lead.year, lead.make, lead.model]
                     .filter(Boolean)
                     .join(" ");
                   const disabled = savingId === lead.id;
+
                   return (
                     <tr
                       key={lead.id}
-                      className="border-t border-gray-100 hover:bg-gray-50"
+                      className="border-t border-gray-100 hover:bg-gray-50 transition"
                     >
                       <td className="px-3 py-2 whitespace-nowrap text-gray-500">
                         {lead.when}
                       </td>
+
                       <td className="px-3 py-2">
                         <div className="font-medium">{lead.name}</div>
                         <div className="text-xs text-gray-500">
                           DOB: {lead.dob || "—"}
                         </div>
                       </td>
-                      <td className="px-3 py-2">
-                        <div>{vehicle || "—"}</div>
-                      </td>
+
+                      <td className="px-3 py-2">{vehicle || "—"}</td>
+
                       <td className="px-3 py-2">
                         <div className="text-xs text-gray-700">
                           {lead.phone || "—"}
@@ -177,7 +246,9 @@ export default function AgentDashboardPage() {
                           {lead.email || ""}
                         </div>
                       </td>
+
                       <td className="px-3 py-2">{lead.zip}</td>
+
                       <td className="px-3 py-2">
                         <select
                           className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
@@ -194,6 +265,7 @@ export default function AgentDashboardPage() {
                           ))}
                         </select>
                       </td>
+
                       <td className="px-3 py-2">
                         <select
                           className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
