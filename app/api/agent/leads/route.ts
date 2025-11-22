@@ -89,11 +89,11 @@ export async function GET() {
   }
 }
 
-// POST /api/agent/leads  -> update lead status
+// POST /api/agent/leads  -> update lead (status, agent, etc.)
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { id, status } = body || {};
+    const { id, patch } = body || {};
 
     if (!id) {
       return NextResponse.json(
@@ -102,9 +102,16 @@ export async function POST(req: Request) {
       );
     }
 
-    await callAgentUpdateLead(Number(id), { status: status || "" });
+    if (!patch || typeof patch !== "object") {
+      return NextResponse.json(
+        { ok: false, error: "Missing or invalid patch" },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({ ok: true, id, status: status || "" });
+    await callAgentUpdateLead(Number(id), patch);
+
+    return NextResponse.json({ ok: true, id, patch });
   } catch (err: any) {
     return NextResponse.json(
       { ok: false, error: String(err?.message || err) },
