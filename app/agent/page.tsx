@@ -121,13 +121,7 @@ export default function AgentDashboardPage() {
           .filter(Boolean)
           .join(" ");
         const haystack = (
-          [
-            lead.name,
-            lead.email,
-            lead.phone,
-            lead.zip,
-            vehicle,
-          ].join(" ") || ""
+          [lead.name, lead.email, lead.phone, lead.zip, vehicle].join(" ") || ""
         ).toLowerCase();
 
         if (!haystack.includes(s)) {
@@ -157,9 +151,11 @@ export default function AgentDashboardPage() {
           </button>
         </header>
 
-        {/* NEW: Filters row */}
-        <section className="mb-6 flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="flex-1">
+        {/* Filters row with aligned label + inputs */}
+        <section className="mb-6 flex flex-col gap-3 md:flex-row md:items-end">
+          {/* Search with label for alignment */}
+          <div className="flex-1 flex flex-col text-xs text-gray-600">
+            <span className="mb-1">Search</span>
             <input
               type="text"
               value={search}
@@ -168,6 +164,8 @@ export default function AgentDashboardPage() {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
             />
           </div>
+
+          {/* Status + Agent filters */}
           <div className="flex gap-3">
             <div className="flex flex-col text-xs text-gray-600">
               <span className="mb-1">Status</span>
