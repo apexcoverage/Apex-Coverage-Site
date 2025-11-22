@@ -96,6 +96,7 @@ export default function AgentDashboardPage() {
     discounts: [],
     notes: "",
   });
+  const [savingWorksheet, setSavingWorksheet] = useState(false);
 
   async function loadLeads() {
     try {
@@ -183,7 +184,7 @@ export default function AgentDashboardPage() {
 
   function openWorksheet(lead: Lead) {
     setActiveWorksheetLead(lead);
-    // reset worksheet each time you open – we can make this smarter later
+    // reset worksheet each time you open – can be enhanced later to load existing data
     setWorksheet({
       coveragePackage: "",
       liability: "",
@@ -208,6 +209,60 @@ export default function AgentDashboardPage() {
           : [...prev.discounts, discount],
       };
     });
+  }
+
+  async function saveWorksheet() {
+    if (!activeWorksheetLead) return;
+    try {
+      setSavingWorksheet(true);
+
+      const vehicle = [activeWorksheetLead.year, activeWorksheetLead.make, activeWorksheetLead.model]
+        .filter(Boolean)
+        .join(" ");
+
+      const payload = {
+        // lead identifiers
+        leadId: activeWorksheetLead.id,
+        leadSheetRow: activeWorksheetLead.id, // matches row in Leads sheet
+        name: activeWorksheetLead.name,
+        email: activeWorksheetLead.email,
+        phone: activeWorksheetLead.phone,
+        zip: activeWorksheetLead.zip,
+        dob: activeWorksheetLead.dob,
+        year: activeWorksheetLead.year,
+        make: activeWorksheetLead.make,
+        model: activeWorksheetLead.model,
+        vehicle,
+        status: activeWorksheetLead.status || "",
+        agent: activeWorksheetLead.agent || "",
+        // worksheet fields
+        coveragePackage: worksheet.coveragePackage,
+        liability: worksheet.liability,
+        compDed: worksheet.compDed,
+        collDed: worksheet.collDed,
+        discounts: worksheet.discounts,
+        notes: worksheet.notes,
+      };
+
+      const res = await fetch("/api/agent/worksheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || "Failed to save worksheet");
+      }
+
+      alert("Worksheet saved to Google Sheets.");
+      closeWorksheet();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Could not save worksheet: ${err.message || err}`);
+    } finally {
+      setSavingWorksheet(false);
+    }
   }
 
   return (
@@ -568,13 +623,11 @@ export default function AgentDashboardPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  // placeholder – later we can persist this somewhere
-                  alert("Worksheet info is kept locally for now.");
-                }}
-                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                onClick={saveWorksheet}
+                disabled={savingWorksheet}
+                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Save Notes (Local)
+                {savingWorksheet ? "Saving…" : "Save Worksheet"}
               </button>
             </div>
           </div>
