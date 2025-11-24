@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-// Same environment variable logic as /api/agent/leads
 const AGENT_URL =
   process.env.APPSCRIPT_AGENT_WEBHOOK_URL ||
   process.env.APPSCRIPT_WEBHOOK_URL;
@@ -9,50 +8,55 @@ const AGENT_SECRET =
   process.env.AGENT_BACKEND_SECRET ||
   process.env.AGENT_SECRET;
 
-// POST /api/agent/worksheet
-// Accepts worksheet payload and relays it to Apps Script (action: saveworksheet)
+async function callAgentSaveWorksheet(payload: any) {
+  if (!AGENT_URL || !AGENT_SECRET) {
+    throw new Error(
+      "Missing Apps Script env vars. Need APPSCRIPT_AGENT_WEBHOOK_URL or APPSCRIPT_WEBHOOK_URL, and AGENT_BACKEND_SECRET or AGENT_SECRET."
+    );
+  }
+
+  // Wrap the payload in the agent envelope so Apps Script treats it as an agent request
+  const body = {
+    agent: 1,
+    secret: AGENT_SECRET,
+    action: "saveworksheet",
+    ...payload,
+  };
+
+  const res = await fetch(AGENT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error("Bad JSON from Apps Script (worksheet): " + text);
+  }
+
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || text || res.statusText || "Upstream error");
+  }
+
+  return data;
+}
+
 export async function POST(req: Request) {
   try {
-    if (!AGENT_URL || !AGENT_SECRET) {
+    const payload = await req.json().catch(() => ({}));
+
+    if (!payload || !payload.leadId) {
       return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Missing Apps Script env vars (APPSCRIPT_AGENT_WEBHOOK_URL / AGENT_SECRET)",
-        },
-        { status: 500 }
+        { ok: false, error: "Missing leadId in worksheet payload" },
+        { status: 400 }
       );
     }
 
-    const body = await req.json().catch(() => ({}));
-
-    // Build payload for Apps Script
-    const payload = {
-      agent: 1,                 // tells Apps Script “this is an agent request”
-      secret: AGENT_SECRET,     // authorization
-      action: "saveworksheet",  // NEW action added to Apps Script
-      ...body,                  // pass full worksheet data
-    };
-
-    const res = await fetch(AGENT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const text = await res.text();
-    let data: any = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      throw new Error("Bad JSON from Apps Script: " + text);
-    }
-
-    if (!res.ok || !data?.ok) {
-      throw new Error(data?.error || "Upstream error");
-    }
-
-    return NextResponse.json({ ok: true, saved: true });
+    await callAgentSaveWorksheet(payload);
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
     return NextResponse.json(
       { ok: false, error: String(err?.message || err) },
