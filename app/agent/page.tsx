@@ -73,6 +73,16 @@ const DISCOUNT_OPTIONS = [
   "Military",
 ];
 
+// helper for a blank worksheet
+const EMPTY_WORKSHEET: WorksheetState = {
+  coveragePackage: "",
+  liability: "",
+  compDed: "",
+  collDed: "",
+  discounts: [],
+  notes: "",
+};
+
 export default function AgentDashboardPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,15 +98,13 @@ export default function AgentDashboardPage() {
   const [activeWorksheetLead, setActiveWorksheetLead] = useState<Lead | null>(
     null
   );
-  const [worksheet, setWorksheet] = useState<WorksheetState>({
-    coveragePackage: "",
-    liability: "",
-    compDed: "",
-    collDed: "",
-    discounts: [],
-    notes: "",
-  });
+  const [worksheet, setWorksheet] = useState<WorksheetState>(EMPTY_WORKSHEET);
   const [savingWorksheet, setSavingWorksheet] = useState(false);
+
+  // NEW: cache worksheet per lead id (in-memory while page is loaded)
+  const [worksheetByLeadId, setWorksheetByLeadId] = useState<
+    Record<number, WorksheetState>
+  >({});
 
   async function loadLeads() {
     try {
@@ -184,15 +192,9 @@ export default function AgentDashboardPage() {
 
   function openWorksheet(lead: Lead) {
     setActiveWorksheetLead(lead);
-    // reset worksheet each time you open – can be enhanced later to load existing data
-    setWorksheet({
-      coveragePackage: "",
-      liability: "",
-      compDed: "",
-      collDed: "",
-      discounts: [],
-      notes: "",
-    });
+    // load cached worksheet for this lead if it exists, otherwise blank
+    const cached = worksheetByLeadId[lead.id];
+    setWorksheet(cached || EMPTY_WORKSHEET);
   }
 
   function closeWorksheet() {
@@ -211,12 +213,25 @@ export default function AgentDashboardPage() {
     });
   }
 
+  // NEW: whenever worksheet or active lead changes, keep it cached per lead
+  useEffect(() => {
+    if (!activeWorksheetLead) return;
+    setWorksheetByLeadId((prev) => ({
+      ...prev,
+      [activeWorksheetLead.id]: worksheet,
+    }));
+  }, [worksheet, activeWorksheetLead]);
+
   async function saveWorksheet() {
     if (!activeWorksheetLead) return;
     try {
       setSavingWorksheet(true);
 
-      const vehicle = [activeWorksheetLead.year, activeWorksheetLead.make, activeWorksheetLead.model]
+      const vehicle = [
+        activeWorksheetLead.year,
+        activeWorksheetLead.make,
+        activeWorksheetLead.model,
+      ]
         .filter(Boolean)
         .join(" ");
 
@@ -449,10 +464,7 @@ export default function AgentDashboardPage() {
       {activeWorksheetLead && (
         <div className="fixed inset-0 z-40 flex">
           {/* overlay */}
-          <div
-            className="flex-1 bg-black/30"
-            onClick={closeWorksheet}
-          />
+          <div className="flex-1 bg-black/30" onClick={closeWorksheet} />
           {/* panel */}
           <div className="w-full max-w-md bg-white shadow-xl border-l border-slate-200 flex flex-col">
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
