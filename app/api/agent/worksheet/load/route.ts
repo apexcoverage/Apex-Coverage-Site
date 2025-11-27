@@ -5,21 +5,9 @@ const AGENT_URL =
   process.env.APPSCRIPT_WEBHOOK_URL;
 
 const AGENT_SECRET =
-  process.env.AGENT_BACKEND_SECRET ||
-  process.env.AGENT_SECRET;
+  process.env.AGENT_BACKEND_SECRET || process.env.AGENT_SECRET;
 
-type WorksheetState = {
-  coveragePackage: string;
-  liability: string;
-  compDed: string;
-  collDed: string;
-  discounts: string[];
-  notes: string;
-};
-
-async function callAgentLoadWorksheets(): Promise<
-  Record<number, WorksheetState>
-> {
+async function callAgentLoadWorksheet(leadId: number) {
   if (!AGENT_URL || !AGENT_SECRET) {
     throw new Error(
       "Missing Apps Script env vars. Need APPSCRIPT_AGENT_WEBHOOK_URL or APPSCRIPT_WEBHOOK_URL, and AGENT_BACKEND_SECRET or AGENT_SECRET."
@@ -29,7 +17,8 @@ async function callAgentLoadWorksheets(): Promise<
   const body = {
     agent: 1,
     secret: AGENT_SECRET,
-    action: "loadworksheets",
+    action: "loadworksheet",
+    leadId,
   };
 
   const res = await fetch(AGENT_URL, {
@@ -40,47 +29,49 @@ async function callAgentLoadWorksheets(): Promise<
 
   const text = await res.text();
   let data: any = null;
-
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    throw new Error("Bad JSON from Apps Script (loadworksheets): " + text);
+    throw new Error("Bad JSON from Apps Script (loadworksheet): " + text);
   }
 
   if (!res.ok || !data?.ok) {
     throw new Error(data?.error || text || res.statusText || "Upstream error");
   }
 
-  const raw = data.worksheets || {};
-  const normalized: Record<number, WorksheetState> = {};
-
-  Object.keys(raw).forEach((key) => {
-    const id = Number(key);
-    if (!id) return;
-
-    const w = raw[key] || {};
-    normalized[id] = {
-      coveragePackage: String(w.coveragePackage || ""),
-      liability: String(w.liability || ""),
-      compDed: String(w.compDed || ""),
-      collDed: String(w.collDed || ""),
-      discounts: Array.isArray(w.discounts)
-        ? w.discounts.map((d: any) => String(d || ""))
-        : String(w.discounts || "")
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-      notes: String(w.notes || ""),
-    };
-  });
-
-  return normalized;
+  return data;
 }
 
-export async function GET() {
+export async function POST(req: Request) {
   try {
-    const worksheets = await callAgentLoadWorksheets();
-    return NextResponse.json({ ok: true, worksheets });
+    const payload = await req.json().catch(() => ({} as any));
+    const leadId = Number(payload.leadId);
+
+    if (!leadId || Number.isNaN(leadId)) {
+      return NextResponse.json(
+        { ok: false, error: "Missing or invalid leadId" },
+        { status: 400 }
+      );
+    }
+
+    const data = await callAgentLoadWorksheet(leadId);
+    const ws = data.worksheet || null;
+
+    if (!ws) {
+      return NextResponse.json({ ok: true, worksheet: null });
+    }
+
+    // Normalize to the WorksheetState shape the UI expects
+    const normalized = {
+      coveragePackage: ws.coveragePackage || "",
+      liability: ws.liability || "",
+      compDed: ws.compDed || "",
+      collDed: ws.collDed || "",
+      discounts: Array.isArray(ws.discounts) ? ws.discounts : [],
+      notes: ws.notes || "",
+    };
+
+    return NextResponse.json({ ok: true, worksheet: normalized });
   } catch (err: any) {
     return NextResponse.json(
       { ok: false, error: String(err?.message || err) },
