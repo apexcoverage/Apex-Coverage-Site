@@ -24,6 +24,28 @@ type ApiListResponse = {
   error?: string;
 };
 
+type WorksheetState = {
+  coveragePackage: string;
+  liability: string;
+  compDed: string;
+  collDed: string;
+  discounts: string[];
+  notes: string;
+};
+
+type WorksheetLoadApiResponse = {
+  ok: boolean;
+  worksheet?: {
+    coveragePackage?: string;
+    liability?: string;
+    compDed?: string;
+    collDed?: string;
+    discounts?: string[];
+    notes?: string;
+  } | null;
+  error?: string;
+};
+
 // tweak these to your actual agents
 const AGENTS = ["", "Lewis", "Brandon", "Kelly"];
 
@@ -37,21 +59,6 @@ const STATUS_OPTIONS = [
   "Lost",
   "Do Not Contact",
 ];
-
-type WorksheetState = {
-  coveragePackage: string;
-  liability: string;
-  compDed: string;
-  collDed: string;
-  discounts: string[];
-  notes: string;
-};
-
-type WorksheetsLoadResponse = {
-  ok: boolean;
-  worksheets?: Record<number, WorksheetState>;
-  error?: string;
-};
 
 const COVERAGE_PACKAGES = [
   "",
@@ -79,7 +86,7 @@ const DISCOUNT_OPTIONS = [
   "Military",
 ];
 
-const BLANK_WORKSHEET: WorksheetState = {
+const EMPTY_WORKSHEET: WorksheetState = {
   coveragePackage: "",
   liability: "",
   compDed: "",
@@ -103,38 +110,25 @@ export default function AgentDashboardPage() {
   const [activeWorksheetLead, setActiveWorksheetLead] = useState<Lead | null>(
     null
   );
-  const [worksheet, setWorksheet] = useState<WorksheetState>(BLANK_WORKSHEET);
+  const [worksheet, setWorksheet] = useState<WorksheetState>(EMPTY_WORKSHEET);
   const [savingWorksheet, setSavingWorksheet] = useState(false);
 
-  // cache: latest worksheet per leadId, hydrated from Google Sheets
-  const [worksheetByLeadId, setWorksheetByLeadId] = useState<
+  // cache of worksheets already loaded/saved, keyed by lead.id
+  const [worksheetCache, setWorksheetCache] = useState<
     Record<number, WorksheetState>
   >({});
+  const [worksheetLoading, setWorksheetLoading] = useState(false);
 
   async function loadLeads() {
     try {
       setLoading(true);
       setError(null);
-
-      const [leadsRes, wsRes] = await Promise.all([
-        fetch("/api/agent/leads", { cache: "no-store" }),
-        fetch("/api/agent/worksheet/load", { cache: "no-store" }),
-      ]);
-
-      const leadsData: ApiListResponse = await leadsRes.json();
-      const wsData: WorksheetsLoadResponse = await wsRes.json();
-
-      if (!leadsData.ok || !leadsData.rows) {
-        throw new Error(leadsData.error || "Failed to load leads");
+      const res = await fetch("/api/agent/leads", { cache: "no-store" });
+      const data: ApiListResponse = await res.json();
+      if (!data.ok || !data.rows) {
+        throw new Error(data.error || "Failed to load leads");
       }
-
-      if (!wsData.ok && wsData.error) {
-        // Non-fatal: leads can still load even if worksheets fail
-        console.error("Worksheet load error:", wsData.error);
-      }
-
-      setLeads(leadsData.rows);
-      setWorksheetByLeadId(wsData.ok && wsData.worksheets ? wsData.worksheets : {});
+      setLeads(data.rows);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Error loading leads");
@@ -145,7 +139,6 @@ export default function AgentDashboardPage() {
 
   useEffect(() => {
     loadLeads();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function updateLead(id: number, patch: Partial<Lead>) {
@@ -210,10 +203,58 @@ export default function AgentDashboardPage() {
     });
   }, [leads, search, statusFilter, agentFilter]);
 
-  function openWorksheet(lead: Lead) {
+  async function openWorksheet(lead: Lead) {
     setActiveWorksheetLead(lead);
-    const existing = worksheetByLeadId[lead.id];
-    setWorksheet(existing || BLANK_WORKSHEET);
+
+    // If we've already loaded/saved a worksheet for this lead, use the cached version
+    const cached = worksheetCache[lead.id];
+    if (cached) {
+      setWorksheet(cached);
+      return;
+    }
+
+    // default to blank while we try to hydrate from Sheets
+    setWorksheet(EMPTY_WORKSHEET);
+    setWorksheetLoading(true);
+
+    try {
+      const res = await fetch("/api/agent/worksheet/load", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId: lead.id }),
+      });
+
+      const data: WorksheetLoadApiResponse = await res.json();
+
+      if (data.ok && data.worksheet) {
+        const loaded: WorksheetState = {
+          coveragePackage: data.worksheet.coveragePackage || "",
+          liability: data.worksheet.liability || "",
+          compDed: data.worksheet.compDed || "",
+          collDed: data.worksheet.collDed || "",
+          discounts: Array.isArray(data.worksheet.discounts)
+            ? data.worksheet.discounts
+            : [],
+          notes: data.worksheet.notes || "",
+        };
+
+        setWorksheet(loaded);
+        setWorksheetCache((prev) => ({
+          ...prev,
+          [lead.id]: loaded,
+        }));
+      } else {
+        // no worksheet yet; keep blank
+        if (!data.ok && data.error) {
+          console.warn("Worksheet load error:", data.error);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load worksheet", err);
+      // fail silently in the UI, just leave blank worksheet
+    } finally {
+      setWorksheetLoading(false);
+    }
   }
 
   function closeWorksheet() {
@@ -231,15 +272,6 @@ export default function AgentDashboardPage() {
       };
     });
   }
-
-  // keep cache in sync whenever worksheet changes for the active lead
-  useEffect(() => {
-    if (!activeWorksheetLead) return;
-    setWorksheetByLeadId((prev) => ({
-      ...prev,
-      [activeWorksheetLead.id]: worksheet,
-    }));
-  }, [worksheet, activeWorksheetLead]);
 
   async function saveWorksheet() {
     if (!activeWorksheetLead) return;
@@ -289,18 +321,11 @@ export default function AgentDashboardPage() {
         throw new Error(data.error || "Failed to save worksheet");
       }
 
-      // refresh worksheets so another browser / refresh sees latest
-      try {
-        const wsRes = await fetch("/api/agent/worksheet/load", {
-          cache: "no-store",
-        });
-        const wsData: WorksheetsLoadResponse = await wsRes.json();
-        if (wsData.ok && wsData.worksheets) {
-          setWorksheetByLeadId(wsData.worksheets);
-        }
-      } catch (e) {
-        console.error("Reloading worksheets after save failed:", e);
-      }
+      // cache the worksheet locally so it reappears next time
+      setWorksheetCache((prev) => ({
+        ...prev,
+        [activeWorksheetLead.id]: { ...worksheet },
+      }));
 
       alert("Worksheet saved to Google Sheets.");
       closeWorksheet();
@@ -416,8 +441,6 @@ export default function AgentDashboardPage() {
                     .filter(Boolean)
                     .join(" ");
                   const disabled = savingId === lead.id;
-                  const hasWorksheet = !!worksheetByLeadId[lead.id];
-
                   return (
                     <tr
                       key={lead.id}
@@ -480,13 +503,10 @@ export default function AgentDashboardPage() {
                         <button
                           type="button"
                           onClick={() => openWorksheet(lead)}
-                          className={`rounded-md border px-2 py-1 text-xs font-medium ${
-                            hasWorksheet
-                              ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
-                              : "border-slate-300 text-slate-700 hover:bg-slate-50"
-                          }`}
+                          className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
                         >
-                          {hasWorksheet ? "Worksheet ✓" : "Worksheet"}
+                          {/* JUST "Worksheet" – no check mark */}
+                          Worksheet
                         </button>
                       </td>
                     </tr>
@@ -510,11 +530,9 @@ export default function AgentDashboardPage() {
                 <h2 className="text-lg font-semibold">Quote Worksheet</h2>
                 <p className="text-xs text-slate-500">
                   {activeWorksheetLead.name} • {activeWorksheetLead.zip} •{" "}
-                  {[
-                    activeWorksheetLead.year,
+                  {[activeWorksheetLead.year,
                     activeWorksheetLead.make,
-                    activeWorksheetLead.model,
-                  ]
+                    activeWorksheetLead.model]
                     .filter(Boolean)
                     .join(" ")}
                 </p>
@@ -529,6 +547,12 @@ export default function AgentDashboardPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 text-sm">
+              {worksheetLoading && (
+                <p className="text-xs text-slate-500">
+                  Loading saved worksheet…
+                </p>
+              )}
+
               {/* Coverage package */}
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
