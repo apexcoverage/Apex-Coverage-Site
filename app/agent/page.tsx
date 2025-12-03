@@ -35,14 +35,16 @@ type WorksheetState = {
 
 type WorksheetLoadApiResponse = {
   ok: boolean;
-  worksheet?: {
-    coveragePackage?: string;
-    liability?: string;
-    compDed?: string;
-    collDed?: string;
-    discounts?: string[];
-    notes?: string;
-  } | null;
+  worksheet?:
+    | {
+        coveragePackage?: string;
+        liability?: string;
+        compDed?: string;
+        collDed?: string;
+        discounts?: string[];
+        notes?: string;
+      }
+    | null;
   error?: string;
 };
 
@@ -177,6 +179,11 @@ export default function AgentDashboardPage() {
     const s = search.trim().toLowerCase();
 
     return leads.filter((lead) => {
+      // 🔹 NEW: hide "Won" leads from this list (they'll live on the Customer page)
+      if ((lead.status || "") === "Won") {
+        return false;
+      }
+
       // status filter
       if (statusFilter && (lead.status || "") !== statusFilter) {
         return false;
