@@ -25,6 +25,13 @@ type ApiListResponse = {
   error?: string;
 };
 
+type ActivityNote = {
+  id: number;
+  text: string;
+  createdAt: string;
+  agent: string;
+};
+
 export default function CustomerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -32,12 +39,87 @@ export default function CustomerProfilePage() {
   const [customer, setCustomer] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activityNotes, setActivityNotes] = useState<ActivityNote[]>([]);
 
-  // Helper to clean phone for tel: link
+  // Helpers
   function getPhoneHref(phone: string | undefined) {
     if (!phone) return "#";
     return `tel:${phone.replace(/\D/g, "")}`;
   }
+
+  const handleBackToCustomers = () => {
+    router.push("/agent/customers");
+  };
+
+  const handleEditProfile = () => {
+    alert("Edit Profile coming soon (you’ll be able to update customer details here).");
+  };
+
+  const handleEditContactDetails = () => {
+    alert("Edit Contact Details coming soon.");
+  };
+
+  const handleViewFullPolicy = () => {
+    alert("Full policy view coming soon.");
+  };
+
+  const handleCollectFirstPayment = () => {
+    alert(
+      "Collect First Payment will be wired to Stripe next. For now this is just a placeholder."
+    );
+  };
+
+  const handleStartMonthlyBilling = () => {
+    alert(
+      "Start Monthly Billing will create a recurring Stripe subscription (coming next)."
+    );
+  };
+
+  const handleChargeCustomerNow = () => {
+    alert(
+      "Charge Customer Now will run a one-off Stripe payment using the card on file (coming next)."
+    );
+  };
+
+  const handleUpdateCard = () => {
+    alert("Update Card on File will open a Stripe update form (coming next).");
+  };
+
+  const handleViewAllPayments = () => {
+    alert("Payment history details view coming soon.");
+  };
+
+  const handleViewReceipt = () => {
+    alert("Receipt view/download from Stripe coming soon.");
+  };
+
+  const handleUploadFile = () => {
+    alert("File upload (policy docs, IDs, etc.) coming soon.");
+  };
+
+  const handleViewFile = () => {
+    alert("File viewer coming soon.");
+  };
+
+  const handleDownloadFile = () => {
+    alert("File download coming soon.");
+  };
+
+  const handleAddNote = () => {
+    const text = window.prompt("Add a note for this customer:");
+    if (!text || !text.trim()) return;
+
+    const agentName = customer?.agent || "Agent";
+    const newNote: ActivityNote = {
+      id: Date.now(),
+      text: text.trim(),
+      createdAt: new Date().toLocaleString(),
+      agent: agentName,
+    };
+
+    // newest note at top
+    setActivityNotes((prev) => [newNote, ...prev]);
+  };
 
   useEffect(() => {
     async function loadCustomer() {
@@ -60,6 +142,23 @@ export default function CustomerProfilePage() {
         }
 
         setCustomer(found);
+
+        // seed some starter activity notes (you can replace with real data later)
+        const starterAgent = found.agent || "Agent";
+        setActivityNotes([
+          {
+            id: 2,
+            text: "Collected first payment and set up monthly billing. Explained renewal terms.",
+            createdAt: "Jan 12, 2025 · 11:02 AM",
+            agent: starterAgent,
+          },
+          {
+            id: 1,
+            text: "Auto billing successful. Customer confirmed everything looks good.",
+            createdAt: "Feb 12, 2025 · 3:14 PM",
+            agent: starterAgent,
+          },
+        ]);
       } catch (err: any) {
         console.error(err);
         setError(err.message || "Error loading customer");
@@ -88,7 +187,7 @@ export default function CustomerProfilePage() {
       <main className="min-h-screen bg-slate-50 text-gray-900">
         <div className="max-w-5xl mx-auto px-4 py-10">
           <button
-            onClick={() => router.push("/agent/customers")}
+            onClick={handleBackToCustomers}
             className="mb-4 inline-flex items-center rounded-lg border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-100"
           >
             ← Back to customers
@@ -105,8 +204,7 @@ export default function CustomerProfilePage() {
     .filter(Boolean)
     .join(" ");
 
-  // Simple fake policy number using id (you can replace with real policy later)
-  const policyNumber = `APX-${customer.id}`;
+  const policyNumber = `APX-${customer.id}`; // placeholder policy number
 
   return (
     <>
@@ -114,10 +212,7 @@ export default function CustomerProfilePage() {
         {/* Top Header */}
         <header className="crm-header">
           <div className="crm-header-left">
-            <button
-              className="btn-secondary"
-              onClick={() => router.push("/agent/customers")}
-            >
+            <button className="btn-secondary" onClick={handleBackToCustomers}>
               &larr; Back to Customers
             </button>
             <div className="crm-header-title">
@@ -128,8 +223,12 @@ export default function CustomerProfilePage() {
             </div>
           </div>
           <div className="crm-header-right">
-            <button className="btn-secondary">Add Note</button>
-            <button className="btn-primary">Edit Profile</button>
+            <button className="btn-secondary" onClick={handleAddNote}>
+              Add Note
+            </button>
+            <button className="btn-primary" onClick={handleEditProfile}>
+              Edit Profile
+            </button>
           </div>
         </header>
 
@@ -207,7 +306,12 @@ export default function CustomerProfilePage() {
                 </dl>
               </div>
               <div className="card-footer">
-                <button className="link-button">Edit contact details</button>
+                <button
+                  className="link-button"
+                  onClick={handleEditContactDetails}
+                >
+                  Edit contact details
+                </button>
               </div>
             </section>
 
@@ -245,7 +349,9 @@ export default function CustomerProfilePage() {
                 </dl>
               </div>
               <div className="card-footer">
-                <button className="link-button">View full policy info</button>
+                <button className="link-button" onClick={handleViewFullPolicy}>
+                  View full policy info
+                </button>
               </div>
             </section>
           </section>
@@ -260,11 +366,24 @@ export default function CustomerProfilePage() {
                 </p>
               </div>
               <div className="card-actions">
-                <button className="btn-primary">
+                <button
+                  className="btn-primary"
+                  onClick={handleCollectFirstPayment}
+                >
                   Collect First Payment
                 </button>
-                <button className="btn-outline">Start Monthly Billing</button>
-                <button className="btn-outline">Charge Customer Now</button>
+                <button
+                  className="btn-outline"
+                  onClick={handleStartMonthlyBilling}
+                >
+                  Start Monthly Billing
+                </button>
+                <button
+                  className="btn-outline"
+                  onClick={handleChargeCustomerNow}
+                >
+                  Charge Customer Now
+                </button>
               </div>
             </div>
 
@@ -296,7 +415,9 @@ export default function CustomerProfilePage() {
                 <p>Card: Visa •••• 1234</p>
                 <p>Name on Card: {customer.name || "—"}</p>
                 <p className="meta-text">Last updated: Jan 12, 2025</p>
-                <button className="link-button">Update card on file</button>
+                <button className="link-button" onClick={handleUpdateCard}>
+                  Update card on file
+                </button>
               </div>
             </div>
 
@@ -304,7 +425,9 @@ export default function CustomerProfilePage() {
             <div className="card-subsection">
               <div className="card-subheader">
                 <h4>Payment History</h4>
-                <button className="link-button">View all</button>
+                <button className="link-button" onClick={handleViewAllPayments}>
+                  View all
+                </button>
               </div>
               <div className="table-wrapper">
                 <table className="crm-table">
@@ -327,7 +450,12 @@ export default function CustomerProfilePage() {
                         <span className="status-pill status-active">Paid</span>
                       </td>
                       <td>
-                        <button className="link-button">View Receipt</button>
+                        <button
+                          className="link-button"
+                          onClick={handleViewReceipt}
+                        >
+                          View Receipt
+                        </button>
                       </td>
                     </tr>
                     <tr>
@@ -338,7 +466,12 @@ export default function CustomerProfilePage() {
                         <span className="status-pill status-active">Paid</span>
                       </td>
                       <td>
-                        <button className="link-button">View Receipt</button>
+                        <button
+                          className="link-button"
+                          onClick={handleViewReceipt}
+                        >
+                          View Receipt
+                        </button>
                       </td>
                     </tr>
                   </tbody>
@@ -351,38 +484,27 @@ export default function CustomerProfilePage() {
           <section className="card">
             <div className="card-header card-header-with-actions">
               <h3>Activity Log</h3>
-              <button className="btn-secondary">+ Add Note</button>
+              <button className="btn-secondary" onClick={handleAddNote}>
+                + Add Note
+              </button>
             </div>
             <div className="card-body activity-log">
-              {/* Static placeholders for now */}
-              <article className="activity-item">
-                <div className="activity-meta">
-                  <span className="activity-date">
-                    Feb 12, 2025 · 3:14 PM
-                  </span>
-                  <span className="activity-agent">
-                    {customer.agent || "Agent"}
-                  </span>
-                </div>
-                <p>
-                  Auto billing successful. Customer confirmed everything looks
-                  good.
+              {activityNotes.length === 0 ? (
+                <p className="text-sm text-gray-600">
+                  No notes yet. Click &quot;Add Note&quot; to record an update
+                  for this customer.
                 </p>
-              </article>
-              <article className="activity-item">
-                <div className="activity-meta">
-                  <span className="activity-date">
-                    Jan 12, 2025 · 11:02 AM
-                  </span>
-                  <span className="activity-agent">
-                    {customer.agent || "Agent"}
-                  </span>
-                </div>
-                <p>
-                  Collected first payment and set up monthly billing. Explained
-                  renewal terms.
-                </p>
-              </article>
+              ) : (
+                activityNotes.map((note) => (
+                  <article key={note.id} className="activity-item">
+                    <div className="activity-meta">
+                      <span className="activity-date">{note.createdAt}</span>
+                      <span className="activity-agent">{note.agent}</span>
+                    </div>
+                    <p>{note.text}</p>
+                  </article>
+                ))
+              )}
             </div>
           </section>
 
@@ -390,22 +512,44 @@ export default function CustomerProfilePage() {
           <section className="card">
             <div className="card-header card-header-with-actions">
               <h3>Files &amp; Documents</h3>
-              <button className="btn-secondary">Upload New File</button>
+              <button className="btn-secondary" onClick={handleUploadFile}>
+                Upload New File
+              </button>
             </div>
             <div className="card-body">
               <ul className="file-list">
                 <li>
                   <span>Quote PDF</span>
                   <div className="file-actions">
-                    <button className="link-button">View</button>
-                    <button className="link-button">Download</button>
+                    <button
+                      className="link-button"
+                      onClick={handleViewFile}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="link-button"
+                      onClick={handleDownloadFile}
+                    >
+                      Download
+                    </button>
                   </div>
                 </li>
                 <li>
                   <span>ID Cards</span>
                   <div className="file-actions">
-                    <button className="link-button">View</button>
-                    <button className="link-button">Download</button>
+                    <button
+                      className="link-button"
+                      onClick={handleViewFile}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="link-button"
+                      onClick={handleDownloadFile}
+                    >
+                      Download
+                    </button>
                   </div>
                 </li>
               </ul>
