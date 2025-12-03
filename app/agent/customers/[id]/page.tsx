@@ -1,0 +1,793 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+
+type Lead = {
+  id: number;
+  when: string;
+  name: string;
+  email: string;
+  phone: string;
+  zip: string;
+  dob: string;
+  year: string;
+  make: string;
+  model: string;
+  consent: string;
+  status?: string;
+  agent?: string;
+};
+
+type ApiListResponse = {
+  ok: boolean;
+  rows?: Lead[];
+  error?: string;
+};
+
+export default function CustomerProfilePage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+
+  const [customer, setCustomer] = useState<Lead | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Helper to clean phone for tel: link
+  function getPhoneHref(phone: string | undefined) {
+    if (!phone) return "#";
+    return `tel:${phone.replace(/\D/g, "")}`;
+  }
+
+  useEffect(() => {
+    async function loadCustomer() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const res = await fetch("/api/agent/leads", { cache: "no-store" });
+        const data: ApiListResponse = await res.json();
+
+        if (!data.ok || !data.rows) {
+          throw new Error(data.error || "Failed to load customers");
+        }
+
+        const idNumber = Number(params.id);
+        const found = data.rows.find((lead) => lead.id === idNumber);
+
+        if (!found) {
+          throw new Error("Customer not found");
+        }
+
+        setCustomer(found);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Error loading customer");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (params?.id) {
+      loadCustomer();
+    }
+  }, [params?.id]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50 text-gray-900">
+        <div className="max-w-5xl mx-auto px-4 py-10 text-sm text-gray-600">
+          Loading customer…
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !customer) {
+    return (
+      <main className="min-h-screen bg-slate-50 text-gray-900">
+        <div className="max-w-5xl mx-auto px-4 py-10">
+          <button
+            onClick={() => router.push("/agent/customers")}
+            className="mb-4 inline-flex items-center rounded-lg border border-gray-300 px-3 py-1.5 text-xs hover:bg-gray-100"
+          >
+            ← Back to customers
+          </button>
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error || "Customer not found"}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const vehicle = [customer.year, customer.make, customer.model]
+    .filter(Boolean)
+    .join(" ");
+
+  // Simple fake policy number using id (you can replace with real policy later)
+  const policyNumber = `APX-${customer.id}`;
+
+  return (
+    <>
+      <div className="crm-page">
+        {/* Top Header */}
+        <header className="crm-header">
+          <div className="crm-header-left">
+            <button
+              className="btn-secondary"
+              onClick={() => router.push("/agent/customers")}
+            >
+              &larr; Back to Customers
+            </button>
+            <div className="crm-header-title">
+              <h1>Customer Profile</h1>
+              <span className="crm-breadcrumb">
+                Dashboard &gt; Customers &gt; {customer.name || "Customer"}
+              </span>
+            </div>
+          </div>
+          <div className="crm-header-right">
+            <button className="btn-secondary">Add Note</button>
+            <button className="btn-primary">Edit Profile</button>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="crm-main">
+          {/* Customer Summary Card */}
+          <section className="card card-summary">
+            <div className="card-summary-left">
+              <h2 className="customer-name">{customer.name}</h2>
+              <p>
+                Policy #: <strong>{policyNumber}</strong>
+              </p>
+              <p>
+                Status:{" "}
+                <span className="status-pill status-active">
+                  {customer.status || "Active"}
+                </span>
+              </p>
+              <p>
+                Assigned Agent:{" "}
+                <strong>{customer.agent || "Unassigned"}</strong>
+              </p>
+            </div>
+            <div className="card-summary-right">
+              <p>
+                Phone:{" "}
+                {customer.phone ? (
+                  <a href={getPhoneHref(customer.phone)}>{customer.phone}</a>
+                ) : (
+                  "—"
+                )}
+              </p>
+              <p>
+                Email:{" "}
+                {customer.email ? (
+                  <a href={`mailto:${customer.email}`}>{customer.email}</a>
+                ) : (
+                  "—"
+                )}
+              </p>
+              <p>Location: {customer.zip || "—"}</p>
+              <p className="meta-text">Created: {customer.when}</p>
+            </div>
+          </section>
+
+          {/* Two Column Section: Contact + Policy */}
+          <section className="grid-two">
+            {/* Contact Info Card */}
+            <section className="card">
+              <div className="card-header">
+                <h3>Contact Info</h3>
+              </div>
+              <div className="card-body">
+                <dl className="details-list">
+                  <div>
+                    <dt>Name</dt>
+                    <dd>{customer.name || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Phone</dt>
+                    <dd>{customer.phone || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Email</dt>
+                    <dd>{customer.email || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Address</dt>
+                    <dd>{customer.zip ? `ZIP: ${customer.zip}` : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Date of Birth</dt>
+                    <dd>{customer.dob || "—"}</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="card-footer">
+                <button className="link-button">Edit contact details</button>
+              </div>
+            </section>
+
+            {/* Policy Details Card */}
+            <section className="card">
+              <div className="card-header">
+                <h3>Policy Details</h3>
+              </div>
+              <div className="card-body">
+                <dl className="details-list">
+                  <div>
+                    <dt>Policy #</dt>
+                    <dd>{policyNumber}</dd>
+                  </div>
+                  <div>
+                    <dt>Coverage</dt>
+                    <dd>Full Coverage</dd>
+                  </div>
+                  <div>
+                    <dt>Vehicles</dt>
+                    <dd>{vehicle || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Deductibles</dt>
+                    <dd>$500 Comp / $1,000 Collision</dd>
+                  </div>
+                  <div>
+                    <dt>Discounts</dt>
+                    <dd>Military, Safe Driver, Low Mileage</dd>
+                  </div>
+                  <div>
+                    <dt>Renewal Date</dt>
+                    <dd>—</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="card-footer">
+                <button className="link-button">View full policy info</button>
+              </div>
+            </section>
+          </section>
+
+          {/* Billing & Payments */}
+          <section className="card">
+            <div className="card-header card-header-with-actions">
+              <div>
+                <h3>Billing &amp; Payments</h3>
+                <p className="subtitle">
+                  Manage billing status, payment method, and history.
+                </p>
+              </div>
+              <div className="card-actions">
+                <button className="btn-primary">
+                  Collect First Payment
+                </button>
+                <button className="btn-outline">Start Monthly Billing</button>
+                <button className="btn-outline">Charge Customer Now</button>
+              </div>
+            </div>
+
+            <div className="card-body billing-layout">
+              {/* Billing Overview */}
+              <div className="billing-overview">
+                <h4>Billing Overview</h4>
+                <dl className="details-list">
+                  <div>
+                    <dt>Billing Status</dt>
+                    <dd>
+                      <span className="status-pill status-active">Active</span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Monthly Amount</dt>
+                    <dd>$189.00</dd>
+                  </div>
+                  <div>
+                    <dt>Next Billing Date</dt>
+                    <dd>March 12, 2025</dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Payment Method */}
+              <div className="payment-method">
+                <h4>Payment Method on File</h4>
+                <p>Card: Visa •••• 1234</p>
+                <p>Name on Card: {customer.name || "—"}</p>
+                <p className="meta-text">Last updated: Jan 12, 2025</p>
+                <button className="link-button">Update card on file</button>
+              </div>
+            </div>
+
+            {/* Payment History */}
+            <div className="card-subsection">
+              <div className="card-subheader">
+                <h4>Payment History</h4>
+                <button className="link-button">View all</button>
+              </div>
+              <div className="table-wrapper">
+                <table className="crm-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Status</th>
+                      <th>Receipt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Static placeholders for now – later we can map real Stripe history */}
+                    <tr>
+                      <td>Feb 12, 2025</td>
+                      <td>$189.00</td>
+                      <td>Auto Billing (Visa)</td>
+                      <td>
+                        <span className="status-pill status-active">Paid</span>
+                      </td>
+                      <td>
+                        <button className="link-button">View Receipt</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Jan 12, 2025</td>
+                      <td>$189.00</td>
+                      <td>Card on File</td>
+                      <td>
+                        <span className="status-pill status-active">Paid</span>
+                      </td>
+                      <td>
+                        <button className="link-button">View Receipt</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          {/* Activity Log */}
+          <section className="card">
+            <div className="card-header card-header-with-actions">
+              <h3>Activity Log</h3>
+              <button className="btn-secondary">+ Add Note</button>
+            </div>
+            <div className="card-body activity-log">
+              {/* Static placeholders for now */}
+              <article className="activity-item">
+                <div className="activity-meta">
+                  <span className="activity-date">
+                    Feb 12, 2025 · 3:14 PM
+                  </span>
+                  <span className="activity-agent">
+                    {customer.agent || "Agent"}
+                  </span>
+                </div>
+                <p>
+                  Auto billing successful. Customer confirmed everything looks
+                  good.
+                </p>
+              </article>
+              <article className="activity-item">
+                <div className="activity-meta">
+                  <span className="activity-date">
+                    Jan 12, 2025 · 11:02 AM
+                  </span>
+                  <span className="activity-agent">
+                    {customer.agent || "Agent"}
+                  </span>
+                </div>
+                <p>
+                  Collected first payment and set up monthly billing. Explained
+                  renewal terms.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          {/* Optional: Files / Documents */}
+          <section className="card">
+            <div className="card-header card-header-with-actions">
+              <h3>Files &amp; Documents</h3>
+              <button className="btn-secondary">Upload New File</button>
+            </div>
+            <div className="card-body">
+              <ul className="file-list">
+                <li>
+                  <span>Quote PDF</span>
+                  <div className="file-actions">
+                    <button className="link-button">View</button>
+                    <button className="link-button">Download</button>
+                  </div>
+                </li>
+                <li>
+                  <span>ID Cards</span>
+                  <div className="file-actions">
+                    <button className="link-button">View</button>
+                    <button className="link-button">Download</button>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      {/* Global styles for this CRM layout */}
+      <style jsx global>{`
+        :root {
+          --bg-page: #f3f4f6;
+          --bg-card: #ffffff;
+          --border-subtle: #e5e7eb;
+          --text-main: #111827;
+          --text-muted: #6b7280;
+          --primary: #dc2626; /* Apex red-style color */
+          --primary-soft: #fee2e2;
+          --accent: #2563eb;
+          --radius-lg: 0.75rem;
+          --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.06);
+        }
+
+        body {
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+            sans-serif;
+          margin: 0;
+          background: var(--bg-page);
+          color: var(--text-main);
+        }
+
+        .crm-page {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 1.5rem;
+        }
+
+        .crm-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.25rem;
+          gap: 1rem;
+        }
+
+        .crm-header-left {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .crm-header-title h1 {
+          margin: 0;
+          font-size: 1.4rem;
+        }
+
+        .crm-breadcrumb {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        .crm-header-right {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .crm-main {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .card {
+          background: var(--bg-card);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-soft);
+          border: 1px solid var(--border-subtle);
+          overflow: hidden;
+        }
+
+        .card-summary {
+          display: flex;
+          justify-content: space-between;
+          gap: 1.5rem;
+          padding: 1.25rem 1.5rem;
+        }
+
+        .card-summary-left h2 {
+          margin: 0 0 0.25rem;
+        }
+
+        .card-summary-left p,
+        .card-summary-right p {
+          margin: 0.1rem 0;
+        }
+
+        .card-summary-right {
+          text-align: right;
+          font-size: 0.9rem;
+        }
+
+        .meta-text {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        .card-header,
+        .card-subheader {
+          padding: 0.9rem 1.25rem;
+          border-bottom: 1px solid var(--border-subtle);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .card-header h3,
+        .card-subheader h4 {
+          margin: 0;
+          font-size: 1rem;
+        }
+
+        .card-header-with-actions {
+          padding: 0.9rem 1.25rem;
+        }
+
+        .card-actions {
+          display: flex;
+          gap: 0.4rem;
+          flex-wrap: wrap;
+        }
+
+        .card-body {
+          padding: 1rem 1.25rem;
+        }
+
+        .card-footer {
+          padding: 0.75rem 1.25rem;
+          border-top: 1px solid var(--border-subtle);
+          text-align: right;
+        }
+
+        .card-subsection {
+          padding: 0 1.25rem 1rem;
+        }
+
+        .subtitle {
+          margin: 0.2rem 0 0;
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        .grid-two {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 1rem;
+        }
+
+        .details-list {
+          margin: 0;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0.4rem;
+        }
+
+        .details-list div {
+          display: grid;
+          grid-template-columns: 120px minmax(0, 1fr);
+          column-gap: 0.5rem;
+          row-gap: 0.1rem;
+          font-size: 0.9rem;
+        }
+
+        dt {
+          font-weight: 600;
+          color: var(--text-muted);
+        }
+
+        dd {
+          margin: 0;
+        }
+
+        .billing-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr);
+          gap: 1rem;
+        }
+
+        .billing-overview h4,
+        .payment-method h4 {
+          margin: 0 0 0.5rem;
+        }
+
+        .table-wrapper {
+          overflow-x: auto;
+          margin-top: 0.75rem;
+        }
+
+        .crm-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.88rem;
+        }
+
+        .crm-table th,
+        .crm-table td {
+          padding: 0.5rem 0.5rem;
+          border-bottom: 1px solid var(--border-subtle);
+          text-align: left;
+          white-space: nowrap;
+        }
+
+        .crm-table th {
+          font-weight: 600;
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        .activity-log {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .activity-item {
+          padding: 0.6rem 0;
+          border-bottom: 1px dashed var(--border-subtle);
+        }
+
+        .activity-item:last-child {
+          border-bottom: none;
+        }
+
+        .activity-meta {
+          display: flex;
+          gap: 0.5rem;
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          margin-bottom: 0.2rem;
+        }
+
+        .activity-agent {
+          font-weight: 600;
+        }
+
+        .file-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .file-list li {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.4rem 0;
+          border-bottom: 1px solid var(--border-subtle);
+          font-size: 0.9rem;
+        }
+
+        .file-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn-primary,
+        .btn-secondary,
+        .btn-outline,
+        .link-button {
+          font-family: inherit;
+          font-size: 0.85rem;
+          cursor: pointer;
+          border-radius: 999px;
+          border: none;
+          padding: 0.4rem 0.9rem;
+          transition: all 0.15s ease;
+        }
+
+        .btn-primary {
+          background: var(--primary);
+          color: #fff;
+          border: 1px solid var(--primary);
+        }
+
+        .btn-primary:hover {
+          background: #b91c1c;
+        }
+
+        .btn-secondary {
+          background: #f9fafb;
+          color: var(--text-main);
+          border: 1px solid var(--border-subtle);
+        }
+
+        .btn-secondary:hover {
+          background: #eef2ff;
+        }
+
+        .btn-outline {
+          background: #fff;
+          color: var(--text-main);
+          border: 1px solid var(--border-subtle);
+        }
+
+        .btn-outline:hover {
+          border-color: var(--primary);
+          color: var(--primary);
+        }
+
+        .link-button {
+          background: transparent;
+          border: none;
+          color: var(--accent);
+          padding: 0;
+        }
+
+        .link-button:hover {
+          text-decoration: underline;
+        }
+
+        /* Status pills */
+        .status-pill {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.1rem 0.55rem;
+          font-size: 0.75rem;
+          border-radius: 999px;
+          font-weight: 600;
+        }
+
+        .status-active {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        .status-warning {
+          background: #fef9c3;
+          color: #854d0e;
+        }
+
+        .status-error {
+          background: #fee2e2;
+          color: #b91c1c;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+          .card-summary {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .card-summary-right {
+            text-align: left;
+          }
+
+          .grid-two {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .billing-layout {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .crm-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .crm-header-right {
+            align-self: stretch;
+            justify-content: flex-start;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
