@@ -41,6 +41,17 @@ export default function CustomerProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [activityNotes, setActivityNotes] = useState<ActivityNote[]>([]);
 
+  // --- Edit profile state ---
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    zip: "",
+    dob: "",
+    agent: "",
+  });
+
   // Helpers
   function getPhoneHref(phone: string | undefined) {
     if (!phone) return "#";
@@ -51,12 +62,51 @@ export default function CustomerProfilePage() {
     router.push("/agent/customers");
   };
 
+  // Open edit panel and prefill with current customer data
   const handleEditProfile = () => {
-    alert("Edit Profile coming soon (you’ll be able to update customer details here).");
+    if (!customer) return;
+    setEditForm({
+      name: customer.name || "",
+      email: customer.email || "",
+      phone: customer.phone || "",
+      zip: customer.zip || "",
+      dob: customer.dob || "",
+      agent: customer.agent || "",
+    });
+    setIsEditing(true);
   };
 
   const handleEditContactDetails = () => {
-    alert("Edit Contact Details coming soon.");
+    handleEditProfile();
+  };
+
+  const handleEditInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = () => {
+    if (!customer) return;
+
+    // Update the customer data in local state so the page reflects changes
+    setCustomer({
+      ...customer,
+      name: editForm.name,
+      email: editForm.email,
+      phone: editForm.phone,
+      zip: editForm.zip,
+      dob: editForm.dob,
+      agent: editForm.agent,
+    });
+
+    setIsEditing(false);
+    // Later we can send this to your backend / Google Sheet.
   };
 
   const handleViewFullPolicy = () => {
@@ -119,6 +169,8 @@ export default function CustomerProfilePage() {
 
     // newest note at top
     setActivityNotes((prev) => [newNote, ...prev]);
+
+    // Later we can send this note to your backend/Sheet
   };
 
   useEffect(() => {
@@ -231,6 +283,92 @@ export default function CustomerProfilePage() {
             </button>
           </div>
         </header>
+
+        {/* Edit Profile Panel (inline, above main content) */}
+        {isEditing && (
+          <section className="card" style={{ marginBottom: "1rem" }}>
+            <div className="card-header">
+              <h3>Edit Profile</h3>
+            </div>
+            <div className="card-body">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: "0.75rem",
+                  fontSize: "0.85rem",
+                }}
+              >
+                <div>
+                  <label className="meta-text">Name</label>
+                  <input
+                    name="name"
+                    value={editForm.name}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                  />
+                </div>
+                <div>
+                  <label className="meta-text">Email</label>
+                  <input
+                    name="email"
+                    value={editForm.email}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                  />
+                </div>
+                <div>
+                  <label className="meta-text">Phone</label>
+                  <input
+                    name="phone"
+                    value={editForm.phone}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                  />
+                </div>
+                <div>
+                  <label className="meta-text">ZIP</label>
+                  <input
+                    name="zip"
+                    value={editForm.zip}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                  />
+                </div>
+                <div>
+                  <label className="meta-text">Date of Birth</label>
+                  <input
+                    name="dob"
+                    value={editForm.dob}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                  />
+                </div>
+                <div>
+                  <label className="meta-text">Assigned Agent</label>
+                  <input
+                    name="agent"
+                    value={editForm.agent}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="card-footer" style={{ textAlign: "right" }}>
+              <button
+                className="btn-secondary"
+                onClick={handleCancelEdit}
+                style={{ marginRight: "0.5rem" }}
+              >
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleSaveEdit}>
+                Save Changes
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* Main Content */}
         <main className="crm-main">
@@ -688,250 +826,3 @@ export default function CustomerProfilePage() {
         .card-body {
           padding: 1rem 1.25rem;
         }
-
-        .card-footer {
-          padding: 0.75rem 1.25rem;
-          border-top: 1px solid var(--border-subtle);
-          text-align: right;
-        }
-
-        .card-subsection {
-          padding: 0 1.25rem 1rem;
-        }
-
-        .subtitle {
-          margin: 0.2rem 0 0;
-          font-size: 0.8rem;
-          color: var(--text-muted);
-        }
-
-        .grid-two {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: 1rem;
-        }
-
-        .details-list {
-          margin: 0;
-          display: grid;
-          grid-template-columns: minmax(0, 1fr);
-          gap: 0.4rem;
-        }
-
-        .details-list div {
-          display: grid;
-          grid-template-columns: 120px minmax(0, 1fr);
-          column-gap: 0.5rem;
-          row-gap: 0.1rem;
-          font-size: 0.9rem;
-        }
-
-        dt {
-          font-weight: 600;
-          color: var(--text-muted);
-        }
-
-        dd {
-          margin: 0;
-        }
-
-        .billing-layout {
-          display: grid;
-          grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr);
-          gap: 1rem;
-        }
-
-        .billing-overview h4,
-        .payment-method h4 {
-          margin: 0 0 0.5rem;
-        }
-
-        .table-wrapper {
-          overflow-x: auto;
-          margin-top: 0.75rem;
-        }
-
-        .crm-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 0.88rem;
-        }
-
-        .crm-table th,
-        .crm-table td {
-          padding: 0.5rem 0.5rem;
-          border-bottom: 1px solid var(--border-subtle);
-          text-align: left;
-          white-space: nowrap;
-        }
-
-        .crm-table th {
-          font-weight: 600;
-          font-size: 0.8rem;
-          color: var(--text-muted);
-        }
-
-        .activity-log {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .activity-item {
-          padding: 0.6rem 0;
-          border-bottom: 1px dashed var(--border-subtle);
-        }
-
-        .activity-item:last-child {
-          border-bottom: none;
-        }
-
-        .activity-meta {
-          display: flex;
-          gap: 0.5rem;
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          margin-bottom: 0.2rem;
-        }
-
-        .activity-agent {
-          font-weight: 600;
-        }
-
-        .file-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .file-list li {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0.4rem 0;
-          border-bottom: 1px solid var(--border-subtle);
-          font-size: 0.9rem;
-        }
-
-        .file-actions {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        /* Buttons */
-        .btn-primary,
-        .btn-secondary,
-        .btn-outline,
-        .link-button {
-          font-family: inherit;
-          font-size: 0.85rem;
-          cursor: pointer;
-          border-radius: 999px;
-          border: none;
-          padding: 0.4rem 0.9rem;
-          transition: all 0.15s ease;
-        }
-
-        .btn-primary {
-          background: var(--primary);
-          color: #fff;
-          border: 1px solid var(--primary);
-        }
-
-        .btn-primary:hover {
-          background: #b91c1c;
-        }
-
-        .btn-secondary {
-          background: #f9fafb;
-          color: var(--text-main);
-          border: 1px solid var(--border-subtle);
-        }
-
-        .btn-secondary:hover {
-          background: #eef2ff;
-        }
-
-        .btn-outline {
-          background: #fff;
-          color: var(--text-main);
-          border: 1px solid var(--border-subtle);
-        }
-
-        .btn-outline:hover {
-          border-color: var(--primary);
-          color: var(--primary);
-        }
-
-        .link-button {
-          background: transparent;
-          border: none;
-          color: var(--accent);
-          padding: 0;
-        }
-
-        .link-button:hover {
-          text-decoration: underline;
-        }
-
-        /* Status pills */
-        .status-pill {
-          display: inline-flex;
-          align-items: center;
-          padding: 0.1rem 0.55rem;
-          font-size: 0.75rem;
-          border-radius: 999px;
-          font-weight: 600;
-        }
-
-        .status-active {
-          background: #dcfce7;
-          color: #166534;
-        }
-
-        .status-warning {
-          background: #fef9c3;
-          color: #854d0e;
-        }
-
-        .status-error {
-          background: #fee2e2;
-          color: #b91c1c;
-        }
-
-        /* Responsive */
-        @media (max-width: 900px) {
-          .card-summary {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .card-summary-right {
-            text-align: left;
-          }
-
-          .grid-two {
-            grid-template-columns: minmax(0, 1fr);
-          }
-
-          .billing-layout {
-            grid-template-columns: minmax(0, 1fr);
-          }
-
-          .crm-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .crm-header-right {
-            align-self: stretch;
-            justify-content: flex-start;
-          }
-        }
-      `}</style>
-    </>
-  );
-}
