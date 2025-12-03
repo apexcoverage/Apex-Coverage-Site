@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 
 type Lead = {
   id: number;
@@ -179,7 +180,7 @@ export default function AgentDashboardPage() {
     const s = search.trim().toLowerCase();
 
     return leads.filter((lead) => {
-      // 🔹 NEW: hide "Won" leads from this list (they'll live on the Customer page)
+      // hide "Won" leads from this list (they'll live on the Customer page)
       if ((lead.status || "") === "Won") {
         return false;
       }
@@ -354,12 +355,31 @@ export default function AgentDashboardPage() {
               View and manage quote leads synced from Google Sheets.
             </p>
           </div>
-          <button
-            onClick={loadLeads}
-            className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium bg-white hover:bg-gray-50"
-          >
-            Refresh
-          </button>
+
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            {/* Tab switcher between Leads and Customers */}
+            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1 text-xs font-medium shadow-sm">
+              <Link
+                href="/agent"
+                className="px-3 py-1.5 rounded-full bg-slate-900 text-white shadow-sm"
+              >
+                Leads
+              </Link>
+              <Link
+                href="/agent/customers"
+                className="px-3 py-1.5 rounded-full text-slate-700 hover:bg-slate-100"
+              >
+                Customers
+              </Link>
+            </div>
+
+            <button
+              onClick={loadLeads}
+              className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium bg-white hover:bg-gray-50"
+            >
+              Refresh
+            </button>
+          </div>
         </header>
 
         {/* Filters row with aligned label + inputs */}
