@@ -187,6 +187,10 @@ export default function CustomersPage() {
                   <th className="px-3 py-2 font-semibold">ZIP</th>
                   <th className="px-3 py-2 font-semibold">Agent</th>
                   <th className="px-3 py-2 font-semibold">Status</th>
+                  {/* NEW: Profile column */}
+                  <th className="px-3 py-2 font-semibold text-right">
+                    Profile
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -225,6 +229,15 @@ export default function CustomersPage() {
                       </td>
                       <td className="px-3 py-2">
                         {lead.status || "Won"}
+                      </td>
+                      {/* NEW: View profile button */}
+                      <td className="px-3 py-2 text-right">
+                        <Link
+                          href={`/agent/customers/${lead.id}`}
+                          className="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-100"
+                        >
+                          View Profile
+                        </Link>
                       </td>
                     </tr>
                   );
