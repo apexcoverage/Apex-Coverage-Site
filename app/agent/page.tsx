@@ -17,6 +17,7 @@ type Lead = {
   consent: string;
   status?: string;
   agent?: string;
+  policyNumber?: string; // 👈 NEW: stored policy number from Sheets
 };
 
 type ApiListResponse = {
@@ -147,10 +148,33 @@ export default function AgentDashboardPage() {
   async function updateLead(id: number, patch: Partial<Lead>) {
     setSavingId(id);
     try {
+      // Find the current lead so we can see existing status / policyNumber
+      const current = leads.find((l) => l.id === id);
+
+      // Start with the patch we were given
+      let finalPatch: Partial<Lead> = { ...patch };
+
+      // If we're changing status TO "Won" and there is no policyNumber yet,
+      // generate a permanent APX-321326MMYY-id style policy number.
+      if (patch.status === "Won" && current && !current.policyNumber) {
+        const COMPANY_CODE = "321326";
+
+        const now = new Date();
+        const MM = String(now.getMonth() + 1).padStart(2, "0");
+        const YY = String(now.getFullYear()).slice(-2);
+
+        // id is row-based; pad to 2 digits, e.g. 7 -> "07"
+        const formattedId = String(id).padStart(2, "0");
+
+        const policyNumber = `APX-${COMPANY_CODE}${MM}${YY}-${formattedId}`;
+
+        finalPatch.policyNumber = policyNumber;
+      }
+
       const res = await fetch("/api/agent/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, patch }),
+        body: JSON.stringify({ id, patch: finalPatch }),
       });
       const data = await res.json();
       if (!data.ok) {
@@ -162,7 +186,7 @@ export default function AgentDashboardPage() {
           lead.id === id
             ? {
                 ...lead,
-                ...patch,
+                ...finalPatch,
               }
             : lead
         )
