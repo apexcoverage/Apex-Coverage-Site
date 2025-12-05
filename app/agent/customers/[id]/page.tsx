@@ -17,6 +17,7 @@ type Lead = {
   consent: string;
   status?: string;
   agent?: string;
+  policyNumber?: string; // 👈 NEW: stored policy number from Sheets
 };
 
 type ApiListResponse = {
@@ -258,7 +259,11 @@ export default function CustomerProfilePage() {
     .filter(Boolean)
     .join(" ");
 
-  const policyNumber = `APX-${customer.id}`; // placeholder policy number
+  // 👇 Use the stored policyNumber from Sheets, with a nice fallback
+  const policyNumber =
+    customer.policyNumber && customer.policyNumber.trim().length > 0
+      ? customer.policyNumber
+      : "Policy number not set";
 
   return (
     <>
@@ -661,10 +666,7 @@ export default function CustomerProfilePage() {
                 <li>
                   <span>Quote PDF</span>
                   <div className="file-actions">
-                    <button
-                      className="link-button"
-                      onClick={handleViewFile}
-                    >
+                    <button className="link-button" onClick={handleViewFile}>
                       View
                     </button>
                     <button
@@ -678,10 +680,7 @@ export default function CustomerProfilePage() {
                 <li>
                   <span>ID Cards</span>
                   <div className="file-actions">
-                    <button
-                      className="link-button"
-                      onClick={handleViewFile}
-                    >
+                    <button className="link-button" onClick={handleViewFile}>
                       View
                     </button>
                     <button
