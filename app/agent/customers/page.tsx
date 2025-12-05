@@ -17,6 +17,7 @@ type Lead = {
   consent: string;
   status?: string;
   agent?: string;
+  policyNumber?: string; // 👈 NEW: stored policy number from Sheets
 };
 
 type ApiListResponse = {
@@ -186,8 +187,9 @@ export default function CustomersPage() {
                   <th className="px-3 py-2 font-semibold">Contact</th>
                   <th className="px-3 py-2 font-semibold">ZIP</th>
                   <th className="px-3 py-2 font-semibold">Agent</th>
+                  <th className="px-3 py-2 font-semibold">Policy #</th>
                   <th className="px-3 py-2 font-semibold">Status</th>
-                  {/* NEW: Profile column */}
+                  {/* Profile column */}
                   <th className="px-3 py-2 font-semibold text-right">
                     Profile
                   </th>
@@ -228,9 +230,12 @@ export default function CustomersPage() {
                         {lead.agent || "Unassigned"}
                       </td>
                       <td className="px-3 py-2">
+                        {lead.policyNumber || "—"}
+                      </td>
+                      <td className="px-3 py-2">
                         {lead.status || "Won"}
                       </td>
-                      {/* NEW: View profile button */}
+                      {/* View profile button */}
                       <td className="px-3 py-2 text-right">
                         <Link
                           href={`/agent/customers/${lead.id}`}
