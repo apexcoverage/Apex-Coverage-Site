@@ -87,6 +87,12 @@ const DISCOUNT_OPTIONS = [
   "Safe Driver",
   "Paid in Full",
   "Low Mileage",
+  "Claims Free",
+  "Good Student",
+  "Anti-Theft",
+  "Safety Equipment",
+  "New Vehicle",
+  "Garaged",
   "Military",
 ];
 
@@ -765,3 +771,4 @@ export default function AgentDashboardPage() {
     </main>
   );
 }
+
