@@ -96,22 +96,50 @@ export default function CustomerProfilePage() {
     setIsEditing(false);
   };
 
-  const handleSaveEdit = () => {
+  // ⭐ UPDATED: save to backend (Apps Script via /api/agent/customers/update)
+  const handleSaveEdit = async () => {
     if (!customer) return;
 
-    // Update the customer data in local state so the page reflects changes
-    setCustomer({
-      ...customer,
-      name: editForm.name,
-      email: editForm.email,
-      phone: editForm.phone,
-      zip: editForm.zip,
-      dob: editForm.dob,
-      agent: editForm.agent,
-    });
+    try {
+      const res = await fetch("/api/agent/customers/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: customer.id, // row number in Leads sheet
+          name: editForm.name,
+          email: editForm.email,
+          phone: editForm.phone,
+          zip: editForm.zip,
+          dob: editForm.dob,
+          agent: editForm.agent,
+          // policyNumber: customer.policyNumber, // optional later if you want to edit it
+        }),
+      });
 
-    setIsEditing(false);
-    // Later we can send this to your backend / Google Sheet.
+      const data = await res.json();
+
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || "Failed to save customer.");
+      }
+
+      // If backend save was successful, update local UI
+      setCustomer({
+        ...customer,
+        name: editForm.name,
+        email: editForm.email,
+        phone: editForm.phone,
+        zip: editForm.zip,
+        dob: editForm.dob,
+        agent: editForm.agent,
+      });
+
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error(err);
+      alert(
+        "There was a problem saving this customer to Google Sheets. Please try again."
+      );
+    }
   };
 
   const handleViewFullPolicy = () => {
