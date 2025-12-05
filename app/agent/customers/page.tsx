@@ -15,7 +15,9 @@ type Lead = {
   model: string;
   consent: string;
   agent?: string;
-  policyNumber?: string; // 👈 NEW: stored policy number from Sheets
+  policyNumber?: string;
+  status?: string;
+  when?: string;
 };
 
 type ApiListResponse = {
@@ -24,7 +26,6 @@ type ApiListResponse = {
   error?: string;
 };
 
-// keep this in sync with your main agent page
 const AGENTS = ["", "Lewis", "Brandon", "Kelly"];
 
 export default function CustomersPage() {
@@ -57,33 +58,24 @@ export default function CustomersPage() {
     loadLeads();
   }, []);
 
-  // Only show status === "Won" (customers), plus search + agent filter
   const visibleCustomers = useMemo(() => {
     const s = search.trim().toLowerCase();
 
     return leads.filter((lead) => {
-      // must be Won to appear here
-      if ((lead.status || "") !== "Won") {
-        return false;
-      }
+      if ((lead.status || "") !== "Won") return false;
 
-      // agent filter
-      if (agentFilter && (lead.agent || "") !== agentFilter) {
-        return false;
-      }
+      if (agentFilter && (lead.agent || "") !== agentFilter) return false;
 
-      // text search
       if (s) {
         const vehicle = [lead.year, lead.make, lead.model]
           .filter(Boolean)
           .join(" ");
+
         const haystack = (
           [lead.name, lead.email, lead.phone, lead.zip, vehicle].join(" ") || ""
         ).toLowerCase();
 
-        if (!haystack.includes(s)) {
-          return false;
-        }
+        if (!haystack.includes(s)) return false;
       }
 
       return true;
@@ -93,6 +85,7 @@ export default function CustomersPage() {
   return (
     <main className="min-h-screen bg-slate-50 text-gray-900">
       <div className="max-w-7xl mx-auto px-4 py-10">
+        
         {/* Header */}
         <header className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -103,7 +96,7 @@ export default function CustomersPage() {
           </div>
 
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            {/* Tab switcher between Leads and Customers */}
+            
             <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1 text-xs font-medium shadow-sm">
               <Link
                 href="/agent"
@@ -128,9 +121,9 @@ export default function CustomersPage() {
           </div>
         </header>
 
-        {/* Filters row */}
+        {/* Filters */}
         <section className="mb-6 flex flex-col gap-3 md:flex-row md:items-end">
-          {/* Search */}
+          
           <div className="flex-1 flex flex-col text-xs text-gray-600">
             <span className="mb-1">Search</span>
             <input
@@ -142,7 +135,6 @@ export default function CustomersPage() {
             />
           </div>
 
-          {/* Agent filter */}
           <div className="flex flex-col text-xs text-gray-600">
             <span className="mb-1">Agent</span>
             <select
@@ -160,7 +152,7 @@ export default function CustomersPage() {
           </div>
         </section>
 
-        {/* Error / loading / table */}
+        {/* Table */}
         {error && (
           <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
@@ -179,42 +171,44 @@ export default function CustomersPage() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 text-left">
                 <tr>
-                  <th className="px-3 py-2 font-semibold">When</th>
+                  {/* Removed When column */}
                   <th className="px-3 py-2 font-semibold">Name</th>
                   <th className="px-3 py-2 font-semibold">Vehicle</th>
                   <th className="px-3 py-2 font-semibold">Contact</th>
                   <th className="px-3 py-2 font-semibold">ZIP</th>
                   <th className="px-3 py-2 font-semibold">Agent</th>
                   <th className="px-3 py-2 font-semibold">Policy #</th>
-                  <th className="px-3 py-2 font-semibold">Status</th>
-                  {/* Profile column */}
+                  {/* Removed Status column */}
                   <th className="px-3 py-2 font-semibold text-right">
                     Profile
                   </th>
                 </tr>
               </thead>
+
               <tbody>
                 {visibleCustomers.map((lead) => {
                   const vehicle = [lead.year, lead.make, lead.model]
                     .filter(Boolean)
                     .join(" ");
+
                   return (
                     <tr
                       key={lead.id}
                       className="border-t border-gray-100 hover:bg-gray-50"
                     >
-                      <td className="px-3 py-2 whitespace-nowrap text-gray-500">
-                        {lead.when}
-                      </td>
+                      {/* Removed WHEN cell */}
+                      
                       <td className="px-3 py-2">
                         <div className="font-medium">{lead.name}</div>
                         <div className="text-xs text-gray-500">
                           DOB: {lead.dob || "—"}
                         </div>
                       </td>
+
                       <td className="px-3 py-2">
                         <div>{vehicle || "—"}</div>
                       </td>
+
                       <td className="px-3 py-2">
                         <div className="text-xs text-gray-700">
                           {lead.phone || "—"}
@@ -223,17 +217,17 @@ export default function CustomersPage() {
                           {lead.email || ""}
                         </div>
                       </td>
+
                       <td className="px-3 py-2">{lead.zip}</td>
-                      <td className="px-3 py-2">
-                        {lead.agent || "Unassigned"}
-                      </td>
+
+                      <td className="px-3 py-2">{lead.agent || "Unassigned"}</td>
+
                       <td className="px-3 py-2">
                         {lead.policyNumber || "—"}
                       </td>
-                      <td className="px-3 py-2">
-                        {lead.status || "Won"}
-                      </td>
-                      {/* View profile button */}
+
+                      {/* Removed STATUS cell */}
+
                       <td className="px-3 py-2 text-right">
                         <Link
                           href={`/agent/customers/${lead.id}`}
@@ -253,4 +247,3 @@ export default function CustomersPage() {
     </main>
   );
 }
-
