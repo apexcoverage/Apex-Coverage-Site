@@ -5,7 +5,6 @@ import Link from "next/link";
 
 type Lead = {
   id: number;
-  when: string;
   name: string;
   email: string;
   phone: string;
@@ -15,7 +14,6 @@ type Lead = {
   make: string;
   model: string;
   consent: string;
-  status?: string;
   agent?: string;
   policyNumber?: string; // 👈 NEW: stored policy number from Sheets
 };
@@ -255,3 +253,4 @@ export default function CustomersPage() {
     </main>
   );
 }
+
