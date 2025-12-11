@@ -19,7 +19,7 @@ type Lead = {
   agent?: string;
   policyNumber?: string; // stored policy number from Sheets
 
-  // NEW: policy-related fields (for now, UI-only until we wire Sheets)
+  // policy-related fields
   coverage?: string;
   deductibles?: string;
   discounts?: string;
@@ -128,8 +128,7 @@ export default function CustomerProfilePage() {
     setIsEditing(false);
   };
 
-  // Save contact + policy changes
-  // NOTE: policy fields are currently UI-only; we'll wire them to Sheets later.
+  // Save contact + policy changes to backend (Apps Script via /api/agent/customers/update)
   const handleSaveEdit = async () => {
     if (!customer) return;
 
@@ -139,13 +138,21 @@ export default function CustomerProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: customer.id, // row number in Leads sheet
+
+          // contact fields
           name: editForm.name,
           email: editForm.email,
           phone: editForm.phone,
           zip: editForm.zip,
           dob: editForm.dob,
           agent: editForm.agent,
-          // When we extend Sheets + Apps Script, we can add coverage, deductibles, etc. here.
+
+          // policy fields (new)
+          coverage: editForm.coverage,
+          deductibles: editForm.deductibles,
+          discounts: editForm.discounts,
+          renewalDate: editForm.renewalDate,
+          vehicles: editForm.vehicles,
         }),
       });
 
@@ -334,7 +341,7 @@ export default function CustomerProfilePage() {
     );
   }
 
-  // 👇 Base single-vehicle string from original lead data
+  // Base single-vehicle string from original lead data
   const fallbackVehicle = [customer.year, customer.make, customer.model]
     .filter(Boolean)
     .join(" ");
