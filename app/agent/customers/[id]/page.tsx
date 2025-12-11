@@ -17,7 +17,14 @@ type Lead = {
   consent: string;
   status?: string;
   agent?: string;
-  policyNumber?: string; // 👈 NEW: stored policy number from Sheets
+  policyNumber?: string; // stored policy number from Sheets
+
+  // NEW: policy-related fields (for now, UI-only until we wire Sheets)
+  coverage?: string;
+  deductibles?: string;
+  discounts?: string;
+  renewalDate?: string;
+  vehicles?: string; // multiline text, one vehicle per line
 };
 
 type ApiListResponse = {
@@ -45,12 +52,20 @@ export default function CustomerProfilePage() {
   // --- Edit profile state ---
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
+    // contact
     name: "",
     email: "",
     phone: "",
     zip: "",
     dob: "",
     agent: "",
+
+    // policy
+    coverage: "",
+    deductibles: "",
+    discounts: "",
+    renewalDate: "",
+    vehicles: "", // one vehicle per line
   });
 
   // Helpers
@@ -66,13 +81,28 @@ export default function CustomerProfilePage() {
   // Open edit panel and prefill with current customer data
   const openEditProfile = () => {
     if (!customer) return;
+
+    // fallback single vehicle string from basic year/make/model
+    const fallbackVehicle = [customer.year, customer.make, customer.model]
+      .filter(Boolean)
+      .join(" ");
+
     setEditForm({
+      // contact
       name: customer.name || "",
       email: customer.email || "",
       phone: customer.phone || "",
       zip: customer.zip || "",
       dob: customer.dob || "",
       agent: customer.agent || "",
+
+      // policy, with sensible defaults
+      coverage: customer.coverage || "Full Coverage",
+      deductibles:
+        customer.deductibles || "$500 Comp / $1,000 Collision",
+      discounts: customer.discounts || "",
+      renewalDate: customer.renewalDate || "",
+      vehicles: customer.vehicles || fallbackVehicle,
     });
     setIsEditing(true);
   };
@@ -86,7 +116,9 @@ export default function CustomerProfilePage() {
   };
 
   const handleEditInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setEditForm((prev) => ({ ...prev, [name]: value }));
@@ -96,7 +128,8 @@ export default function CustomerProfilePage() {
     setIsEditing(false);
   };
 
-  // ⭐ UPDATED: save to backend (Apps Script via /api/agent/customers/update)
+  // Save contact + policy changes
+  // NOTE: policy fields are currently UI-only; we'll wire them to Sheets later.
   const handleSaveEdit = async () => {
     if (!customer) return;
 
@@ -112,7 +145,7 @@ export default function CustomerProfilePage() {
           zip: editForm.zip,
           dob: editForm.dob,
           agent: editForm.agent,
-          // policyNumber: customer.policyNumber, // optional later if you want to edit it
+          // When we extend Sheets + Apps Script, we can add coverage, deductibles, etc. here.
         }),
       });
 
@@ -122,7 +155,7 @@ export default function CustomerProfilePage() {
         throw new Error(data.error || "Failed to save customer.");
       }
 
-      // If backend save was successful, update local UI
+      // If backend save was successful, update local UI (contact + policy)
       setCustomer({
         ...customer,
         name: editForm.name,
@@ -131,6 +164,11 @@ export default function CustomerProfilePage() {
         zip: editForm.zip,
         dob: editForm.dob,
         agent: editForm.agent,
+        coverage: editForm.coverage,
+        deductibles: editForm.deductibles,
+        discounts: editForm.discounts,
+        renewalDate: editForm.renewalDate,
+        vehicles: editForm.vehicles,
       });
 
       setIsEditing(false);
@@ -224,7 +262,20 @@ export default function CustomerProfilePage() {
           throw new Error("Customer not found");
         }
 
-        setCustomer(found);
+        // Add some default policy values when we first load the customer
+        const fallbackVehicle = [found.year, found.make, found.model]
+          .filter(Boolean)
+          .join(" ");
+
+        setCustomer({
+          ...found,
+          coverage: found.coverage || "Full Coverage",
+          deductibles:
+            found.deductibles || "$500 Comp / $1,000 Collision",
+          discounts: found.discounts || "",
+          renewalDate: found.renewalDate || "",
+          vehicles: found.vehicles || fallbackVehicle,
+        });
 
         // seed some starter activity notes (you can replace with real data later)
         const starterAgent = found.agent || "Agent";
@@ -283,15 +334,35 @@ export default function CustomerProfilePage() {
     );
   }
 
-  const vehicle = [customer.year, customer.make, customer.model]
+  // 👇 Base single-vehicle string from original lead data
+  const fallbackVehicle = [customer.year, customer.make, customer.model]
     .filter(Boolean)
     .join(" ");
 
-  // 👇 Use the stored policyNumber from Sheets, with a nice fallback
+  // Vehicles for display: either multiline policy vehicles, or fallback
+  const vehiclesRaw = customer.vehicles || fallbackVehicle || "";
+  const vehicleLines = vehiclesRaw
+    .split(/\r?\n/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  // Use the stored policyNumber from Sheets, with a nice fallback
   const policyNumber =
     customer.policyNumber && customer.policyNumber.trim().length > 0
       ? customer.policyNumber
       : "Policy number not set";
+
+  const coverageText = customer.coverage || "Full Coverage";
+  const deductiblesText =
+    customer.deductibles || "$500 Comp / $1,000 Collision";
+  const discountsText =
+    customer.discounts && customer.discounts.trim().length > 0
+      ? customer.discounts
+      : "—";
+  const renewalText =
+    customer.renewalDate && customer.renewalDate.trim().length > 0
+      ? customer.renewalDate
+      : "—";
 
   return (
     <>
@@ -326,12 +397,14 @@ export default function CustomerProfilePage() {
               <h3>Edit Profile</h3>
             </div>
             <div className="card-body">
+              {/* Contact section */}
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                   gap: "0.75rem",
                   fontSize: "0.85rem",
+                  marginBottom: "1rem",
                 }}
               >
                 <div>
@@ -388,6 +461,79 @@ export default function CustomerProfilePage() {
                     className="crm-input"
                   />
                 </div>
+              </div>
+
+              {/* Policy section */}
+              <hr style={{ margin: "0.5rem 0 1rem", borderColor: "#e5e7eb" }} />
+              <h4
+                style={{
+                  fontSize: "0.95rem",
+                  marginBottom: "0.5rem",
+                  fontWeight: 600,
+                }}
+              >
+                Policy Details
+              </h4>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "0.75rem",
+                  fontSize: "0.85rem",
+                }}
+              >
+                <div>
+                  <label className="meta-text">Coverage</label>
+                  <input
+                    name="coverage"
+                    value={editForm.coverage}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                  />
+                </div>
+                <div>
+                  <label className="meta-text">Deductibles</label>
+                  <input
+                    name="deductibles"
+                    value={editForm.deductibles}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                  />
+                </div>
+                <div>
+                  <label className="meta-text">Discounts</label>
+                  <input
+                    name="discounts"
+                    value={editForm.discounts}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                    placeholder="e.g. Military, Safe Driver"
+                  />
+                </div>
+                <div>
+                  <label className="meta-text">Renewal Date</label>
+                  <input
+                    name="renewalDate"
+                    value={editForm.renewalDate}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                    placeholder="e.g. 12/18/2025"
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: "0.75rem" }}>
+                <label className="meta-text">
+                  Vehicles (one per line, e.g. &quot;2019 Ford F-150&quot;)
+                </label>
+                <textarea
+                  name="vehicles"
+                  value={editForm.vehicles}
+                  onChange={handleEditInputChange}
+                  className="crm-input"
+                  rows={3}
+                  style={{ resize: "vertical" }}
+                />
               </div>
             </div>
             <div className="card-footer" style={{ textAlign: "right" }}>
@@ -501,23 +647,33 @@ export default function CustomerProfilePage() {
                   </div>
                   <div>
                     <dt>Coverage</dt>
-                    <dd>Full Coverage</dd>
+                    <dd>{coverageText}</dd>
                   </div>
                   <div>
                     <dt>Vehicles</dt>
-                    <dd>{vehicle || "—"}</dd>
+                    <dd>
+                      {vehicleLines.length === 0 ? (
+                        "—"
+                      ) : (
+                        <ul className="policy-vehicle-list">
+                          {vehicleLines.map((v) => (
+                            <li key={v}>{v}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </dd>
                   </div>
                   <div>
                     <dt>Deductibles</dt>
-                    <dd>$500 Comp / $1,000 Collision</dd>
+                    <dd>{deductiblesText}</dd>
                   </div>
                   <div>
                     <dt>Discounts</dt>
-                    <dd>Military, Safe Driver, Low Mileage</dd>
+                    <dd>{discountsText}</dd>
                   </div>
                   <div>
                     <dt>Renewal Date</dt>
-                    <dd>—</dd>
+                    <dd>{renewalText}</dd>
                   </div>
                 </dl>
               </div>
@@ -986,6 +1142,18 @@ export default function CustomerProfilePage() {
         .file-actions {
           display: flex;
           gap: 0.5rem;
+        }
+
+        /* Vehicles list in Policy card */
+        .policy-vehicle-list {
+          list-style: disc;
+          padding-left: 1.1rem;
+          margin: 0;
+        }
+
+        .policy-vehicle-list li {
+          margin: 0;
+          padding: 0;
         }
 
         /* Buttons */
