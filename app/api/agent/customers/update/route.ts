@@ -2,23 +2,10 @@ import { NextResponse } from "next/server";
 
 // Reuse the same env var pattern as /api/agent/leads
 const AGENT_URL =
-  process.env.APPSCRIPT_AGENT_WEBHOOK_URL ||
-  process.env.APPSCRIPT_WEBHOOK_URL;
+  process.env.APPSCRIPT_AGENT_WEBHOOK_URL || process.env.APPSCRIPT_WEBHOOK_URL;
 
 const AGENT_SECRET =
   process.env.AGENT_BACKEND_SECRET || process.env.AGENT_SECRET;
-
-if (!AGENT_URL) {
-  console.warn(
-    "Missing AGENT_URL. Set APPSCRIPT_AGENT_WEBHOOK_URL or APPSCRIPT_WEBHOOK_URL in your env."
-  );
-}
-
-if (!AGENT_SECRET) {
-  console.warn(
-    "Missing AGENT_SECRET. Set AGENT_BACKEND_SECRET or AGENT_SECRET in your env."
-  );
-}
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +14,7 @@ export async function POST(req: Request) {
         {
           ok: false,
           error:
-            "Server is missing Apps Script configuration. Check AGENT URL / SECRET env vars.",
+            "Server is missing Apps Script configuration. Check APPSCRIPT_AGENT_WEBHOOK_URL / AGENT_BACKEND_SECRET.",
         },
         { status: 500 }
       );
@@ -43,27 +30,56 @@ export async function POST(req: Request) {
       zip,
       dob,
       agent,
-      policyNumber, // optional
+
+      // policy fields
+      policyNumber,
+      coverage,
+      deductibles,
+      discounts,
+      renewalDate,
+      vehicles,
+      status,
     } = body || {};
 
     if (!id) {
       return NextResponse.json(
-        { ok: false, error: "Missing id for customer update." },
+        { ok: false, error: "Missing lead id" },
         { status: 400 }
       );
     }
 
+    // Build patch object – only include fields that were actually sent
+    const patch: Record<string, any> = {};
+
+    if (name !== undefined) patch.name = name;
+    if (email !== undefined) patch.email = email;
+    if (phone !== undefined) patch.phone = phone;
+    if (zip !== undefined) patch.zip = zip;
+    if (dob !== undefined) patch.dob = dob;
+    if (agent !== undefined) patch.agent = agent;
+
+    if (policyNumber !== undefined) patch.policyNumber = policyNumber;
+    if (coverage !== undefined) patch.coverage = coverage;
+    if (deductibles !== undefined) patch.deductibles = deductibles;
+
+    if (discounts !== undefined) {
+      patch.discounts = Array.isArray(discounts) ? discounts.join(", ") : discounts;
+    }
+
+    if (renewalDate !== undefined) patch.renewalDate = renewalDate;
+
+    if (vehicles !== undefined) {
+      patch.vehicles = Array.isArray(vehicles) ? JSON.stringify(vehicles) : String(vehicles);
+    }
+
+    if (status !== undefined) patch.status = status;
+
+    // IMPORTANT: use updateLead so Apps Script routes to agentUpdateLead_
     const payload = {
-      action: "updateCustomer", // <- matches doPost in Apps Script
+      action: "updateLead",
       secret: AGENT_SECRET,
       id,
-      name,
-      email,
-      phone,
-      zip,
-      dob,
-      agent,
-      policyNumber,
+      patch,
     };
 
     const res = await fetch(AGENT_URL, {
@@ -78,17 +94,15 @@ export async function POST(req: Request) {
     try {
       data = JSON.parse(text);
     } catch {
-      data = { raw: text };
+      data = { ok: res.ok, raw: text };
     }
 
     if (!res.ok || data.ok === false) {
-      console.error("Apps Script updateCustomer failed:", data);
       return NextResponse.json(
         {
           ok: false,
-          error:
-            data.error ||
-            `Apps Script HTTP ${res.status} when updating customer.`,
+          error: data.error || "Apps Script update failed",
+          raw: data,
         },
         { status: 500 }
       );
@@ -96,9 +110,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, data });
   } catch (err: any) {
-    console.error("Customer update API error:", err);
+    console.error("[/api/agent/customers/update] Error:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "Unknown error in update API." },
+      { ok: false, error: err?.message || "Unexpected error" },
       { status: 500 }
     );
   }
