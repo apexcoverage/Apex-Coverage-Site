@@ -1,26 +1,9 @@
 import { NextResponse } from "next/server";
-
-// Reuse the same env var pattern as /api/agent/leads
-const AGENT_URL =
-  process.env.APPSCRIPT_AGENT_WEBHOOK_URL || process.env.APPSCRIPT_WEBHOOK_URL;
-
-const AGENT_SECRET =
-  process.env.AGENT_BACKEND_SECRET || process.env.AGENT_SECRET;
+import { agentUpdateLead } from "@/lib/agentAppsScript";
 
 export async function POST(req: Request) {
   try {
-    if (!AGENT_URL || !AGENT_SECRET) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Server is missing Apps Script configuration. Check APPSCRIPT_AGENT_WEBHOOK_URL / AGENT_BACKEND_SECRET.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json();
 
     const {
       id,
@@ -30,8 +13,6 @@ export async function POST(req: Request) {
       zip,
       dob,
       agent,
-
-      // policy fields
       policyNumber,
       coverage,
       deductibles,
@@ -58,57 +39,31 @@ export async function POST(req: Request) {
     if (dob !== undefined) patch.dob = dob;
     if (agent !== undefined) patch.agent = agent;
 
+    // Policy-related fields
     if (policyNumber !== undefined) patch.policyNumber = policyNumber;
     if (coverage !== undefined) patch.coverage = coverage;
     if (deductibles !== undefined) patch.deductibles = deductibles;
 
     if (discounts !== undefined) {
-      patch.discounts = Array.isArray(discounts) ? discounts.join(", ") : discounts;
+      patch.discounts = Array.isArray(discounts)
+        ? discounts.join(", ")
+        : discounts;
     }
 
     if (renewalDate !== undefined) patch.renewalDate = renewalDate;
 
     if (vehicles !== undefined) {
-      patch.vehicles = Array.isArray(vehicles) ? JSON.stringify(vehicles) : String(vehicles);
+      // Store as text. Your Apps Script treats it as text in the sheet.
+      patch.vehicles = Array.isArray(vehicles)
+        ? JSON.stringify(vehicles)
+        : String(vehicles);
     }
 
     if (status !== undefined) patch.status = status;
 
-    // IMPORTANT: use updateLead so Apps Script routes to agentUpdateLead_
-    const payload = {
-      action: "updateLead",
-      secret: AGENT_SECRET,
-      id,
-      patch,
-    };
+    await agentUpdateLead(Number(id), patch);
 
-    const res = await fetch(AGENT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      cache: "no-store",
-    });
-
-    const text = await res.text();
-    let data: any = {};
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { ok: res.ok, raw: text };
-    }
-
-    if (!res.ok || data.ok === false) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: data.error || "Apps Script update failed",
-          raw: data,
-        },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, data });
+    return NextResponse.json({ ok: true, id, patch });
   } catch (err: any) {
     console.error("[/api/agent/customers/update] Error:", err);
     return NextResponse.json(
