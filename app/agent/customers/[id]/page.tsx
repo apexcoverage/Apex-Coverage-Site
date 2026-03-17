@@ -45,6 +45,28 @@ type ApiListResponse = {
   error?: string;
 };
 
+type PaymentHistoryRow = {
+  timestamp: string;
+  leadId: string;
+  customerName: string;
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  stripeInvoiceId: string;
+  stripePaymentIntentId: string;
+  amount: string;
+  currency: string;
+  method: string;
+  status: string;
+  receiptUrl: string;
+  eventType: string;
+};
+
+type ApiPaymentsResponse = {
+  ok: boolean;
+  rows?: PaymentHistoryRow[];
+  error?: string;
+};
+
 type ActivityNote = {
   id: number;
   text: string;
@@ -67,6 +89,20 @@ function formatCurrency(value?: string) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
+  }).format(amount);
+}
+
+function formatPaymentAmount(value?: string, currency?: string) {
+  if (!value) return "—";
+
+  const cleaned = String(value).replace(/[$,\s]/g, "");
+  const amount = Number(cleaned);
+
+  if (!Number.isFinite(amount)) return value;
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: String(currency || "usd").toUpperCase(),
   }).format(amount);
 }
 
@@ -121,8 +157,7 @@ function parseActivityLog(
       if (!trimmed) return null;
 
       const parts = trimmed.split(" — ");
-      const createdAt =
-        parts.length > 1 ? parts[0].trim() : "Activity";
+      const createdAt = parts.length > 1 ? parts[0].trim() : "Activity";
       const text =
         parts.length > 1 ? parts.slice(1).join(" — ").trim() : trimmed;
 
@@ -145,6 +180,17 @@ export default function CustomerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activityNotes, setActivityNotes] = useState<ActivityNote[]>([]);
+  const [paymentHistoryRows, setPaymentHistoryRows] = useState<
+    Array<{
+      date: string;
+      amount: string;
+      method: string;
+      status: string;
+      statusClass: string;
+      receiptUrl: string;
+      eventType: string;
+    }>
+  >([]);
   const [billingActionLoading, setBillingActionLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -170,6 +216,35 @@ export default function CustomerProfilePage() {
 
   const handleBackToCustomers = () => {
     router.push("/agent/customers");
+  };
+
+  const refreshPaymentHistoryFromApi = async (leadId: number) => {
+    const res = await fetch(`/api/agent/payments?leadId=${leadId}`, {
+      cache: "no-store",
+    });
+
+    const data: ApiPaymentsResponse = await res.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || "Failed to load payment history");
+    }
+
+    const rows = (data.rows || []).map((row, index) => {
+      const statusMeta = getBillingStatusMeta(row.status);
+
+      return {
+        date: formatDateTime(row.timestamp),
+        amount: formatPaymentAmount(row.amount, row.currency),
+        method: row.method || "—",
+        status: row.status || "—",
+        statusClass: statusMeta.className,
+        receiptUrl: row.receiptUrl || "",
+        eventType: row.eventType || `payment-${index}`,
+      };
+    });
+
+    setPaymentHistoryRows(rows);
+    return rows;
   };
 
   const refreshCustomerFromApi = async () => {
@@ -206,6 +281,8 @@ export default function CustomerProfilePage() {
     setActivityNotes(
       parseActivityLog(hydrated.activityLog, hydrated.agent || "System")
     );
+
+    await refreshPaymentHistoryFromApi(hydrated.id);
 
     return hydrated;
   };
@@ -478,12 +555,17 @@ export default function CustomerProfilePage() {
 
   const handleViewAllPayments = () => {
     alert(
-      "Payment history detail view is not wired yet. Once Stripe history is added, this will open the full payment list."
+      "This page now shows the full synced payment history. A separate full-screen payments page is not wired yet."
     );
   };
 
-  const handleViewReceipt = () => {
-    alert("Receipt view/download from Stripe is not wired yet.");
+  const handleViewReceipt = (receiptUrl?: string) => {
+    if (!receiptUrl) {
+      alert("No receipt is available for this transaction.");
+      return;
+    }
+
+    window.open(receiptUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleViewFullPolicy = () => {
@@ -599,28 +681,6 @@ export default function CustomerProfilePage() {
       ? customer.stripeMode
       : "—";
 
-  const paymentHistoryRows: Array<{
-    date: string;
-    amount: string;
-    method: string;
-    status: string;
-    statusClass: string;
-  }> = [];
-
-  if (customer?.lastPaymentDate || customer?.lastInvoiceStatus) {
-    const invoiceStatusMeta = getBillingStatusMeta(customer?.lastInvoiceStatus);
-
-    paymentHistoryRows.push({
-      date: formatDateTime(customer?.lastPaymentDate),
-      amount: monthlyPremiumText,
-      method: customer?.stripeSubscriptionId
-        ? "Stripe Subscription"
-        : "Stripe Payment",
-      status: customer?.lastInvoiceStatus || "—",
-      statusClass: invoiceStatusMeta.className,
-    });
-  }
-
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 text-gray-900">
@@ -680,8 +740,8 @@ export default function CustomerProfilePage() {
             <div className="card-body">
               {searchParams.get("paid") === "1" ? (
                 <div className="notice-success">
-                  Stripe checkout returned successfully. Billing data will appear
-                  here after the webhook updates Google Sheets.
+                  Stripe checkout returned successfully. Billing data and payment
+                  history will appear here after the webhook updates Google Sheets.
                 </div>
               ) : (
                 <div className="notice-warning">
@@ -1123,7 +1183,7 @@ export default function CustomerProfilePage() {
                       </tr>
                     ) : (
                       paymentHistoryRows.map((row, idx) => (
-                        <tr key={`${row.date}-${row.status}-${idx}`}>
+                        <tr key={`${row.date}-${row.status}-${row.eventType}-${idx}`}>
                           <td>{row.date}</td>
                           <td>{row.amount}</td>
                           <td>{row.method}</td>
@@ -1135,9 +1195,10 @@ export default function CustomerProfilePage() {
                           <td>
                             <button
                               className="link-button"
-                              onClick={handleViewReceipt}
+                              onClick={() => handleViewReceipt(row.receiptUrl)}
+                              disabled={!row.receiptUrl}
                             >
-                              View Receipt
+                              {row.receiptUrl ? "View Receipt" : "No Receipt"}
                             </button>
                           </td>
                         </tr>
