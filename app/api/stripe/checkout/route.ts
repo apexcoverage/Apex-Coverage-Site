@@ -35,6 +35,13 @@ function parseAmountToCents(value: unknown): number | null {
   return Math.round(parsed * 100);
 }
 
+function formatAmountForLog(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
 async function getOrCreateStripeCustomer(params: {
   stripe: Stripe;
   stripeCustomerId?: string;
@@ -93,9 +100,9 @@ export async function POST(req: Request) {
       name,
       phone,
       stripeCustomerId,
-      mode, // "subscription" | "payment" (optional; default subscription)
-      amount, // one-time payment amount in cents or dollars string/number
-      monthlyPremium, // recurring amount in dollars from CRM
+      mode,
+      amount,
+      monthlyPremium,
       currency,
       description,
     } = body || {};
@@ -192,6 +199,12 @@ export async function POST(req: Request) {
           },
         },
       });
+
+      await agentUpdateLead(leadId, {
+        activityNote: `Started monthly billing checkout (${formatAmountForLog(
+          monthlyPremiumCents
+        )})`,
+      });
     } else {
       let oneTimeAmountCents: number | null = null;
 
@@ -237,6 +250,12 @@ export async function POST(req: Request) {
             leadId: String(leadId),
           },
         },
+      });
+
+      await agentUpdateLead(leadId, {
+        activityNote: `Started first payment checkout (${formatAmountForLog(
+          oneTimeAmountCents
+        )})`,
       });
     }
 
