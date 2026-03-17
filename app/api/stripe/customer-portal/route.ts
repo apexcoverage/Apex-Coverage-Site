@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { agentUpdateLead } from "@/lib/agentAppsScript";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_CUSTOMER_PORTAL_RETURN_URL =
-  process.env.STRIPE_CUSTOMER_PORTAL_RETURN_URL;
+const STRIPE_RETURN_URL = process.env.STRIPE_RETURN_URL;
 
 function mustGetStripe() {
   if (!STRIPE_SECRET_KEY) {
     throw new Error("Missing STRIPE_SECRET_KEY");
   }
-
   return new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-06-30.basil" });
 }
 
@@ -30,47 +29,31 @@ export async function POST(req: Request) {
       );
     }
 
-    if (
-      !stripeCustomerId ||
-      typeof stripeCustomerId !== "string" ||
-      !stripeCustomerId.trim()
-    ) {
+    if (!stripeCustomerId) {
       return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Missing Stripe customer ID. Start billing first so a Stripe customer exists.",
-        },
+        { ok: false, error: "Missing stripeCustomerId" },
         { status: 400 }
       );
     }
 
     const leadId = Number(id);
-    if (!Number.isFinite(leadId) || leadId < 2) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid id" },
-        { status: 400 }
-      );
-    }
 
     const origin =
       req.headers.get("origin") ||
       (req.headers.get("host") ? `https://${req.headers.get("host")}` : "");
 
     const returnUrl =
-      STRIPE_CUSTOMER_PORTAL_RETURN_URL ||
+      STRIPE_RETURN_URL ||
       (origin ? `${origin}/agent/customers/${leadId}` : "");
 
-    if (!returnUrl) {
-      return NextResponse.json(
-        { ok: false, error: "Unable to determine return URL" },
-        { status: 500 }
-      );
-    }
-
     const session = await stripe.billingPortal.sessions.create({
-      customer: stripeCustomerId.trim(),
+      customer: stripeCustomerId,
       return_url: returnUrl,
+    });
+
+    // ✅ Activity Log
+    await agentUpdateLead(leadId, {
+      activityNote: "Agent opened billing portal",
     });
 
     return NextResponse.json({
