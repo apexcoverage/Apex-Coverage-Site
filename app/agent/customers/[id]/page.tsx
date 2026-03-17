@@ -1217,7 +1217,7 @@ export default function CustomerProfilePage() {
                 + Add Note
               </button>
             </div>
-            <div className="card-body activity-log">
+            <div className="card-body activity-log activity-log-scroll">
               {activityNotes.length === 0 ? (
                 <p className="text-sm text-gray-600">
                   No notes yet. Click &quot;Add Note&quot; to record an update
@@ -1717,6 +1717,29 @@ export default function CustomerProfilePage() {
           .crm-header-right {
             align-self: stretch;
             justify-content: flex-start;
+          }
+          
+          .activity-log-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 0.35rem;
+          }
+          .activity-log-scroll::-webkit-scrollbar {
+            width: 10px;
+          }
+
+          .activity-log-scroll::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 999px;
+          }
+
+          .activity-log-scroll::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 999px;
+          }
+
+          .activity-log-scroll::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
           }
         }
       `}</style>
