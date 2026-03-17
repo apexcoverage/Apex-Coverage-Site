@@ -372,10 +372,84 @@ export default function CustomerProfilePage() {
     );
   };
 
-  const handleUpdateCard = () => {
-    alert(
-      "Update Card on File is not wired yet. This will usually be done with a Stripe customer portal flow."
+  const handleUpdateCard = async () => {
+    if (!customer) return;
+
+    if (!customer.stripeCustomerId) {
+      alert(
+        "This customer does not have a Stripe customer record yet. Start billing first before updating the card on file."
+      );
+      return;
+    }
+
+    try {
+      setBillingActionLoading(true);
+
+      const res = await fetch("/api/stripe/customer-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: customer.id,
+          stripeCustomerId: customer.stripeCustomerId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.ok === false || !data.url) {
+        throw new Error(data.error || "Unable to open Stripe customer portal.");
+      }
+
+      window.location.href = data.url;
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "There was a problem opening the card update flow.");
+    } finally {
+      setBillingActionLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!customer) return;
+
+    if (!customer.stripeSubscriptionId) {
+      alert("This customer does not have an active Stripe subscription to cancel.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Cancel this subscription at the end of the current billing period?"
     );
+
+    if (!confirmed) return;
+
+    try {
+      setBillingActionLoading(true);
+
+      const res = await fetch("/api/stripe/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: customer.id,
+          stripeSubscriptionId: customer.stripeSubscriptionId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || "Unable to cancel subscription.");
+      }
+
+      await refreshCustomerFromApi();
+
+      alert("Subscription has been marked to cancel at period end.");
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "There was a problem canceling the subscription.");
+    } finally {
+      setBillingActionLoading(false);
+    }
   };
 
   const handleViewAllPayments = () => {
@@ -913,7 +987,7 @@ export default function CustomerProfilePage() {
                   disabled={billingActionLoading}
                 >
                   {billingActionLoading
-                    ? "Starting Stripe..."
+                    ? "Working..."
                     : "Collect First Payment"}
                 </button>
                 <button
@@ -922,7 +996,7 @@ export default function CustomerProfilePage() {
                   disabled={billingActionLoading}
                 >
                   {billingActionLoading
-                    ? "Starting Stripe..."
+                    ? "Working..."
                     : "Start Monthly Billing"}
                 </button>
                 <button
@@ -931,6 +1005,13 @@ export default function CustomerProfilePage() {
                   disabled={billingActionLoading}
                 >
                   Charge Customer Now
+                </button>
+                <button
+                  className="btn-outline"
+                  onClick={handleCancelSubscription}
+                  disabled={billingActionLoading}
+                >
+                  Cancel Subscription
                 </button>
               </div>
             </div>
@@ -982,9 +1063,13 @@ export default function CustomerProfilePage() {
                 </p>
                 <p>Name on Card: {customer.name || "—"}</p>
                 <p className="meta-text">
-                  The saved-card update flow is not wired yet.
+                  Open Stripe to update the saved card or billing method.
                 </p>
-                <button className="link-button" onClick={handleUpdateCard}>
+                <button
+                  className="link-button"
+                  onClick={handleUpdateCard}
+                  disabled={billingActionLoading}
+                >
                   Update card on file
                 </button>
               </div>
@@ -1414,7 +1499,8 @@ export default function CustomerProfilePage() {
 
         .btn-primary:disabled,
         .btn-secondary:disabled,
-        .btn-outline:disabled {
+        .btn-outline:disabled,
+        .link-button:disabled {
           opacity: 0.65;
           cursor: not-allowed;
         }
@@ -1457,7 +1543,7 @@ export default function CustomerProfilePage() {
           padding: 0;
         }
 
-        .link-button:hover {
+        .link-button:hover:not(:disabled) {
           text-decoration: underline;
         }
 
