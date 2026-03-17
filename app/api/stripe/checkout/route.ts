@@ -9,7 +9,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID; // subscription price
 const STRIPE_SUCCESS_URL = process.env.STRIPE_SUCCESS_URL; // optional
 const STRIPE_CANCEL_URL = process.env.STRIPE_CANCEL_URL; // optional
 
@@ -19,6 +18,21 @@ function mustGetStripe() {
   }
 
   return new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-06-30.basil" });
+}
+
+function normalizeOptionalString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function parseAmountToCents(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+
+  const raw = String(value).replace(/[$,\s]/g, "");
+  const parsed = Number(raw);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+
+  return Math.round(parsed * 100);
 }
 
 async function getOrCreateStripeCustomer(params: {
@@ -74,15 +88,16 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const {
-      id, // Lead/Customer row id (your system of record)
+      id,
       email,
       name,
       phone,
-      stripeCustomerId, // optional existing Stripe customer id from CRM
+      stripeCustomerId,
       mode, // "subscription" | "payment" (optional; default subscription)
-      amount, // for one-time payment in cents if mode==="payment"
-      currency, // default "usd"
-      description, // optional
+      amount, // one-time payment amount in cents or dollars string/number
+      monthlyPremium, // recurring amount in dollars from CRM
+      currency,
+      description,
     } = body || {};
 
     if (!id) {
@@ -114,19 +129,13 @@ export async function POST(req: Request) {
 
     const customer = await getOrCreateStripeCustomer({
       stripe,
-      stripeCustomerId:
-        typeof stripeCustomerId === "string" && stripeCustomerId.trim()
-          ? stripeCustomerId.trim()
-          : undefined,
-      email:
-        typeof email === "string" && email.trim() ? email.trim() : undefined,
-      name: typeof name === "string" && name.trim() ? name.trim() : undefined,
-      phone:
-        typeof phone === "string" && phone.trim() ? phone.trim() : undefined,
+      stripeCustomerId: normalizeOptionalString(stripeCustomerId),
+      email: normalizeOptionalString(email),
+      name: normalizeOptionalString(name),
+      phone: normalizeOptionalString(phone),
       leadId,
     });
 
-    // Persist Stripe customer id immediately (refresh-proof)
     await agentUpdateLead(leadId, {
       stripeCustomerId: customer.id,
       stripeMode,
@@ -138,10 +147,16 @@ export async function POST(req: Request) {
     let session: Stripe.Checkout.Session;
 
     if (checkoutMode === "subscription") {
-      if (!STRIPE_PRICE_ID) {
+      const monthlyPremiumCents = parseAmountToCents(monthlyPremium);
+
+      if (!monthlyPremiumCents || monthlyPremiumCents < 50) {
         return NextResponse.json(
-          { ok: false, error: "Missing STRIPE_PRICE_ID for subscriptions" },
-          { status: 500 }
+          {
+            ok: false,
+            error:
+              "Missing or invalid monthlyPremium. Add the customer's Monthly Premium before starting billing.",
+          },
+          { status: 400 }
         );
       }
 
@@ -149,24 +164,49 @@ export async function POST(req: Request) {
         mode: "subscription",
         customer: customer.id,
         client_reference_id: String(leadId),
-        line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+        line_items: [
+          {
+            price_data: {
+              currency: currency || "usd",
+              product_data: {
+                name: description || "Apex Coverage Monthly Billing",
+              },
+              recurring: {
+                interval: "month",
+              },
+              unit_amount: monthlyPremiumCents,
+            },
+            quantity: 1,
+          },
+        ],
         success_url: successUrl,
         cancel_url: cancelUrl,
         metadata: {
           leadId: String(leadId),
+          monthlyPremium: String(monthlyPremium),
         },
         subscription_data: {
           metadata: {
             leadId: String(leadId),
+            monthlyPremium: String(monthlyPremium),
           },
         },
       });
     } else {
-      const amt = Number(amount);
+      let oneTimeAmountCents: number | null = null;
 
-      if (!amt || amt < 50) {
+      if (typeof amount === "number" && Number.isFinite(amount)) {
+        oneTimeAmountCents = Math.round(amount);
+      } else {
+        oneTimeAmountCents = parseAmountToCents(amount);
+      }
+
+      if (!oneTimeAmountCents || oneTimeAmountCents < 50) {
         return NextResponse.json(
-          { ok: false, error: "Missing/invalid amount (cents) for payment mode" },
+          {
+            ok: false,
+            error: "Missing/invalid amount for payment mode",
+          },
           { status: 400 }
         );
       }
@@ -182,7 +222,7 @@ export async function POST(req: Request) {
               product_data: {
                 name: description || "Apex Coverage Payment",
               },
-              unit_amount: amt,
+              unit_amount: oneTimeAmountCents,
             },
             quantity: 1,
           },
