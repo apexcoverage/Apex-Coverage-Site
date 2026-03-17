@@ -25,6 +25,7 @@ type Lead = {
   discounts?: string;
   renewalDate?: string;
   vehicles?: string;
+  monthlyPremium?: string;
 
   // stripe / billing fields
   stripeCustomerId?: string;
@@ -53,6 +54,17 @@ function formatDateTime(value?: string) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleString();
+}
+
+function formatCurrency(value?: string) {
+  if (!value) return "—";
+  const cleaned = String(value).replace(/[$,\s]/g, "");
+  const amount = Number(cleaned);
+  if (!Number.isFinite(amount)) return value;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
 }
 
 function getBillingStatusMeta(status?: string) {
@@ -117,6 +129,7 @@ export default function CustomerProfilePage() {
     discounts: "",
     renewalDate: "",
     vehicles: "",
+    monthlyPremium: "",
   });
 
   function getPhoneHref(phone: string | undefined) {
@@ -154,6 +167,7 @@ export default function CustomerProfilePage() {
       discounts: found.discounts || "",
       renewalDate: found.renewalDate || "",
       vehicles: found.vehicles || fallbackVehicle,
+      monthlyPremium: found.monthlyPremium || "",
     };
 
     setCustomer(hydrated);
@@ -179,6 +193,7 @@ export default function CustomerProfilePage() {
       discounts: customer.discounts || "",
       renewalDate: customer.renewalDate || "",
       vehicles: customer.vehicles || fallbackVehicle,
+      monthlyPremium: customer.monthlyPremium || "",
     });
     setIsEditing(true);
   };
@@ -224,6 +239,7 @@ export default function CustomerProfilePage() {
           discounts: editForm.discounts,
           renewalDate: editForm.renewalDate,
           vehicles: editForm.vehicles,
+          monthlyPremium: editForm.monthlyPremium,
         }),
       });
 
@@ -246,6 +262,7 @@ export default function CustomerProfilePage() {
         discounts: editForm.discounts,
         renewalDate: editForm.renewalDate,
         vehicles: editForm.vehicles,
+        monthlyPremium: editForm.monthlyPremium,
       });
 
       setIsEditing(false);
@@ -260,6 +277,7 @@ export default function CustomerProfilePage() {
   const beginStripeCheckout = async (opts: {
     mode: "subscription" | "payment";
     amount?: number;
+    monthlyPremium?: string;
     description?: string;
   }) => {
     if (!customer) return;
@@ -278,6 +296,7 @@ export default function CustomerProfilePage() {
           stripeCustomerId: customer.stripeCustomerId,
           mode: opts.mode,
           amount: opts.amount,
+          monthlyPremium: opts.monthlyPremium,
           description: opts.description,
         }),
       });
@@ -312,30 +331,38 @@ export default function CustomerProfilePage() {
   const handleCollectFirstPayment = async () => {
     if (!customer) return;
 
-    const input = window.prompt(
-      "Enter the first payment amount in dollars (example: 189)"
-    );
+    const premium = String(customer.monthlyPremium || "").trim();
 
-    if (!input) return;
-
-    const amountDollars = Number(String(input).replace(/[$,\s]/g, ""));
-    if (!Number.isFinite(amountDollars) || amountDollars <= 0) {
-      alert("Please enter a valid dollar amount.");
+    if (!premium) {
+      alert(
+        "Set the customer's Monthly Premium first, then save the profile before collecting payment."
+      );
       return;
     }
 
-    const amountCents = Math.round(amountDollars * 100);
-
     await beginStripeCheckout({
       mode: "payment",
-      amount: amountCents,
+      amount: Math.round(Number(String(premium).replace(/[$,\s]/g, "")) * 100),
       description: `First payment for ${customer.name || "customer"}`,
     });
   };
 
   const handleStartMonthlyBilling = async () => {
+    if (!customer) return;
+
+    const premium = String(customer.monthlyPremium || "").trim();
+
+    if (!premium) {
+      alert(
+        "Set the customer's Monthly Premium first, then save the profile before starting monthly billing."
+      );
+      return;
+    }
+
     await beginStripeCheckout({
       mode: "subscription",
+      monthlyPremium: premium,
+      description: `Monthly billing for ${customer.name || "customer"}`,
     });
   };
 
@@ -466,6 +493,10 @@ export default function CustomerProfilePage() {
     customer?.renewalDate && customer.renewalDate.trim().length > 0
       ? customer.renewalDate
       : "—";
+  const monthlyPremiumText =
+    customer?.monthlyPremium && customer.monthlyPremium.trim().length > 0
+      ? formatCurrency(customer.monthlyPremium)
+      : "—";
 
   const billingMeta = getBillingStatusMeta(customer?.billingStatus);
   const stripeModeText =
@@ -486,7 +517,7 @@ export default function CustomerProfilePage() {
 
     paymentHistoryRows.push({
       date: formatDateTime(customer?.lastPaymentDate),
-      amount: "—",
+      amount: monthlyPremiumText,
       method: customer?.stripeSubscriptionId
         ? "Stripe Subscription"
         : "Stripe Payment",
@@ -693,6 +724,16 @@ export default function CustomerProfilePage() {
                     placeholder="e.g. 12/18/2025"
                   />
                 </div>
+                <div>
+                  <label className="meta-text">Monthly Premium</label>
+                  <input
+                    name="monthlyPremium"
+                    value={editForm.monthlyPremium}
+                    onChange={handleEditInputChange}
+                    className="crm-input"
+                    placeholder="e.g. 189"
+                  />
+                </div>
               </div>
 
               <div style={{ marginTop: "0.75rem" }}>
@@ -843,6 +884,10 @@ export default function CustomerProfilePage() {
                     <dt>Renewal Date</dt>
                     <dd>{renewalText}</dd>
                   </div>
+                  <div>
+                    <dt>Monthly Premium</dt>
+                    <dd>{monthlyPremiumText}</dd>
+                  </div>
                 </dl>
               </div>
               <div className="card-footer">
@@ -901,6 +946,10 @@ export default function CustomerProfilePage() {
                         {billingMeta.label}
                       </span>
                     </dd>
+                  </div>
+                  <div>
+                    <dt>Monthly Premium</dt>
+                    <dd>{monthlyPremiumText}</dd>
                   </div>
                   <div>
                     <dt>Stripe Mode</dt>
