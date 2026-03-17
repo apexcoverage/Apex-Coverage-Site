@@ -24,6 +24,14 @@ function parseLeadId(value: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function formatAmountFromCents(cents: number | null | undefined): string {
+  if (typeof cents !== "number" || !Number.isFinite(cents)) return "";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
 async function getLeadIdFromCustomer(
   stripe: Stripe,
   customerId: string | null | undefined
@@ -71,22 +79,18 @@ async function resolveLeadId(
   stripe: Stripe,
   obj: any
 ): Promise<number | null> {
-  // 1) Direct metadata on object
   const fromMetadata = parseLeadId(obj?.metadata?.leadId);
   if (fromMetadata) return fromMetadata;
 
-  // 2) Checkout session client_reference_id
   const fromClientRef = parseLeadId(obj?.client_reference_id);
   if (fromClientRef) return fromClientRef;
 
-  // 3) Customer metadata fallback
   const customerId =
     typeof obj?.customer === "string" ? obj.customer : null;
 
   const fromCustomer = await getLeadIdFromCustomer(stripe, customerId);
   if (fromCustomer) return fromCustomer;
 
-  // 4) Subscription metadata fallback
   const subscriptionId =
     typeof obj?.subscription === "string"
       ? obj.subscription
@@ -160,8 +164,10 @@ export async function POST(req: Request) {
               patch.stripeSubscriptionId = session.subscription;
             }
             patch.billingStatus = "active";
+            patch.activityNote = "Monthly billing checkout completed";
           } else {
             patch.billingStatus = "paid";
+            patch.activityNote = "First payment checkout completed";
           }
 
           await agentUpdateLead(leadId, patch);
@@ -185,6 +191,10 @@ export async function POST(req: Request) {
         const leadId = await resolveLeadId(stripe, invoice);
 
         if (leadId) {
+          const amountText = formatAmountFromCents(invoice.amount_paid);
+          const isSubscriptionInvoice =
+            typeof invoice.subscription === "string" && !!invoice.subscription;
+
           await agentUpdateLead(leadId, {
             stripeMode,
             stripeCustomerId:
@@ -199,6 +209,9 @@ export async function POST(req: Request) {
                 Math.floor(Date.now() / 1000)) * 1000
             ).toISOString(),
             billingStatus: "active",
+            activityNote: isSubscriptionInvoice
+              ? `Subscription payment succeeded${amountText ? ` (${amountText})` : ""}`
+              : `Payment succeeded${amountText ? ` (${amountText})` : ""}`,
           });
         } else {
           console.warn(
@@ -219,6 +232,7 @@ export async function POST(req: Request) {
         const leadId = await resolveLeadId(stripe, invoice);
 
         if (leadId) {
+          const amountText = formatAmountFromCents(invoice.amount_due);
           await agentUpdateLead(leadId, {
             stripeMode,
             stripeCustomerId:
@@ -229,6 +243,7 @@ export async function POST(req: Request) {
                 : undefined,
             lastInvoiceStatus: invoice.status || "open",
             billingStatus: "past_due",
+            activityNote: `Payment failed${amountText ? ` (${amountText})` : ""}`,
           });
         } else {
           console.warn(
@@ -250,6 +265,16 @@ export async function POST(req: Request) {
         const leadId = await resolveLeadId(stripe, sub);
 
         if (leadId) {
+          let activityNote = "";
+
+          if (event.type === "customer.subscription.deleted") {
+            activityNote = "Subscription canceled in Stripe";
+          } else if (sub.cancel_at_period_end) {
+            activityNote = "Subscription set to cancel at period end";
+          } else {
+            activityNote = `Subscription updated (${sub.status || "unknown"})`;
+          }
+
           await agentUpdateLead(leadId, {
             stripeMode,
             stripeCustomerId:
@@ -259,6 +284,7 @@ export async function POST(req: Request) {
               event.type === "customer.subscription.deleted"
                 ? "canceled"
                 : sub.status || "unknown",
+            activityNote,
           });
         } else {
           console.warn(
