@@ -27,6 +27,9 @@ type Lead = {
   vehicles?: string;
   monthlyPremium?: string;
 
+  // activity log
+  activityLog?: string;
+
   // stripe / billing fields
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
@@ -105,6 +108,34 @@ function getBillingStatusMeta(status?: string) {
   }
 }
 
+function parseActivityLog(
+  raw: string | undefined,
+  fallbackAgent: string
+): ActivityNote[] {
+  if (!raw || !raw.trim()) return [];
+
+  return raw
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) return null;
+
+      const parts = trimmed.split(" — ");
+      const createdAt =
+        parts.length > 1 ? parts[0].trim() : "Activity";
+      const text =
+        parts.length > 1 ? parts.slice(1).join(" — ").trim() : trimmed;
+
+      return {
+        id: Date.now() + index,
+        text,
+        createdAt,
+        agent: fallbackAgent || "System",
+      };
+    })
+    .filter(Boolean) as ActivityNote[];
+}
+
 export default function CustomerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -168,9 +199,14 @@ export default function CustomerProfilePage() {
       renewalDate: found.renewalDate || "",
       vehicles: found.vehicles || fallbackVehicle,
       monthlyPremium: found.monthlyPremium || "",
+      activityLog: found.activityLog || "",
     };
 
     setCustomer(hydrated);
+    setActivityNotes(
+      parseActivityLog(hydrated.activityLog, hydrated.agent || "System")
+    );
+
     return hydrated;
   };
 
@@ -240,6 +276,7 @@ export default function CustomerProfilePage() {
           renewalDate: editForm.renewalDate,
           vehicles: editForm.vehicles,
           monthlyPremium: editForm.monthlyPremium,
+          activityNote: "Profile updated",
         }),
       });
 
@@ -249,22 +286,7 @@ export default function CustomerProfilePage() {
         throw new Error(data.error || "Failed to save customer.");
       }
 
-      setCustomer({
-        ...customer,
-        name: editForm.name,
-        email: editForm.email,
-        phone: editForm.phone,
-        zip: editForm.zip,
-        dob: editForm.dob,
-        agent: editForm.agent,
-        coverage: editForm.coverage,
-        deductibles: editForm.deductibles,
-        discounts: editForm.discounts,
-        renewalDate: editForm.renewalDate,
-        vehicles: editForm.vehicles,
-        monthlyPremium: editForm.monthlyPremium,
-      });
-
+      await refreshCustomerFromApi();
       setIsEditing(false);
     } catch (err) {
       console.error(err);
@@ -413,7 +435,9 @@ export default function CustomerProfilePage() {
     if (!customer) return;
 
     if (!customer.stripeSubscriptionId) {
-      alert("This customer does not have an active Stripe subscription to cancel.");
+      alert(
+        "This customer does not have an active Stripe subscription to cancel."
+      );
       return;
     }
 
@@ -478,19 +502,33 @@ export default function CustomerProfilePage() {
     alert("File download coming soon.");
   };
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
+    if (!customer) return;
+
     const text = window.prompt("Add a note for this customer:");
     if (!text || !text.trim()) return;
 
-    const agentName = customer?.agent || "Agent";
-    const newNote: ActivityNote = {
-      id: Date.now(),
-      text: text.trim(),
-      createdAt: new Date().toLocaleString(),
-      agent: agentName,
-    };
+    try {
+      const res = await fetch("/api/agent/customers/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: customer.id,
+          activityNote: text.trim(),
+        }),
+      });
 
-    setActivityNotes((prev) => [newNote, ...prev]);
+      const data = await res.json();
+
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || "Unable to save note.");
+      }
+
+      await refreshCustomerFromApi();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "There was a problem saving the note.");
+    }
   };
 
   useEffect(() => {
@@ -498,24 +536,7 @@ export default function CustomerProfilePage() {
       try {
         setLoading(true);
         setError(null);
-
-        const found = await refreshCustomerFromApi();
-
-        const starterAgent = found.agent || "Agent";
-        setActivityNotes([
-          {
-            id: 2,
-            text: "Collected first payment and set up monthly billing. Explained renewal terms.",
-            createdAt: "Jan 12, 2025 · 11:02 AM",
-            agent: starterAgent,
-          },
-          {
-            id: 1,
-            text: "Auto billing successful. Customer confirmed everything looks good.",
-            createdAt: "Feb 12, 2025 · 3:14 PM",
-            agent: starterAgent,
-          },
-        ]);
+        await refreshCustomerFromApi();
       } catch (err: any) {
         console.error(err);
         setError(err.message || "Error loading customer");
