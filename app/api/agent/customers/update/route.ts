@@ -19,6 +19,7 @@ export async function POST(req: Request) {
       discounts,
       renewalDate,
       vehicles,
+      monthlyPremium,
       status,
     } = body || {};
 
@@ -29,7 +30,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Build patch object – only include fields that were actually sent
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId) || numericId < 2) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid lead id" },
+        { status: 400 }
+      );
+    }
+
     const patch: Record<string, any> = {};
 
     if (name !== undefined) patch.name = name;
@@ -39,7 +47,6 @@ export async function POST(req: Request) {
     if (dob !== undefined) patch.dob = dob;
     if (agent !== undefined) patch.agent = agent;
 
-    // Policy-related fields
     if (policyNumber !== undefined) patch.policyNumber = policyNumber;
     if (coverage !== undefined) patch.coverage = coverage;
     if (deductibles !== undefined) patch.deductibles = deductibles;
@@ -53,17 +60,23 @@ export async function POST(req: Request) {
     if (renewalDate !== undefined) patch.renewalDate = renewalDate;
 
     if (vehicles !== undefined) {
-      // Store as text. Your Apps Script treats it as text in the sheet.
       patch.vehicles = Array.isArray(vehicles)
-        ? JSON.stringify(vehicles)
+        ? vehicles.join("\n")
         : String(vehicles);
+    }
+
+    if (monthlyPremium !== undefined) {
+      patch.monthlyPremium =
+        monthlyPremium === null || monthlyPremium === ""
+          ? ""
+          : String(monthlyPremium).trim();
     }
 
     if (status !== undefined) patch.status = status;
 
-    await agentUpdateLead(Number(id), patch);
+    await agentUpdateLead(numericId, patch);
 
-    return NextResponse.json({ ok: true, id, patch });
+    return NextResponse.json({ ok: true, id: numericId, patch });
   } catch (err: any) {
     console.error("[/api/agent/customers/update] Error:", err);
     return NextResponse.json(
