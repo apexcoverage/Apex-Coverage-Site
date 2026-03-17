@@ -69,6 +69,7 @@ export async function POST(req: Request) {
       billingStatus: subscription.cancel_at_period_end
         ? "canceled"
         : subscription.status || "unknown",
+      activityNote: "Subscription set to cancel at period end",
     });
 
     return NextResponse.json({
