@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 type Lead = {
@@ -47,13 +47,6 @@ type ActivityNote = {
   createdAt: string;
   agent: string;
 };
-
-function formatMoneyFromCents(cents: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
 
 function formatDateTime(value?: string) {
   if (!value) return "—";
@@ -111,18 +104,14 @@ export default function CustomerProfilePage() {
   const [activityNotes, setActivityNotes] = useState<ActivityNote[]>([]);
   const [billingActionLoading, setBillingActionLoading] = useState(false);
 
-  // --- Edit profile state ---
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
-    // contact
     name: "",
     email: "",
     phone: "",
     zip: "",
     dob: "",
     agent: "",
-
-    // policy
     coverage: "",
     deductibles: "",
     discounts: "",
@@ -158,16 +147,17 @@ export default function CustomerProfilePage() {
       .filter(Boolean)
       .join(" ");
 
-    setCustomer({
+    const hydrated = {
       ...found,
       coverage: found.coverage || "Full Coverage",
       deductibles: found.deductibles || "$500 Comp / $1,000 Collision",
       discounts: found.discounts || "",
       renewalDate: found.renewalDate || "",
       vehicles: found.vehicles || fallbackVehicle,
-    });
+    };
 
-    return found;
+    setCustomer(hydrated);
+    return hydrated;
   };
 
   const openEditProfile = () => {
@@ -298,7 +288,6 @@ export default function CustomerProfilePage() {
         throw new Error(data.error || "Unable to start Stripe checkout.");
       }
 
-      // Keep local state in sync immediately if checkout returned a customer id
       if (data.stripeCustomerId) {
         setCustomer((prev) =>
           prev
@@ -451,6 +440,61 @@ export default function CustomerProfilePage() {
     });
   }, [searchParams, customer]);
 
+  const fallbackVehicle = customer
+    ? [customer.year, customer.make, customer.model].filter(Boolean).join(" ")
+    : "";
+
+  const vehiclesRaw = customer?.vehicles || fallbackVehicle || "";
+  const vehicleLines = vehiclesRaw
+    .split(/\r?\n/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  const policyNumber =
+    customer?.policyNumber && customer.policyNumber.trim().length > 0
+      ? customer.policyNumber
+      : "Policy number not set";
+
+  const coverageText = customer?.coverage || "Full Coverage";
+  const deductiblesText =
+    customer?.deductibles || "$500 Comp / $1,000 Collision";
+  const discountsText =
+    customer?.discounts && customer.discounts.trim().length > 0
+      ? customer.discounts
+      : "—";
+  const renewalText =
+    customer?.renewalDate && customer.renewalDate.trim().length > 0
+      ? customer.renewalDate
+      : "—";
+
+  const billingMeta = getBillingStatusMeta(customer?.billingStatus);
+  const stripeModeText =
+    customer?.stripeMode && customer.stripeMode.trim()
+      ? customer.stripeMode
+      : "—";
+
+  const paymentHistoryRows: Array<{
+    date: string;
+    amount: string;
+    method: string;
+    status: string;
+    statusClass: string;
+  }> = [];
+
+  if (customer?.lastPaymentDate || customer?.lastInvoiceStatus) {
+    const invoiceStatusMeta = getBillingStatusMeta(customer?.lastInvoiceStatus);
+
+    paymentHistoryRows.push({
+      date: formatDateTime(customer?.lastPaymentDate),
+      amount: "—",
+      method: customer?.stripeSubscriptionId
+        ? "Stripe Subscription"
+        : "Stripe Payment",
+      status: customer?.lastInvoiceStatus || "—",
+      statusClass: invoiceStatusMeta.className,
+    });
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 text-gray-900">
@@ -478,69 +522,6 @@ export default function CustomerProfilePage() {
       </main>
     );
   }
-
-  const fallbackVehicle = [customer.year, customer.make, customer.model]
-    .filter(Boolean)
-    .join(" ");
-
-  const vehiclesRaw = customer.vehicles || fallbackVehicle || "";
-  const vehicleLines = vehiclesRaw
-    .split(/\r?\n/)
-    .map((v) => v.trim())
-    .filter(Boolean);
-
-  const policyNumber =
-    customer.policyNumber && customer.policyNumber.trim().length > 0
-      ? customer.policyNumber
-      : "Policy number not set";
-
-  const coverageText = customer.coverage || "Full Coverage";
-  const deductiblesText =
-    customer.deductibles || "$500 Comp / $1,000 Collision";
-  const discountsText =
-    customer.discounts && customer.discounts.trim().length > 0
-      ? customer.discounts
-      : "—";
-  const renewalText =
-    customer.renewalDate && customer.renewalDate.trim().length > 0
-      ? customer.renewalDate
-      : "—";
-
-  const billingMeta = getBillingStatusMeta(customer.billingStatus);
-  const stripeModeText =
-    customer.stripeMode && customer.stripeMode.trim()
-      ? customer.stripeMode
-      : "—";
-
-  const paymentHistoryRows = useMemo(() => {
-    const rows: Array<{
-      date: string;
-      amount: string;
-      method: string;
-      status: string;
-      statusClass: string;
-    }> = [];
-
-    if (customer.lastPaymentDate || customer.lastInvoiceStatus) {
-      const invoiceStatusMeta = getBillingStatusMeta(customer.lastInvoiceStatus);
-
-      rows.push({
-        date: formatDateTime(customer.lastPaymentDate),
-        amount: "—",
-        method: customer.stripeSubscriptionId
-          ? "Stripe Subscription"
-          : "Stripe Payment",
-        status: customer.lastInvoiceStatus || "—",
-        statusClass: invoiceStatusMeta.className,
-      });
-    }
-
-    return rows;
-  }, [
-    customer.lastInvoiceStatus,
-    customer.lastPaymentDate,
-    customer.stripeSubscriptionId,
-  ]);
 
   return (
     <>
