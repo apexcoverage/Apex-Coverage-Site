@@ -20,6 +20,7 @@ export async function POST(req: Request) {
       renewalDate,
       vehicles,
       monthlyPremium,
+      activityNote,
       status,
     } = body || {};
 
@@ -70,6 +71,13 @@ export async function POST(req: Request) {
         monthlyPremium === null || monthlyPremium === ""
           ? ""
           : String(monthlyPremium).trim();
+    }
+
+    if (activityNote !== undefined) {
+      patch.activityNote =
+        activityNote === null || activityNote === ""
+          ? ""
+          : String(activityNote).trim();
     }
 
     if (status !== undefined) patch.status = status;
