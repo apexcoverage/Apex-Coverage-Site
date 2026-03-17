@@ -11,6 +11,14 @@ export const dynamic = "force-dynamic";
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
+const AGENT_URL =
+  process.env.APPSCRIPT_AGENT_WEBHOOK_URL ||
+  process.env.APPSCRIPT_WEBHOOK_URL;
+
+const AGENT_SECRET =
+  process.env.AGENT_BACKEND_SECRET ||
+  process.env.AGENT_SECRET;
+
 function mustGetStripe() {
   if (!STRIPE_SECRET_KEY) {
     throw new Error("Missing STRIPE_SECRET_KEY");
@@ -26,10 +34,56 @@ function parseLeadId(value: unknown): number | null {
 
 function formatAmountFromCents(cents: number | null | undefined): string {
   if (typeof cents !== "number" || !Number.isFinite(cents)) return "";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
+  return (cents / 100).toFixed(2);
+}
+
+async function appendPaymentHistory(entry: {
+  leadId: number;
+  customerName?: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripeInvoiceId?: string;
+  stripePaymentIntentId?: string;
+  amount?: string;
+  currency?: string;
+  method?: string;
+  status?: string;
+  receiptUrl?: string;
+  eventType?: string;
+}) {
+  if (!AGENT_URL || !AGENT_SECRET) {
+    console.warn(
+      "[/api/stripe/webhook] Missing Apps Script env vars for payment history append"
+    );
+    return;
+  }
+
+  const payload = {
+    action: "appendpaymenthistory",
+    secret: AGENT_SECRET,
+    ...entry,
+  };
+
+  const res = await fetch(AGENT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const text = await res.text();
+  let data: any = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error("Bad JSON from Apps Script (appendpaymenthistory): " + text);
+  }
+
+  if (!res.ok || !data?.ok) {
+    throw new Error(
+      data?.error || text || res.statusText || "Payment history append failed"
+    );
+  }
 }
 
 async function getLeadIdFromCustomer(
@@ -171,6 +225,34 @@ export async function POST(req: Request) {
           }
 
           await agentUpdateLead(leadId, patch);
+
+          // For one-time checkout payments, store a ledger row here.
+          // Subscription renewals are tracked from invoice events instead.
+          if (session.mode === "payment") {
+            await appendPaymentHistory({
+              leadId,
+              customerName:
+                typeof session.customer_details?.name === "string"
+                  ? session.customer_details.name
+                  : "",
+              stripeCustomerId:
+                typeof session.customer === "string" ? session.customer : "",
+              stripeSubscriptionId: "",
+              stripeInvoiceId: "",
+              stripePaymentIntentId:
+                typeof session.payment_intent === "string"
+                  ? session.payment_intent
+                  : "",
+              amount: formatAmountFromCents(session.amount_total ?? null),
+              currency: session.currency || "usd",
+              method: "Stripe Payment",
+              status:
+                session.payment_status ||
+                (session.status === "complete" ? "paid" : session.status || ""),
+              receiptUrl: "",
+              eventType: event.type,
+            });
+          }
         } else {
           console.warn(
             "[/api/stripe/webhook] checkout.session.completed had no resolvable leadId",
@@ -210,8 +292,32 @@ export async function POST(req: Request) {
             ).toISOString(),
             billingStatus: "active",
             activityNote: isSubscriptionInvoice
-              ? `Subscription payment succeeded${amountText ? ` (${amountText})` : ""}`
-              : `Payment succeeded${amountText ? ` (${amountText})` : ""}`,
+              ? `Subscription payment succeeded${
+                  amountText ? ` ($${amountText})` : ""
+                }`
+              : `Payment succeeded${amountText ? ` ($${amountText})` : ""}`,
+          });
+
+          await appendPaymentHistory({
+            leadId,
+            customerName: "",
+            stripeCustomerId:
+              typeof invoice.customer === "string" ? invoice.customer : "",
+            stripeSubscriptionId:
+              typeof invoice.subscription === "string"
+                ? invoice.subscription
+                : "",
+            stripeInvoiceId: invoice.id || "",
+            stripePaymentIntentId:
+              typeof invoice.payment_intent === "string"
+                ? invoice.payment_intent
+                : "",
+            amount: amountText,
+            currency: invoice.currency || "usd",
+            method: isSubscriptionInvoice ? "Stripe Subscription" : "Stripe Payment",
+            status: invoice.status || "paid",
+            receiptUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
+            eventType: event.type,
           });
         } else {
           console.warn(
@@ -233,6 +339,9 @@ export async function POST(req: Request) {
 
         if (leadId) {
           const amountText = formatAmountFromCents(invoice.amount_due);
+          const isSubscriptionInvoice =
+            typeof invoice.subscription === "string" && !!invoice.subscription;
+
           await agentUpdateLead(leadId, {
             stripeMode,
             stripeCustomerId:
@@ -243,7 +352,29 @@ export async function POST(req: Request) {
                 : undefined,
             lastInvoiceStatus: invoice.status || "open",
             billingStatus: "past_due",
-            activityNote: `Payment failed${amountText ? ` (${amountText})` : ""}`,
+            activityNote: `Payment failed${amountText ? ` ($${amountText})` : ""}`,
+          });
+
+          await appendPaymentHistory({
+            leadId,
+            customerName: "",
+            stripeCustomerId:
+              typeof invoice.customer === "string" ? invoice.customer : "",
+            stripeSubscriptionId:
+              typeof invoice.subscription === "string"
+                ? invoice.subscription
+                : "",
+            stripeInvoiceId: invoice.id || "",
+            stripePaymentIntentId:
+              typeof invoice.payment_intent === "string"
+                ? invoice.payment_intent
+                : "",
+            amount: amountText,
+            currency: invoice.currency || "usd",
+            method: isSubscriptionInvoice ? "Stripe Subscription" : "Stripe Payment",
+            status: invoice.status || "failed",
+            receiptUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
+            eventType: event.type,
           });
         } else {
           console.warn(
