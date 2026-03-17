@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 type Lead = {
   id: number;
@@ -17,14 +17,22 @@ type Lead = {
   consent: string;
   status?: string;
   agent?: string;
-  policyNumber?: string; // stored policy number from Sheets
+  policyNumber?: string;
 
   // policy-related fields
   coverage?: string;
   deductibles?: string;
   discounts?: string;
   renewalDate?: string;
-  vehicles?: string; // multiline text, one vehicle per line
+  vehicles?: string;
+
+  // stripe / billing fields
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  billingStatus?: string;
+  lastInvoiceStatus?: string;
+  lastPaymentDate?: string;
+  stripeMode?: string;
 };
 
 type ApiListResponse = {
@@ -40,14 +48,68 @@ type ActivityNote = {
   agent: string;
 };
 
+function formatMoneyFromCents(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString();
+}
+
+function getBillingStatusMeta(status?: string) {
+  const normalized = String(status || "").trim().toLowerCase();
+
+  switch (normalized) {
+    case "active":
+    case "paid":
+    case "trialing":
+      return {
+        label: normalized ? normalized.replace("_", " ") : "Active",
+        className: "status-pill status-active",
+      };
+    case "initiated":
+    case "incomplete":
+    case "incomplete_expired":
+    case "processing":
+    case "open":
+    case "unpaid":
+    case "paused":
+      return {
+        label: normalized ? normalized.replace(/_/g, " ") : "Pending",
+        className: "status-pill status-warning",
+      };
+    case "past_due":
+    case "canceled":
+    case "cancelled":
+    case "failed":
+      return {
+        label: normalized ? normalized.replace(/_/g, " ") : "Issue",
+        className: "status-pill status-error",
+      };
+    default:
+      return {
+        label: normalized ? normalized.replace(/_/g, " ") : "Not started",
+        className: "status-pill status-neutral",
+      };
+  }
+}
+
 export default function CustomerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [customer, setCustomer] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activityNotes, setActivityNotes] = useState<ActivityNote[]>([]);
+  const [billingActionLoading, setBillingActionLoading] = useState(false);
 
   // --- Edit profile state ---
   const [isEditing, setIsEditing] = useState(false);
@@ -65,10 +127,9 @@ export default function CustomerProfilePage() {
     deductibles: "",
     discounts: "",
     renewalDate: "",
-    vehicles: "", // one vehicle per line
+    vehicles: "",
   });
 
-  // Helpers
   function getPhoneHref(phone: string | undefined) {
     if (!phone) return "#";
     return `tel:${phone.replace(/\D/g, "")}`;
@@ -78,28 +139,53 @@ export default function CustomerProfilePage() {
     router.push("/agent/customers");
   };
 
-  // Open edit panel and prefill with current customer data
+  const refreshCustomerFromApi = async () => {
+    const res = await fetch("/api/agent/leads", { cache: "no-store" });
+    const data: ApiListResponse = await res.json();
+
+    if (!data.ok || !data.rows) {
+      throw new Error(data.error || "Failed to load customers");
+    }
+
+    const idNumber = Number(params.id);
+    const found = data.rows.find((lead) => lead.id === idNumber);
+
+    if (!found) {
+      throw new Error("Customer not found");
+    }
+
+    const fallbackVehicle = [found.year, found.make, found.model]
+      .filter(Boolean)
+      .join(" ");
+
+    setCustomer({
+      ...found,
+      coverage: found.coverage || "Full Coverage",
+      deductibles: found.deductibles || "$500 Comp / $1,000 Collision",
+      discounts: found.discounts || "",
+      renewalDate: found.renewalDate || "",
+      vehicles: found.vehicles || fallbackVehicle,
+    });
+
+    return found;
+  };
+
   const openEditProfile = () => {
     if (!customer) return;
 
-    // fallback single vehicle string from basic year/make/model
     const fallbackVehicle = [customer.year, customer.make, customer.model]
       .filter(Boolean)
       .join(" ");
 
     setEditForm({
-      // contact
       name: customer.name || "",
       email: customer.email || "",
       phone: customer.phone || "",
       zip: customer.zip || "",
       dob: customer.dob || "",
       agent: customer.agent || "",
-
-      // policy, with sensible defaults
       coverage: customer.coverage || "Full Coverage",
-      deductibles:
-        customer.deductibles || "$500 Comp / $1,000 Collision",
+      deductibles: customer.deductibles || "$500 Comp / $1,000 Collision",
       discounts: customer.discounts || "",
       renewalDate: customer.renewalDate || "",
       vehicles: customer.vehicles || fallbackVehicle,
@@ -128,7 +214,6 @@ export default function CustomerProfilePage() {
     setIsEditing(false);
   };
 
-  // Save contact + policy changes to backend (Apps Script via /api/agent/customers/update)
   const handleSaveEdit = async () => {
     if (!customer) return;
 
@@ -137,17 +222,13 @@ export default function CustomerProfilePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: customer.id, // row number in Leads sheet
-
-          // contact fields
+          id: customer.id,
           name: editForm.name,
           email: editForm.email,
           phone: editForm.phone,
           zip: editForm.zip,
           dob: editForm.dob,
           agent: editForm.agent,
-
-          // policy fields (new)
           coverage: editForm.coverage,
           deductibles: editForm.deductibles,
           discounts: editForm.discounts,
@@ -162,7 +243,6 @@ export default function CustomerProfilePage() {
         throw new Error(data.error || "Failed to save customer.");
       }
 
-      // If backend save was successful, update local UI (contact + policy)
       setCustomer({
         ...customer,
         name: editForm.name,
@@ -179,7 +259,7 @@ export default function CustomerProfilePage() {
       });
 
       setIsEditing(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       alert(
         "There was a problem saving this customer to Google Sheets. Please try again."
@@ -187,38 +267,113 @@ export default function CustomerProfilePage() {
     }
   };
 
-  const handleViewFullPolicy = () => {
-    alert("Full policy view coming soon.");
+  const beginStripeCheckout = async (opts: {
+    mode: "subscription" | "payment";
+    amount?: number;
+    description?: string;
+  }) => {
+    if (!customer) return;
+
+    try {
+      setBillingActionLoading(true);
+
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: customer.id,
+          email: customer.email,
+          name: customer.name,
+          phone: customer.phone,
+          stripeCustomerId: customer.stripeCustomerId,
+          mode: opts.mode,
+          amount: opts.amount,
+          description: opts.description,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.ok === false || !data.url) {
+        throw new Error(data.error || "Unable to start Stripe checkout.");
+      }
+
+      // Keep local state in sync immediately if checkout returned a customer id
+      if (data.stripeCustomerId) {
+        setCustomer((prev) =>
+          prev
+            ? {
+                ...prev,
+                stripeCustomerId: data.stripeCustomerId,
+                billingStatus: prev.billingStatus || "initiated",
+              }
+            : prev
+        );
+      }
+
+      window.location.href = data.url;
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "There was a problem starting Stripe checkout.");
+    } finally {
+      setBillingActionLoading(false);
+    }
   };
 
-  const handleCollectFirstPayment = () => {
-    alert(
-      "Collect First Payment will be wired to Stripe next. For now this is just a placeholder."
+  const handleCollectFirstPayment = async () => {
+    if (!customer) return;
+
+    const input = window.prompt(
+      "Enter the first payment amount in dollars (example: 189)"
     );
+
+    if (!input) return;
+
+    const amountDollars = Number(String(input).replace(/[$,\s]/g, ""));
+    if (!Number.isFinite(amountDollars) || amountDollars <= 0) {
+      alert("Please enter a valid dollar amount.");
+      return;
+    }
+
+    const amountCents = Math.round(amountDollars * 100);
+
+    await beginStripeCheckout({
+      mode: "payment",
+      amount: amountCents,
+      description: `First payment for ${customer.name || "customer"}`,
+    });
   };
 
-  const handleStartMonthlyBilling = () => {
-    alert(
-      "Start Monthly Billing will create a recurring Stripe subscription (coming next)."
-    );
+  const handleStartMonthlyBilling = async () => {
+    await beginStripeCheckout({
+      mode: "subscription",
+    });
   };
 
   const handleChargeCustomerNow = () => {
     alert(
-      "Charge Customer Now will run a one-off Stripe payment using the card on file (coming next)."
+      "Charge Customer Now is not wired yet. The current backend supports Stripe Checkout and subscription start, but not off-session charging of a saved card."
     );
   };
 
   const handleUpdateCard = () => {
-    alert("Update Card on File will open a Stripe update form (coming next).");
+    alert(
+      "Update Card on File is not wired yet. This will usually be done with a Stripe customer portal flow."
+    );
   };
 
   const handleViewAllPayments = () => {
-    alert("Payment history details view coming soon.");
+    alert(
+      "Payment history detail view is not wired yet. Once Stripe history is added, this will open the full payment list."
+    );
   };
 
   const handleViewReceipt = () => {
-    alert("Receipt view/download from Stripe coming soon.");
+    alert("Receipt view/download from Stripe is not wired yet.");
+  };
+
+  const handleViewFullPolicy = () => {
+    alert("Full policy view coming soon.");
   };
 
   const handleUploadFile = () => {
@@ -245,7 +400,6 @@ export default function CustomerProfilePage() {
       agent: agentName,
     };
 
-    // newest note at top
     setActivityNotes((prev) => [newNote, ...prev]);
   };
 
@@ -255,36 +409,8 @@ export default function CustomerProfilePage() {
         setLoading(true);
         setError(null);
 
-        const res = await fetch("/api/agent/leads", { cache: "no-store" });
-        const data: ApiListResponse = await res.json();
+        const found = await refreshCustomerFromApi();
 
-        if (!data.ok || !data.rows) {
-          throw new Error(data.error || "Failed to load customers");
-        }
-
-        const idNumber = Number(params.id);
-        const found = data.rows.find((lead) => lead.id === idNumber);
-
-        if (!found) {
-          throw new Error("Customer not found");
-        }
-
-        // Add some default policy values when we first load the customer
-        const fallbackVehicle = [found.year, found.make, found.model]
-          .filter(Boolean)
-          .join(" ");
-
-        setCustomer({
-          ...found,
-          coverage: found.coverage || "Full Coverage",
-          deductibles:
-            found.deductibles || "$500 Comp / $1,000 Collision",
-          discounts: found.discounts || "",
-          renewalDate: found.renewalDate || "",
-          vehicles: found.vehicles || fallbackVehicle,
-        });
-
-        // seed some starter activity notes (you can replace with real data later)
         const starterAgent = found.agent || "Agent";
         setActivityNotes([
           {
@@ -312,6 +438,18 @@ export default function CustomerProfilePage() {
       loadCustomer();
     }
   }, [params?.id]);
+
+  useEffect(() => {
+    const paid = searchParams.get("paid");
+    const canceled = searchParams.get("canceled");
+
+    if (!customer) return;
+    if (!paid && !canceled) return;
+
+    refreshCustomerFromApi().catch((err) => {
+      console.error("Failed to refresh customer after Stripe redirect:", err);
+    });
+  }, [searchParams, customer]);
 
   if (loading) {
     return (
@@ -341,19 +479,16 @@ export default function CustomerProfilePage() {
     );
   }
 
-  // Base single-vehicle string from original lead data
   const fallbackVehicle = [customer.year, customer.make, customer.model]
     .filter(Boolean)
     .join(" ");
 
-  // Vehicles for display: either multiline policy vehicles, or fallback
   const vehiclesRaw = customer.vehicles || fallbackVehicle || "";
   const vehicleLines = vehiclesRaw
     .split(/\r?\n/)
     .map((v) => v.trim())
     .filter(Boolean);
 
-  // Use the stored policyNumber from Sheets, with a nice fallback
   const policyNumber =
     customer.policyNumber && customer.policyNumber.trim().length > 0
       ? customer.policyNumber
@@ -371,10 +506,45 @@ export default function CustomerProfilePage() {
       ? customer.renewalDate
       : "—";
 
+  const billingMeta = getBillingStatusMeta(customer.billingStatus);
+  const stripeModeText =
+    customer.stripeMode && customer.stripeMode.trim()
+      ? customer.stripeMode
+      : "—";
+
+  const paymentHistoryRows = useMemo(() => {
+    const rows: Array<{
+      date: string;
+      amount: string;
+      method: string;
+      status: string;
+      statusClass: string;
+    }> = [];
+
+    if (customer.lastPaymentDate || customer.lastInvoiceStatus) {
+      const invoiceStatusMeta = getBillingStatusMeta(customer.lastInvoiceStatus);
+
+      rows.push({
+        date: formatDateTime(customer.lastPaymentDate),
+        amount: "—",
+        method: customer.stripeSubscriptionId
+          ? "Stripe Subscription"
+          : "Stripe Payment",
+        status: customer.lastInvoiceStatus || "—",
+        statusClass: invoiceStatusMeta.className,
+      });
+    }
+
+    return rows;
+  }, [
+    customer.lastInvoiceStatus,
+    customer.lastPaymentDate,
+    customer.stripeSubscriptionId,
+  ]);
+
   return (
     <>
       <div className="crm-page">
-        {/* Top Header */}
         <header className="crm-header">
           <div className="crm-header-left">
             <button className="btn-secondary" onClick={handleBackToCustomers}>
@@ -397,14 +567,30 @@ export default function CustomerProfilePage() {
           </div>
         </header>
 
-        {/* Edit Profile Panel (inline, above main content) */}
+        {(searchParams.get("paid") === "1" ||
+          searchParams.get("canceled") === "1") && (
+          <section className="card" style={{ marginBottom: "1rem" }}>
+            <div className="card-body">
+              {searchParams.get("paid") === "1" ? (
+                <div className="notice-success">
+                  Stripe checkout returned successfully. Billing data will appear
+                  here after the webhook updates Google Sheets.
+                </div>
+              ) : (
+                <div className="notice-warning">
+                  Stripe checkout was canceled. No billing changes were applied.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {isEditing && (
           <section className="card" style={{ marginBottom: "1rem" }}>
             <div className="card-header">
               <h3>Edit Profile</h3>
             </div>
             <div className="card-body">
-              {/* Contact section */}
               <div
                 style={{
                   display: "grid",
@@ -470,7 +656,6 @@ export default function CustomerProfilePage() {
                 </div>
               </div>
 
-              {/* Policy section */}
               <hr style={{ margin: "0.5rem 0 1rem", borderColor: "#e5e7eb" }} />
               <h4
                 style={{
@@ -558,9 +743,7 @@ export default function CustomerProfilePage() {
           </section>
         )}
 
-        {/* Main Content */}
         <main className="crm-main">
-          {/* Customer Summary Card */}
           <section className="card card-summary">
             <div className="card-summary-left">
               <h2 className="customer-name">{customer.name}</h2>
@@ -600,9 +783,7 @@ export default function CustomerProfilePage() {
             </div>
           </section>
 
-          {/* Two Column Section: Contact + Policy */}
           <section className="grid-two">
-            {/* Contact Info Card */}
             <section className="card">
               <div className="card-header">
                 <h3>Contact Info</h3>
@@ -641,7 +822,6 @@ export default function CustomerProfilePage() {
               </div>
             </section>
 
-            {/* Policy Details Card */}
             <section className="card">
               <div className="card-header">
                 <h3>Policy Details</h3>
@@ -692,7 +872,6 @@ export default function CustomerProfilePage() {
             </section>
           </section>
 
-          {/* Billing & Payments */}
           <section className="card">
             <div className="card-header card-header-with-actions">
               <div>
@@ -705,18 +884,25 @@ export default function CustomerProfilePage() {
                 <button
                   className="btn-primary"
                   onClick={handleCollectFirstPayment}
+                  disabled={billingActionLoading}
                 >
-                  Collect First Payment
+                  {billingActionLoading
+                    ? "Starting Stripe..."
+                    : "Collect First Payment"}
                 </button>
                 <button
                   className="btn-outline"
                   onClick={handleStartMonthlyBilling}
+                  disabled={billingActionLoading}
                 >
-                  Start Monthly Billing
+                  {billingActionLoading
+                    ? "Starting Stripe..."
+                    : "Start Monthly Billing"}
                 </button>
                 <button
                   className="btn-outline"
                   onClick={handleChargeCustomerNow}
+                  disabled={billingActionLoading}
                 >
                   Charge Customer Now
                 </button>
@@ -724,40 +910,56 @@ export default function CustomerProfilePage() {
             </div>
 
             <div className="card-body billing-layout">
-              {/* Billing Overview */}
               <div className="billing-overview">
                 <h4>Billing Overview</h4>
                 <dl className="details-list">
                   <div>
                     <dt>Billing Status</dt>
                     <dd>
-                      <span className="status-pill status-active">Active</span>
+                      <span className={billingMeta.className}>
+                        {billingMeta.label}
+                      </span>
                     </dd>
                   </div>
                   <div>
-                    <dt>Monthly Amount</dt>
-                    <dd>$189.00</dd>
+                    <dt>Stripe Mode</dt>
+                    <dd>{stripeModeText}</dd>
                   </div>
                   <div>
-                    <dt>Next Billing Date</dt>
-                    <dd>March 12, 2025</dd>
+                    <dt>Last Invoice Status</dt>
+                    <dd>{customer.lastInvoiceStatus || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>Last Payment Date</dt>
+                    <dd>{formatDateTime(customer.lastPaymentDate)}</dd>
                   </div>
                 </dl>
               </div>
 
-              {/* Payment Method */}
               <div className="payment-method">
-                <h4>Payment Method on File</h4>
-                <p>Card: Visa •••• 1234</p>
+                <h4>Stripe / Payment Record</h4>
+                <p>
+                  Stripe Customer ID:{" "}
+                  <span className="mono-text">
+                    {customer.stripeCustomerId || "—"}
+                  </span>
+                </p>
+                <p>
+                  Stripe Subscription ID:{" "}
+                  <span className="mono-text">
+                    {customer.stripeSubscriptionId || "—"}
+                  </span>
+                </p>
                 <p>Name on Card: {customer.name || "—"}</p>
-                <p className="meta-text">Last updated: Jan 12, 2025</p>
+                <p className="meta-text">
+                  The saved-card update flow is not wired yet.
+                </p>
                 <button className="link-button" onClick={handleUpdateCard}>
                   Update card on file
                 </button>
               </div>
             </div>
 
-            {/* Payment History */}
             <div className="card-subsection">
               <div className="card-subheader">
                 <h4>Payment History</h4>
@@ -777,46 +979,40 @@ export default function CustomerProfilePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Static placeholders for now – later we can map real Stripe history */}
-                    <tr>
-                      <td>Feb 12, 2025</td>
-                      <td>$189.00</td>
-                      <td>Auto Billing (Visa)</td>
-                      <td>
-                        <span className="status-pill status-active">Paid</span>
-                      </td>
-                      <td>
-                        <button
-                          className="link-button"
-                          onClick={handleViewReceipt}
-                        >
-                          View Receipt
-                        </button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Jan 12, 2025</td>
-                      <td>$189.00</td>
-                      <td>Card on File</td>
-                      <td>
-                        <span className="status-pill status-active">Paid</span>
-                      </td>
-                      <td>
-                        <button
-                          className="link-button"
-                          onClick={handleViewReceipt}
-                        >
-                          View Receipt
-                        </button>
-                      </td>
-                    </tr>
+                    {paymentHistoryRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="empty-cell">
+                          No Stripe payment history has been synced yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      paymentHistoryRows.map((row, idx) => (
+                        <tr key={`${row.date}-${row.status}-${idx}`}>
+                          <td>{row.date}</td>
+                          <td>{row.amount}</td>
+                          <td>{row.method}</td>
+                          <td>
+                            <span className={row.statusClass}>
+                              {row.status || "—"}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className="link-button"
+                              onClick={handleViewReceipt}
+                            >
+                              View Receipt
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </section>
 
-          {/* Activity Log */}
           <section className="card">
             <div className="card-header card-header-with-actions">
               <h3>Activity Log</h3>
@@ -844,7 +1040,6 @@ export default function CustomerProfilePage() {
             </div>
           </section>
 
-          {/* Optional: Files / Documents */}
           <section className="card">
             <div className="card-header card-header-with-actions">
               <h3>Files &amp; Documents</h3>
@@ -888,7 +1083,6 @@ export default function CustomerProfilePage() {
         </main>
       </div>
 
-      {/* Global styles for this CRM layout */}
       <style jsx global>{`
         :root {
           --bg-page: #f3f4f6;
@@ -896,7 +1090,7 @@ export default function CustomerProfilePage() {
           --border-subtle: #e5e7eb;
           --text-main: #111827;
           --text-muted: #6b7280;
-          --primary: #dc2626; /* Apex red-style color */
+          --primary: #dc2626;
           --primary-soft: #fee2e2;
           --accent: #2563eb;
           --radius-lg: 0.75rem;
@@ -987,6 +1181,13 @@ export default function CustomerProfilePage() {
         .meta-text {
           font-size: 0.8rem;
           color: var(--text-muted);
+        }
+
+        .mono-text {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
+          font-size: 0.78rem;
+          word-break: break-all;
         }
 
         .card-header,
@@ -1101,6 +1302,12 @@ export default function CustomerProfilePage() {
           color: var(--text-muted);
         }
 
+        .empty-cell {
+          color: var(--text-muted);
+          text-align: center;
+          padding: 1rem 0.5rem;
+        }
+
         .activity-log {
           display: flex;
           flex-direction: column;
@@ -1151,7 +1358,6 @@ export default function CustomerProfilePage() {
           gap: 0.5rem;
         }
 
-        /* Vehicles list in Policy card */
         .policy-vehicle-list {
           list-style: disc;
           padding-left: 1.1rem;
@@ -1163,7 +1369,6 @@ export default function CustomerProfilePage() {
           padding: 0;
         }
 
-        /* Buttons */
         .btn-primary,
         .btn-secondary,
         .btn-outline,
@@ -1177,13 +1382,20 @@ export default function CustomerProfilePage() {
           transition: all 0.15s ease;
         }
 
+        .btn-primary:disabled,
+        .btn-secondary:disabled,
+        .btn-outline:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+
         .btn-primary {
           background: var(--primary);
           color: #fff;
           border: 1px solid var(--primary);
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
           background: #b91c1c;
         }
 
@@ -1193,7 +1405,7 @@ export default function CustomerProfilePage() {
           border: 1px solid var(--border-subtle);
         }
 
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
           background: #eef2ff;
         }
 
@@ -1203,7 +1415,7 @@ export default function CustomerProfilePage() {
           border: 1px solid var(--border-subtle);
         }
 
-        .btn-outline:hover {
+        .btn-outline:hover:not(:disabled) {
           border-color: var(--primary);
           color: var(--primary);
         }
@@ -1219,7 +1431,6 @@ export default function CustomerProfilePage() {
           text-decoration: underline;
         }
 
-        /* Status pills */
         .status-pill {
           display: inline-flex;
           align-items: center;
@@ -1244,7 +1455,11 @@ export default function CustomerProfilePage() {
           color: #b91c1c;
         }
 
-        /* Simple input style for edit panel */
+        .status-neutral {
+          background: #e5e7eb;
+          color: #374151;
+        }
+
         .crm-input {
           width: 100%;
           border-radius: 0.5rem;
@@ -1259,7 +1474,25 @@ export default function CustomerProfilePage() {
           box-shadow: 0 0 0 1px var(--primary-soft);
         }
 
-        /* Responsive */
+        .notice-success,
+        .notice-warning {
+          border-radius: 0.65rem;
+          padding: 0.85rem 1rem;
+          font-size: 0.9rem;
+        }
+
+        .notice-success {
+          background: #ecfdf5;
+          border: 1px solid #a7f3d0;
+          color: #065f46;
+        }
+
+        .notice-warning {
+          background: #fffbeb;
+          border: 1px solid #fde68a;
+          color: #92400e;
+        }
+
         @media (max-width: 900px) {
           .card-summary {
             flex-direction: column;
