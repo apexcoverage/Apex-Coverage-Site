@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 type Lead = {
@@ -74,6 +74,16 @@ type ActivityNote = {
   agent: string;
 };
 
+type UiPaymentRow = {
+  date: string;
+  amount: string;
+  method: string;
+  status: string;
+  statusClass: string;
+  receiptUrl: string;
+  eventType: string;
+};
+
 function formatDateTime(value?: string) {
   if (!value) return "—";
   const d = new Date(value);
@@ -113,8 +123,9 @@ function getBillingStatusMeta(status?: string) {
     case "active":
     case "paid":
     case "trialing":
+    case "succeeded":
       return {
-        label: normalized ? normalized.replace("_", " ") : "Active",
+        label: normalized ? normalized.replace(/_/g, " ") : "Active",
         className: "status-pill status-active",
       };
     case "initiated":
@@ -124,6 +135,7 @@ function getBillingStatusMeta(status?: string) {
     case "open":
     case "unpaid":
     case "paused":
+    case "pending":
       return {
         label: normalized ? normalized.replace(/_/g, " ") : "Pending",
         className: "status-pill status-warning",
@@ -132,6 +144,7 @@ function getBillingStatusMeta(status?: string) {
     case "canceled":
     case "cancelled":
     case "failed":
+    case "failure":
       return {
         label: normalized ? normalized.replace(/_/g, " ") : "Issue",
         className: "status-pill status-error",
@@ -171,6 +184,67 @@ function parseActivityLog(
     .filter(Boolean) as ActivityNote[];
 }
 
+function getFriendlyPaymentMethod(row: PaymentHistoryRow) {
+  const rawMethod = String(row.method || "").trim().toLowerCase();
+  const rawEvent = String(row.eventType || "").trim().toLowerCase();
+  const hasSub = !!String(row.stripeSubscriptionId || "").trim();
+
+  if (rawEvent.includes("payment_failed")) {
+    return hasSub ? "Failed Renewal" : "Failed Payment";
+  }
+
+  if (rawEvent.includes("checkout.session.completed")) {
+    return hasSub ? "Billing Setup" : "Initial Payment";
+  }
+
+  if (rawEvent.includes("invoice.paid")) {
+    return hasSub ? "Monthly Renewal" : "Invoice Payment";
+  }
+
+  if (rawEvent.includes("invoice.payment_failed")) {
+    return hasSub ? "Failed Renewal" : "Failed Invoice";
+  }
+
+  if (rawEvent.includes("subscription.deleted")) {
+    return "Subscription Ended";
+  }
+
+  if (rawEvent.includes("subscription.updated")) {
+    return "Subscription Update";
+  }
+
+  if (rawMethod.includes("subscription")) {
+    return "Monthly Renewal";
+  }
+
+  if (rawMethod.includes("payment")) {
+    return "Initial Payment";
+  }
+
+  return row.method || "Payment";
+}
+
+function getFriendlyPaymentStatus(row: PaymentHistoryRow) {
+  const rawStatus = String(row.status || "").trim().toLowerCase();
+  const rawEvent = String(row.eventType || "").trim().toLowerCase();
+
+  if (rawEvent.includes("invoice.payment_failed")) return "Failed";
+  if (rawEvent.includes("payment_failed")) return "Failed";
+  if (rawEvent.includes("invoice.paid")) return "Paid";
+  if (rawEvent.includes("checkout.session.completed")) return "Completed";
+  if (rawEvent.includes("subscription.deleted")) return "Canceled";
+
+  if (rawStatus === "paid") return "Paid";
+  if (rawStatus === "active") return "Active";
+  if (rawStatus === "succeeded") return "Paid";
+  if (rawStatus === "open") return "Open";
+  if (rawStatus === "past_due") return "Past Due";
+  if (rawStatus === "canceled" || rawStatus === "cancelled") return "Canceled";
+  if (rawStatus === "failed") return "Failed";
+
+  return row.status || "—";
+}
+
 export default function CustomerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -180,17 +254,9 @@ export default function CustomerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activityNotes, setActivityNotes] = useState<ActivityNote[]>([]);
-  const [paymentHistoryRows, setPaymentHistoryRows] = useState<
-    Array<{
-      date: string;
-      amount: string;
-      method: string;
-      status: string;
-      statusClass: string;
-      receiptUrl: string;
-      eventType: string;
-    }>
-  >([]);
+  const [paymentHistoryRows, setPaymentHistoryRows] = useState<UiPaymentRow[]>(
+    []
+  );
   const [billingActionLoading, setBillingActionLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -230,13 +296,14 @@ export default function CustomerProfilePage() {
     }
 
     const rows = (data.rows || []).map((row, index) => {
-      const statusMeta = getBillingStatusMeta(row.status);
+      const friendlyStatus = getFriendlyPaymentStatus(row);
+      const statusMeta = getBillingStatusMeta(friendlyStatus);
 
       return {
         date: formatDateTime(row.timestamp),
         amount: formatPaymentAmount(row.amount, row.currency),
-        method: row.method || "—",
-        status: row.status || "—",
+        method: getFriendlyPaymentMethod(row),
+        status: friendlyStatus,
         statusClass: statusMeta.className,
         receiptUrl: row.receiptUrl || "",
         eventType: row.eventType || `payment-${index}`,
@@ -648,11 +715,13 @@ export default function CustomerProfilePage() {
     ? [customer.year, customer.make, customer.model].filter(Boolean).join(" ")
     : "";
 
-  const vehiclesRaw = customer?.vehicles || fallbackVehicle || "";
-  const vehicleLines = vehiclesRaw
-    .split(/\r?\n/)
-    .map((v) => v.trim())
-    .filter(Boolean);
+  const vehicleLines = useMemo(() => {
+    const vehiclesRaw = customer?.vehicles || fallbackVehicle || "";
+    return vehiclesRaw
+      .split(/\r?\n/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }, [customer?.vehicles, fallbackVehicle]);
 
   const policyNumber =
     customer?.policyNumber && customer.policyNumber.trim().length > 0
@@ -1164,7 +1233,7 @@ export default function CustomerProfilePage() {
                   View all
                 </button>
               </div>
-              <div className="table-wrapper">
+              <div className="table-wrapper payment-history-scroll">
                 <table className="crm-table">
                   <thead>
                     <tr>
@@ -1482,6 +1551,31 @@ export default function CustomerProfilePage() {
           margin-top: 0.75rem;
         }
 
+        .payment-history-scroll {
+          max-height: 360px;
+          overflow: auto;
+          padding-right: 0.2rem;
+        }
+
+        .payment-history-scroll::-webkit-scrollbar {
+          width: 10px;
+          height: 10px;
+        }
+
+        .payment-history-scroll::-webkit-scrollbar-track {
+          background: #f3f4f6;
+          border-radius: 999px;
+        }
+
+        .payment-history-scroll::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 999px;
+        }
+
+        .payment-history-scroll::-webkit-scrollbar-thumb:hover {
+          background: #9ca3af;
+        }
+
         .crm-table {
           width: 100%;
           border-collapse: collapse;
@@ -1500,6 +1594,10 @@ export default function CustomerProfilePage() {
           font-weight: 600;
           font-size: 0.8rem;
           color: var(--text-muted);
+          position: sticky;
+          top: 0;
+          background: var(--bg-card);
+          z-index: 1;
         }
 
         .empty-cell {
@@ -1744,6 +1842,14 @@ export default function CustomerProfilePage() {
           .crm-header-right {
             align-self: stretch;
             justify-content: flex-start;
+          }
+
+          .payment-history-scroll {
+            max-height: 320px;
+          }
+
+          .activity-log-scroll {
+            max-height: 360px;
           }
         }
       `}</style>
