@@ -37,6 +37,18 @@ function formatAmountFromCents(cents: number | null | undefined): string {
   return (cents / 100).toFixed(2);
 }
 
+function formatAmountForActivity(cents: number | null | undefined): string {
+  if (typeof cents !== "number" || !Number.isFinite(cents)) return "";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
+function getChargeType(obj: any): string {
+  return String(obj?.metadata?.chargeType || "").trim().toLowerCase();
+}
+
 async function appendPaymentHistory(entry: {
   leadId: number;
   customerName?: string;
@@ -205,6 +217,7 @@ export async function POST(req: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const leadId = await resolveLeadId(stripe, session);
+        const chargeType = getChargeType(session);
 
         if (leadId) {
           const patch: Record<string, any> = {
@@ -221,13 +234,14 @@ export async function POST(req: Request) {
             patch.activityNote = "Monthly billing checkout completed";
           } else {
             patch.billingStatus = "paid";
-            patch.activityNote = "First payment checkout completed";
+            patch.activityNote =
+              chargeType === "manual_one_time"
+                ? "One-time charge checkout completed"
+                : "First payment checkout completed";
           }
 
           await agentUpdateLead(leadId, patch);
 
-          // For one-time checkout payments, store a ledger row here.
-          // Subscription renewals are tracked from invoice events instead.
           if (session.mode === "payment") {
             await appendPaymentHistory({
               leadId,
@@ -245,12 +259,15 @@ export async function POST(req: Request) {
                   : "",
               amount: formatAmountFromCents(session.amount_total ?? null),
               currency: session.currency || "usd",
-              method: "Stripe Payment",
+              method:
+                chargeType === "manual_one_time"
+                  ? "One-Time Charge"
+                  : "Initial Payment",
               status:
                 session.payment_status ||
                 (session.status === "complete" ? "paid" : session.status || ""),
               receiptUrl: "",
-              eventType: event.type,
+              eventType: chargeType || event.type,
             });
           }
         } else {
@@ -271,11 +288,29 @@ export async function POST(req: Request) {
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
         const leadId = await resolveLeadId(stripe, invoice);
+        const chargeType = getChargeType(invoice);
 
         if (leadId) {
           const amountText = formatAmountFromCents(invoice.amount_paid);
+          const amountLabel = formatAmountForActivity(invoice.amount_paid);
           const isSubscriptionInvoice =
             typeof invoice.subscription === "string" && !!invoice.subscription;
+
+          let activityNote = "";
+
+          if (chargeType === "manual_one_time") {
+            activityNote = `One-time charge succeeded${
+              amountLabel ? ` (${amountLabel})` : ""
+            }`;
+          } else if (isSubscriptionInvoice) {
+            activityNote = `Subscription payment succeeded${
+              amountLabel ? ` (${amountLabel})` : ""
+            }`;
+          } else {
+            activityNote = `Payment succeeded${
+              amountLabel ? ` (${amountLabel})` : ""
+            }`;
+          }
 
           await agentUpdateLead(leadId, {
             stripeMode,
@@ -290,12 +325,8 @@ export async function POST(req: Request) {
               ((invoice.status_transitions?.paid_at as number | null) ||
                 Math.floor(Date.now() / 1000)) * 1000
             ).toISOString(),
-            billingStatus: "active",
-            activityNote: isSubscriptionInvoice
-              ? `Subscription payment succeeded${
-                  amountText ? ` ($${amountText})` : ""
-                }`
-              : `Payment succeeded${amountText ? ` ($${amountText})` : ""}`,
+            billingStatus: isSubscriptionInvoice ? "active" : "paid",
+            activityNote,
           });
 
           await appendPaymentHistory({
@@ -314,10 +345,15 @@ export async function POST(req: Request) {
                 : "",
             amount: amountText,
             currency: invoice.currency || "usd",
-            method: isSubscriptionInvoice ? "Stripe Subscription" : "Stripe Payment",
+            method:
+              chargeType === "manual_one_time"
+                ? "One-Time Charge"
+                : isSubscriptionInvoice
+                ? "Stripe Subscription"
+                : "Stripe Payment",
             status: invoice.status || "paid",
             receiptUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
-            eventType: event.type,
+            eventType: chargeType || event.type,
           });
         } else {
           console.warn(
@@ -336,11 +372,29 @@ export async function POST(req: Request) {
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         const leadId = await resolveLeadId(stripe, invoice);
+        const chargeType = getChargeType(invoice);
 
         if (leadId) {
           const amountText = formatAmountFromCents(invoice.amount_due);
+          const amountLabel = formatAmountForActivity(invoice.amount_due);
           const isSubscriptionInvoice =
             typeof invoice.subscription === "string" && !!invoice.subscription;
+
+          let activityNote = "";
+
+          if (chargeType === "manual_one_time") {
+            activityNote = `One-time charge failed${
+              amountLabel ? ` (${amountLabel})` : ""
+            }`;
+          } else if (isSubscriptionInvoice) {
+            activityNote = `Subscription payment failed${
+              amountLabel ? ` (${amountLabel})` : ""
+            }`;
+          } else {
+            activityNote = `Payment failed${
+              amountLabel ? ` (${amountLabel})` : ""
+            }`;
+          }
 
           await agentUpdateLead(leadId, {
             stripeMode,
@@ -352,7 +406,7 @@ export async function POST(req: Request) {
                 : undefined,
             lastInvoiceStatus: invoice.status || "open",
             billingStatus: "past_due",
-            activityNote: `Payment failed${amountText ? ` ($${amountText})` : ""}`,
+            activityNote,
           });
 
           await appendPaymentHistory({
@@ -371,10 +425,15 @@ export async function POST(req: Request) {
                 : "",
             amount: amountText,
             currency: invoice.currency || "usd",
-            method: isSubscriptionInvoice ? "Stripe Subscription" : "Stripe Payment",
+            method:
+              chargeType === "manual_one_time"
+                ? "One-Time Charge"
+                : isSubscriptionInvoice
+                ? "Stripe Subscription"
+                : "Stripe Payment",
             status: invoice.status || "failed",
             receiptUrl: invoice.hosted_invoice_url || invoice.invoice_pdf || "",
-            eventType: event.type,
+            eventType: chargeType || event.type,
           });
         } else {
           console.warn(
