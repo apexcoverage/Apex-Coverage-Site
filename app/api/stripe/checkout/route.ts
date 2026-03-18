@@ -105,6 +105,7 @@ export async function POST(req: Request) {
       monthlyPremium,
       currency,
       description,
+      chargeType, // "initial_payment" | "manual_one_time"
     } = body || {};
 
     if (!id) {
@@ -121,6 +122,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const normalizedCurrency = normalizeOptionalString(currency) || "usd";
 
     const origin =
       req.headers.get("origin") ||
@@ -174,7 +177,7 @@ export async function POST(req: Request) {
         line_items: [
           {
             price_data: {
-              currency: currency || "usd",
+              currency: normalizedCurrency,
               product_data: {
                 name: description || "Apex Coverage Monthly Billing",
               },
@@ -190,12 +193,14 @@ export async function POST(req: Request) {
         cancel_url: cancelUrl,
         metadata: {
           leadId: String(leadId),
-          monthlyPremium: String(monthlyPremium),
+          monthlyPremium: String(monthlyPremium || ""),
+          chargeType: "subscription_start",
         },
         subscription_data: {
           metadata: {
             leadId: String(leadId),
-            monthlyPremium: String(monthlyPremium),
+            monthlyPremium: String(monthlyPremium || ""),
+            chargeType: "subscription_start",
           },
         },
       });
@@ -224,6 +229,13 @@ export async function POST(req: Request) {
         );
       }
 
+      const normalizedChargeType =
+        chargeType === "manual_one_time"
+          ? "manual_one_time"
+          : "initial_payment";
+
+      const isManualOneTime = normalizedChargeType === "manual_one_time";
+
       session = await stripe.checkout.sessions.create({
         mode: "payment",
         customer: customer.id,
@@ -231,9 +243,13 @@ export async function POST(req: Request) {
         line_items: [
           {
             price_data: {
-              currency: currency || "usd",
+              currency: normalizedCurrency,
               product_data: {
-                name: description || "Apex Coverage Payment",
+                name:
+                  description ||
+                  (isManualOneTime
+                    ? "Apex Coverage One-Time Charge"
+                    : "Apex Coverage Initial Payment"),
               },
               unit_amount: oneTimeAmountCents,
             },
@@ -244,18 +260,24 @@ export async function POST(req: Request) {
         cancel_url: cancelUrl,
         metadata: {
           leadId: String(leadId),
+          chargeType: normalizedChargeType,
         },
         payment_intent_data: {
           metadata: {
             leadId: String(leadId),
+            chargeType: normalizedChargeType,
           },
         },
       });
 
       await agentUpdateLead(leadId, {
-        activityNote: `Started first payment checkout (${formatAmountForLog(
-          oneTimeAmountCents
-        )})`,
+        activityNote: isManualOneTime
+          ? `Started one-time charge checkout (${formatAmountForLog(
+              oneTimeAmountCents
+            )})`
+          : `Started first payment checkout (${formatAmountForLog(
+              oneTimeAmountCents
+            )})`,
       });
     }
 
