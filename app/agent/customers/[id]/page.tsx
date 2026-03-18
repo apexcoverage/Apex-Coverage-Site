@@ -741,7 +741,8 @@ export default function CustomerProfilePage() {
               {searchParams.get("paid") === "1" ? (
                 <div className="notice-success">
                   Stripe checkout returned successfully. Billing data and payment
-                  history will appear here after the webhook updates Google Sheets.
+                  history will appear here after the webhook updates Google
+                  Sheets.
                 </div>
               ) : (
                 <div className="notice-warning">
@@ -1183,7 +1184,9 @@ export default function CustomerProfilePage() {
                       </tr>
                     ) : (
                       paymentHistoryRows.map((row, idx) => (
-                        <tr key={`${row.date}-${row.status}-${row.eventType}-${idx}`}>
+                        <tr
+                          key={`${row.date}-${row.status}-${row.eventType}-${idx}`}
+                        >
                           <td>{row.date}</td>
                           <td>{row.amount}</td>
                           <td>{row.method}</td>
@@ -1511,6 +1514,30 @@ export default function CustomerProfilePage() {
           gap: 0.75rem;
         }
 
+        .activity-log-scroll {
+          max-height: 420px;
+          overflow-y: auto;
+          padding-right: 0.35rem;
+        }
+
+        .activity-log-scroll::-webkit-scrollbar {
+          width: 10px;
+        }
+
+        .activity-log-scroll::-webkit-scrollbar-track {
+          background: #f3f4f6;
+          border-radius: 999px;
+        }
+
+        .activity-log-scroll::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 999px;
+        }
+
+        .activity-log-scroll::-webkit-scrollbar-thumb:hover {
+          background: #9ca3af;
+        }
+
         .activity-item {
           padding: 0.6rem 0;
           border-bottom: 1px dashed var(--border-subtle);
@@ -1717,29 +1744,6 @@ export default function CustomerProfilePage() {
           .crm-header-right {
             align-self: stretch;
             justify-content: flex-start;
-          }
-          
-          .activity-log-scroll {
-            max-height: 420px;
-            overflow-y: auto;
-            padding-right: 0.35rem;
-          }
-          .activity-log-scroll::-webkit-scrollbar {
-            width: 10px;
-          }
-
-          .activity-log-scroll::-webkit-scrollbar-track {
-            background: #f3f4f6;
-            border-radius: 999px;
-          }
-
-          .activity-log-scroll::-webkit-scrollbar-thumb {
-            background: #d1d5db;
-            border-radius: 999px;
-          }
-
-          .activity-log-scroll::-webkit-scrollbar-thumb:hover {
-            background: #9ca3af;
           }
         }
       `}</style>
