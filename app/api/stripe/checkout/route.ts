@@ -9,8 +9,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_SUCCESS_URL = process.env.STRIPE_SUCCESS_URL; // optional
-const STRIPE_CANCEL_URL = process.env.STRIPE_CANCEL_URL; // optional
+const STRIPE_SUCCESS_URL = process.env.STRIPE_SUCCESS_URL;
+const STRIPE_CANCEL_URL = process.env.STRIPE_CANCEL_URL;
 
 function mustGetStripe() {
   if (!STRIPE_SECRET_KEY) {
@@ -40,6 +40,27 @@ function formatAmountForLog(cents: number) {
     style: "currency",
     currency: "USD",
   }).format(cents / 100);
+}
+
+function normalizeChargeType(
+  mode: "subscription" | "payment",
+  chargeType: unknown
+) {
+  const raw = String(chargeType || "").trim().toLowerCase();
+
+  if (mode === "subscription") {
+    if (raw === "subscription_setup" || raw === "subscription_start") {
+      return "subscription_setup";
+    }
+    return "subscription_setup";
+  }
+
+  if (raw === "manual_one_time") return "manual_one_time";
+  if (raw === "first_payment" || raw === "initial_payment") {
+    return "first_payment";
+  }
+
+  return "first_payment";
 }
 
 async function getOrCreateStripeCustomer(params: {
@@ -105,7 +126,7 @@ export async function POST(req: Request) {
       monthlyPremium,
       currency,
       description,
-      chargeType, // "initial_payment" | "manual_one_time"
+      chargeType,
     } = body || {};
 
     if (!id) {
@@ -123,7 +144,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const checkoutMode: "subscription" | "payment" =
+      mode === "payment" ? "payment" : "subscription";
+
     const normalizedCurrency = normalizeOptionalString(currency) || "usd";
+    const normalizedChargeType = normalizeChargeType(checkoutMode, chargeType);
 
     const origin =
       req.headers.get("origin") ||
@@ -151,8 +176,6 @@ export async function POST(req: Request) {
       stripeMode,
       billingStatus: "initiated",
     });
-
-    const checkoutMode = mode === "payment" ? "payment" : "subscription";
 
     let session: Stripe.Checkout.Session;
 
@@ -194,13 +217,13 @@ export async function POST(req: Request) {
         metadata: {
           leadId: String(leadId),
           monthlyPremium: String(monthlyPremium || ""),
-          chargeType: "subscription_start",
+          chargeType: normalizedChargeType,
         },
         subscription_data: {
           metadata: {
             leadId: String(leadId),
             monthlyPremium: String(monthlyPremium || ""),
-            chargeType: "subscription_start",
+            chargeType: normalizedChargeType,
           },
         },
       });
@@ -228,11 +251,6 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-
-      const normalizedChargeType =
-        chargeType === "manual_one_time"
-          ? "manual_one_time"
-          : "initial_payment";
 
       const isManualOneTime = normalizedChargeType === "manual_one_time";
 
