@@ -189,6 +189,10 @@ function getFriendlyPaymentMethod(row: PaymentHistoryRow) {
   const rawEvent = String(row.eventType || "").trim().toLowerCase();
   const hasSub = !!String(row.stripeSubscriptionId || "").trim();
 
+  if (rawEvent.includes("manual_one_time")) {
+    return "One-Time Charge";
+  }
+
   if (rawEvent.includes("payment_failed")) {
     return hasSub ? "Failed Renewal" : "Failed Payment";
   }
@@ -211,6 +215,10 @@ function getFriendlyPaymentMethod(row: PaymentHistoryRow) {
 
   if (rawEvent.includes("subscription.updated")) {
     return "Subscription Update";
+  }
+
+  if (rawMethod.includes("one-time")) {
+    return "One-Time Charge";
   }
 
   if (rawMethod.includes("subscription")) {
@@ -243,6 +251,22 @@ function getFriendlyPaymentStatus(row: PaymentHistoryRow) {
   if (rawStatus === "failed") return "Failed";
 
   return row.status || "—";
+}
+
+function parseDollarInputToCents(value: string): number | null {
+  const cleaned = String(value).replace(/[$,\s]/g, "");
+  const amount = Number(cleaned);
+
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  return Math.round(amount * 100);
+}
+
+function formatCentsForDisplay(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
 }
 
 export default function CustomerProfilePage() {
@@ -445,6 +469,7 @@ export default function CustomerProfilePage() {
     amount?: number;
     monthlyPremium?: string;
     description?: string;
+    chargeType?: string;
   }) => {
     if (!customer) return;
 
@@ -464,6 +489,7 @@ export default function CustomerProfilePage() {
           amount: opts.amount,
           monthlyPremium: opts.monthlyPremium,
           description: opts.description,
+          chargeType: opts.chargeType,
         }),
       });
 
@@ -510,6 +536,7 @@ export default function CustomerProfilePage() {
       mode: "payment",
       amount: Math.round(Number(String(premium).replace(/[$,\s]/g, "")) * 100),
       description: `First payment for ${customer.name || "customer"}`,
+      chargeType: "first_payment",
     });
   };
 
@@ -529,13 +556,40 @@ export default function CustomerProfilePage() {
       mode: "subscription",
       monthlyPremium: premium,
       description: `Monthly billing for ${customer.name || "customer"}`,
+      chargeType: "subscription_setup",
     });
   };
 
-  const handleChargeCustomerNow = () => {
-    alert(
-      "Charge Customer Now is not wired yet. The current backend supports Stripe Checkout and subscription start, but not off-session charging of a saved card."
+  const handleChargeCustomerNow = async () => {
+    if (!customer) return;
+
+    const input = window.prompt(
+      "Enter the one-time charge amount in dollars (example: 75 or 125.50)"
     );
+
+    if (!input) return;
+
+    const amountCents = parseDollarInputToCents(input);
+
+    if (!amountCents || amountCents < 50) {
+      alert("Enter a valid amount of at least $0.50.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Charge ${customer.name || "this customer"} ${formatCentsForDisplay(
+        amountCents
+      )} as a one-time payment?`
+    );
+
+    if (!confirmed) return;
+
+    await beginStripeCheckout({
+      mode: "payment",
+      amount: amountCents,
+      description: `One-time charge for ${customer.name || "customer"}`,
+      chargeType: "manual_one_time",
+    });
   };
 
   const handleUpdateCard = async () => {
@@ -1155,7 +1209,9 @@ export default function CustomerProfilePage() {
                   onClick={handleChargeCustomerNow}
                   disabled={billingActionLoading}
                 >
-                  Charge Customer Now
+                  {billingActionLoading
+                    ? "Working..."
+                    : "Charge Customer Now"}
                 </button>
                 <button
                   className="btn-outline"
