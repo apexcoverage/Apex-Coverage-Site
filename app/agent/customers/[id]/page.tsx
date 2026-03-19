@@ -836,7 +836,7 @@ export default function CustomerProfilePage() {
         </head>
         <body>
           <div class="actions">
-            <button onclick="window.close()">Close</button>
+            <button onclick="history.back()">Back</button>
             <button class="primary" onclick="window.print()">Print / Save PDF</button>
           </div>
 
@@ -947,16 +947,9 @@ export default function CustomerProfilePage() {
       </html>
     `;
 
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-
-    if (!printWindow) {
-      alert("Popup blocked. Please allow popups and try again.");
-      return;
-    }
-
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.location.assign(url);
   };
 
   const handleUploadFile = () => {
@@ -1117,7 +1110,10 @@ export default function CustomerProfilePage() {
             <button className="btn-secondary" onClick={handleAddNote}>
               Add Note
             </button>
-            <button className="btn-secondary" onClick={handleGenerateDeclarationsPage}>
+            <button
+              className="btn-secondary"
+              onClick={handleGenerateDeclarationsPage}
+            >
               Generate Declarations Page
             </button>
             <button className="btn-primary" onClick={handleEditProfile}>
