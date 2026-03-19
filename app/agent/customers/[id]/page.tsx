@@ -269,6 +269,14 @@ function formatCentsForDisplay(cents: number) {
   }).format(cents / 100);
 }
 
+function escapeHtml(value: string) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export default function CustomerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -693,6 +701,264 @@ export default function CustomerProfilePage() {
     alert("Full policy view coming soon.");
   };
 
+  const handleGenerateDeclarationsPage = () => {
+    if (!customer) return;
+
+    const fallbackVehicleText = [customer.year, customer.make, customer.model]
+      .filter(Boolean)
+      .join(" ");
+
+    const vehiclesRaw = customer.vehicles || fallbackVehicleText || "";
+    const vehicleItems = vehiclesRaw
+      .split(/\r?\n/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    const vehicleListHtml =
+      vehicleItems.length > 0
+        ? vehicleItems.map((v) => `<li>${escapeHtml(v)}</li>`).join("")
+        : "<li>—</li>";
+
+    const generatedAt = new Date().toLocaleString();
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Declarations Page - ${escapeHtml(customer.name || "Customer")}</title>
+          <style>
+            body {
+              font-family: Arial, Helvetica, sans-serif;
+              margin: 0;
+              background: #f3f4f6;
+              color: #111827;
+            }
+            .page {
+              max-width: 900px;
+              margin: 24px auto;
+              background: #ffffff;
+              padding: 32px;
+              box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            }
+            .topbar {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              border-bottom: 2px solid #dc2626;
+              padding-bottom: 16px;
+              margin-bottom: 24px;
+            }
+            .brand h1 {
+              margin: 0;
+              font-size: 28px;
+              color: #dc2626;
+            }
+            .brand p {
+              margin: 6px 0 0;
+              color: #6b7280;
+              font-size: 14px;
+            }
+            .meta {
+              text-align: right;
+              font-size: 13px;
+              color: #374151;
+            }
+            .section {
+              margin-bottom: 24px;
+            }
+            .section h2 {
+              margin: 0 0 12px;
+              font-size: 18px;
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 8px;
+            }
+            .grid {
+              display: grid;
+              grid-template-columns: 180px 1fr;
+              gap: 8px 16px;
+              font-size: 14px;
+            }
+            .label {
+              font-weight: 700;
+              color: #374151;
+            }
+            .value {
+              color: #111827;
+              word-break: break-word;
+            }
+            ul {
+              margin: 0;
+              padding-left: 18px;
+            }
+            .footer {
+              margin-top: 32px;
+              padding-top: 16px;
+              border-top: 1px solid #e5e7eb;
+              font-size: 12px;
+              color: #6b7280;
+            }
+            .actions {
+              max-width: 900px;
+              margin: 16px auto 0;
+              display: flex;
+              justify-content: flex-end;
+              gap: 12px;
+            }
+            .actions button {
+              border: 1px solid #d1d5db;
+              background: #fff;
+              border-radius: 999px;
+              padding: 10px 16px;
+              cursor: pointer;
+              font-size: 14px;
+            }
+            .actions button.primary {
+              background: #dc2626;
+              color: #fff;
+              border-color: #dc2626;
+            }
+            @media print {
+              body {
+                background: #fff;
+              }
+              .actions {
+                display: none;
+              }
+              .page {
+                margin: 0;
+                max-width: none;
+                box-shadow: none;
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="actions">
+            <button onclick="window.close()">Close</button>
+            <button class="primary" onclick="window.print()">Print / Save PDF</button>
+          </div>
+
+          <div class="page">
+            <div class="topbar">
+              <div class="brand">
+                <h1>Apex Coverage</h1>
+                <p>Policy Declarations Page</p>
+              </div>
+              <div class="meta">
+                <div><strong>Generated:</strong> ${escapeHtml(generatedAt)}</div>
+                <div><strong>Customer ID:</strong> ${escapeHtml(String(customer.id || "—"))}</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Named Insured</h2>
+              <div class="grid">
+                <div class="label">Customer Name</div>
+                <div class="value">${escapeHtml(customer.name || "—")}</div>
+
+                <div class="label">Email</div>
+                <div class="value">${escapeHtml(customer.email || "—")}</div>
+
+                <div class="label">Phone</div>
+                <div class="value">${escapeHtml(customer.phone || "—")}</div>
+
+                <div class="label">ZIP Code</div>
+                <div class="value">${escapeHtml(customer.zip || "—")}</div>
+
+                <div class="label">Date of Birth</div>
+                <div class="value">${escapeHtml(customer.dob || "—")}</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Policy Information</h2>
+              <div class="grid">
+                <div class="label">Policy Number</div>
+                <div class="value">${escapeHtml(
+                  customer.policyNumber && customer.policyNumber.trim()
+                    ? customer.policyNumber
+                    : "Policy number not set"
+                )}</div>
+
+                <div class="label">Coverage</div>
+                <div class="value">${escapeHtml(customer.coverage || "Full Coverage")}</div>
+
+                <div class="label">Deductibles</div>
+                <div class="value">${escapeHtml(
+                  customer.deductibles || "$500 Comp / $1,000 Collision"
+                )}</div>
+
+                <div class="label">Discounts</div>
+                <div class="value">${escapeHtml(
+                  customer.discounts && customer.discounts.trim()
+                    ? customer.discounts
+                    : "—"
+                )}</div>
+
+                <div class="label">Renewal Date</div>
+                <div class="value">${escapeHtml(
+                  customer.renewalDate && customer.renewalDate.trim()
+                    ? customer.renewalDate
+                    : "—"
+                )}</div>
+
+                <div class="label">Monthly Premium</div>
+                <div class="value">${escapeHtml(
+                  customer.monthlyPremium && customer.monthlyPremium.trim()
+                    ? formatCurrency(customer.monthlyPremium)
+                    : "—"
+                )}</div>
+
+                <div class="label">Assigned Agent</div>
+                <div class="value">${escapeHtml(customer.agent || "Unassigned")}</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Covered Vehicle(s)</h2>
+              <ul>
+                ${vehicleListHtml}
+              </ul>
+            </div>
+
+            <div class="section">
+              <h2>Billing Status</h2>
+              <div class="grid">
+                <div class="label">Billing Status</div>
+                <div class="value">${escapeHtml(
+                  customer.billingStatus ? customer.billingStatus.replace(/_/g, " ") : "Not started"
+                )}</div>
+
+                <div class="label">Last Invoice Status</div>
+                <div class="value">${escapeHtml(customer.lastInvoiceStatus || "—")}</div>
+
+                <div class="label">Last Payment Date</div>
+                <div class="value">${escapeHtml(formatDateTime(customer.lastPaymentDate))}</div>
+              </div>
+            </div>
+
+            <div class="footer">
+              This declarations page was generated from Apex Coverage CRM data.
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+
+    if (!printWindow) {
+      alert("Popup blocked. Please allow popups and try again.");
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   const handleUploadFile = () => {
     alert("File upload (policy docs, IDs, etc.) coming soon.");
   };
@@ -850,6 +1116,9 @@ export default function CustomerProfilePage() {
           <div className="crm-header-right">
             <button className="btn-secondary" onClick={handleAddNote}>
               Add Note
+            </button>
+            <button className="btn-secondary" onClick={handleGenerateDeclarationsPage}>
+              Generate Declarations Page
             </button>
             <button className="btn-primary" onClick={handleEditProfile}>
               Edit Profile
