@@ -71,7 +71,7 @@ export default function Header() {
             href="/build-review"
             className="hidden sm:inline-flex items-center gap-2 bg-[#cc0000] text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-red-700 transition"
           >
-            Start Build Review
+            Get a Quote
           </Link>
 
           {/* mobile toggle */}
@@ -112,7 +112,7 @@ export default function Header() {
                 onClick={() => setOpen(false)}
                 className="block font-semibold text-[#cc0000]"
               >
-                Start Build Review
+                Get a Quote
               </Link>
             </li>
           </ul>
