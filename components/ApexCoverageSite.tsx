@@ -1,198 +1,136 @@
 'use client';
+
+import Link from 'next/link';
 import React, { useState } from 'react';
 
 export default function ApexCoverageSite() {
-  const [consent, setConsent] = useState(false);
-  const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
   function FAQItem({ i, q, a }: { i: number; q: string; a: string }) {
     const open = faqOpen === i;
+
     return (
-      <div style={{ borderBottom: '1px solid #e5e7eb' }}>
+      <div className="border-b border-gray-200">
         <button
           onClick={() => setFaqOpen(open ? null : i)}
-          style={{ width: '100%', padding: '16px 0', textAlign: 'left' }}
+          className="w-full py-4 text-left flex items-center justify-between gap-4"
           aria-expanded={open}
         >
-          <span style={{ fontWeight: 600 }}>{q}</span>
-          <span style={{ float: 'right' }}>{open ? '▲' : '▼'}</span>
+          <span className="font-semibold">{q}</span>
+          <span className="text-[#cc0000]">{open ? '▲' : '▼'}</span>
         </button>
-        {open && <p style={{ paddingBottom: 16, color: '#4b5563' }}>{a}</p>}
+
+        {open && <p className="pb-4 text-gray-600">{a}</p>}
       </div>
     );
   }
 
-  async function onSubmitQuote(e: React.FormEvent) {
-    e.preventDefault();
-    const formEl = e.target as HTMLFormElement;
-
-    if (!consent) {
-      alert("Please accept the consent notice to proceed.");
-      return;
-    }
-
-    const fd = new FormData(formEl);
-    fd.set("consent", consent ? "true" : "false");
-
-    try {
-      setFormStatus("submitting");
-      const res = await fetch("/api/lead", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok || data?.ok !== true) throw new Error(data?.error || "Upstream error");
-
-      setFormStatus("success");
-      formEl.reset();
-      setConsent(false);
-    } catch (err) {
-      console.error(err);
-      setFormStatus("error");
-    }
-  }
-
   return (
     <main className="min-h-screen bg-white text-gray-900">
-      {/* Hero + Quote Card */}
+      {/* Hero */}
       <section className="relative overflow-hidden">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'linear-gradient(135deg, rgba(204,0,0,.10), transparent, rgba(204,0,0,.10))',
+            backgroundImage:
+              'linear-gradient(135deg, rgba(204,0,0,.10), transparent, rgba(204,0,0,.10))',
           }}
         />
-        <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-center">
+
+        <div className="max-w-7xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Coverage built for real drivers.<br />
-              <span className="text-[#cc0000]">Protect what you build.</span>
-            </h1>
-            <p className="mt-4 text-gray-600 max-w-prose">
-              Simple, reliable auto coverage — customized for your car, your drive, and your budget. For those who drive, not just commute.
+            <p className="inline-flex items-center rounded-full border border-[#cc0000]/20 bg-[#cc0000]/5 px-3 py-1 text-sm font-semibold text-[#cc0000]">
+              Built for street-driven enthusiasts
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a href="/quote" className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition">
-                Start my quote
-              </a>
-              <a href="#why" className="inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-gray-50 transition">
-                How it works
-              </a>
+
+            <h1 className="mt-5 text-4xl md:text-6xl font-bold leading-tight">
+              Protect the car you built.
+              <br />
+              <span className="text-[#cc0000]">Not just the car you bought.</span>
+            </h1>
+
+            <p className="mt-5 text-lg text-gray-600 max-w-prose">
+              Apex Modified Vehicle Protection is designed for drivers who invest in
+              professionally installed aftermarket parts and want a smarter way to protect
+              their build.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/build-review"
+                className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition"
+              >
+                Start Build Review
+              </Link>
+
+              <Link
+                href="/how-it-works"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-gray-50 transition"
+              >
+                How It Works
+              </Link>
             </div>
-            <div className="mt-6 flex items-center gap-6 text-sm text-gray-600">
-              <span>🛡️ 24/7 Claims</span>
-              <span>💳 Flexible billing</span>
-              <span>🔒 Secure & private</span>
+
+            <div className="mt-6 flex flex-wrap items-center gap-5 text-sm text-gray-600">
+              <span>🧾 Receipts reviewed</span>
+              <span>🔧 Professional installs</span>
+              <span>🚗 Street-driven builds</span>
             </div>
           </div>
 
           <div className="relative">
             <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
-            <div className="relative bg-white border rounded-2xl shadow-xl p-6" id="quote">
-              {formStatus === "success" ? (
-                // Success screen INSIDE the quote card
-                <div className="text-center">
-                  <h3 className="text-2xl font-semibold text-green-700 mb-2">Quote Request Submitted!</h3>
-                  <p className="text-gray-700 mb-6">
-                    Thanks for reaching out. A certified agent from <strong>Apex Coverage</strong> will contact you soon to finalize your quote.
-                  </p>
-                  <button
-                    onClick={() => setFormStatus("idle")}
-                    className="bg-red-600 text-white px-6 py-2 rounded-md font-semibold hover:bg-red-700"
-                  >
-                    Start Another Quote
-                  </button>
 
-                  {/* Optional FAQ under success */}
-                  <section className="mt-8 text-left">
-                    <h4 className="text-xl font-semibold mb-3">Frequently Asked Questions</h4>
-                    <div className="divide-y divide-gray-200">
-                      {[
-                        { q: "When will I hear back?", a: "Usually within one business day. Feel free to send us an email or call." },
-                        { q: "Do you run my credit?", a: "In some cases, credit-based coverage is necessary. We’ll tell you before any soft checks." },
-                        { q: "Can I change deductibles later?", a: "Yes—most changes can be made mid-term or at renewal." },
-                        { q: "Do you cover modified cars?", a: "Yes. Tell us your mods and we’ll put together a coverage that fits your needs." },
-                      ].map((f, i) => (
-                        <FAQItem key={i} i={i} q={f.q} a={f.a} />
-                      ))}
-                    </div>
-                  </section>
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-xl font-semibold mb-1">Get your quick quote</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Takes less than 60 seconds. A certified agent will follow up.
-                  </p>
+            <div className="relative bg-white border rounded-2xl shadow-xl p-6 md:p-8">
+              <div className="text-sm font-semibold text-[#cc0000]">Apex Build Profile</div>
 
-                  {formStatus === "error" && (
-                    <div className="mb-3 rounded-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
-                      We couldn’t submit your quote. Please try again in a moment or email{" "}
-                      <a className="underline" href="mailto:support@driveapexcoverage.com">
-                        support@driveapexcoverage.com
-                      </a>.
-                    </div>
-                  )}
+              <h2 className="mt-2 text-2xl font-bold">
+                Your protection starts with your actual build.
+              </h2>
 
-                  <form onSubmit={onSubmitQuote} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="text-sm">Full name</label>
-                      <input name="name" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Jane Driver" />
+              <p className="mt-3 text-gray-600">
+                Submit your vehicle, mileage, VIN, parts list, receipts, install records,
+                and photos. Apex reviews the build and matches it to the right protection tier.
+              </p>
+
+              <div className="mt-6 space-y-4">
+                {[
+                  {
+                    title: 'Document your parts',
+                    body: 'Upload or list receipts, install mileage, photos, and shop information.',
+                  },
+                  {
+                    title: 'Review the risk',
+                    body: 'We look at the vehicle, modification level, driver profile, and deductible choice.',
+                  },
+                  {
+                    title: 'Get a custom plan',
+                    body: 'Your plan is built around approved parts, professional installation, and street use.',
+                  },
+                ].map((item, index) => (
+                  <div key={item.title} className="flex gap-3">
+                    <div className="h-7 w-7 shrink-0 rounded-full bg-[#cc0000] text-white flex items-center justify-center text-sm font-bold">
+                      {index + 1}
                     </div>
                     <div>
-                      <label className="text-sm">Email</label>
-                      <input type="email" name="email" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="jane@example.com" />
+                      <div className="font-semibold">{item.title}</div>
+                      <div className="text-sm text-gray-600">{item.body}</div>
                     </div>
-                    <div>
-                      <label className="text-sm">Phone</label>
-                      <input name="phone" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="(540) 699-0505" />
-                    </div>
-                    <div>
-                      <label className="text-sm">ZIP</label>
-                      <input name="zip" pattern="\d{5}" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="23219" />
-                    </div>
-                    <div>
-                      <label className="text-sm">Date of birth</label>
-                      <input type="date" name="dob" required className="w-full mt-1 border rounded-md px-3 py-2" />
-                    </div>
-                    <div>
-                      <label className="text-sm">Vehicle year</label>
-                      <input name="year" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="2022" />
-                    </div>
-                    <div>
-                      <label className="text-sm">Make</label>
-                      <input name="make" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Toyota" />
-                    </div>
-                    <div>
-                      <label className="text-sm">Model</label>
-                      <input name="model" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Camry" />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="inline-flex items-start gap-2 text-xs text-gray-600">
-                        <input
-                          type="checkbox"
-                          checked={consent}
-                          onChange={(e) => setConsent(e.target.checked)}
-                          className="mt-1"
-                        />
-                        <span>
-                          By submitting, you consent to be contacted by Apex Coverage via phone, email, or text regarding your quote request.
-                          Consent not required for purchase.
-                        </span>
-                      </label>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <button
-                        className="w-full bg-[#cc0000] hover:bg-red-700 text-white font-semibold py-2.5 rounded-md disabled:opacity-50"
-                        disabled={formStatus === "submitting"}
-                      >
-                        {formStatus === "submitting" ? "Submitting..." : "See my estimate"}
-                      </button>
-                    </div>
-                    <p className="sm:col-span-2 text-[11px] text-gray-500">
-                      This is an estimate only. Final premium is dependent on underwriting approval.
-                    </p>
-                  </form>
-                </>
-              )}
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/build-review"
+                className="mt-7 inline-flex w-full justify-center items-center bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition"
+              >
+                Begin My Build Review
+              </Link>
+
+              <p className="mt-3 text-xs text-gray-500">
+                Eligibility, pricing, deductibles, covered parts, and claims are subject to
+                review and final approval.
+              </p>
             </div>
           </div>
         </div>
@@ -201,28 +139,49 @@ export default function ApexCoverageSite() {
       {/* Trust Icons Strip */}
       <section className="border-t bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm text-gray-600">
-          <div>⏱️ 24/7 Claims</div>
-          <div>🛡️ A+ Support</div>
-          <div>🚗 Enthusiast-friendly</div>
-          <div>✨ Fast online service</div>
+          <div>🔧 Modified-friendly</div>
+          <div>🧾 Documentation-based</div>
+          <div>🛠️ Shop install required</div>
+          <div>🚗 Auto insurance available</div>
         </div>
       </section>
 
-      {/* Coverages */}
-      <section id="coverages" className="max-w-7xl mx-auto px-4 py-16">
+      {/* What We Protect */}
+      <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div>
-            <h2 className="text-3xl font-bold">Coverage that fits your life</h2>
+            <h2 className="text-3xl font-bold">
+              Protection for professionally installed aftermarket parts
+            </h2>
+
             <p className="mt-3 text-gray-600">
-              Choose your protection level and fine-tune deductibles. We’ll help you balance price and protection in plain English.
+              Most traditional auto insurance policies are not built around enthusiast vehicles.
+              Apex is designed to review the actual parts on your car and create a protection
+              option based on your build.
             </p>
+
             <ul className="mt-6 space-y-3">
               {[
-                { t: 'Liability', d: 'Meets state requirements and protects you from at-fault damages.' },
-                { t: 'Comprehensive', d: 'Theft, weather, vandalism, glass — the unexpected stuff.' },
-                { t: 'Collision', d: 'Your car vs. another object — with your deductible choice.' },
-                { t: 'UM/UIM', d: 'If the other driver doesn’t have enough coverage, you still do.' },
-                { t: 'Medical Payments', d: 'Helps with medical costs regardless of fault.' },
+                {
+                  t: 'Performance parts',
+                  d: 'Intake, exhaust, cooling, fueling, forced induction, tuning-related supporting parts, and more.',
+                },
+                {
+                  t: 'Suspension and handling',
+                  d: 'Coilovers, lowering kits, control arms, bushings, sway bars, brake upgrades, and related components.',
+                },
+                {
+                  t: 'Exterior and appearance',
+                  d: 'Wheels, body kits, aero, lighting, wraps, paint protection, and other approved cosmetic upgrades.',
+                },
+                {
+                  t: 'Interior and electronics',
+                  d: 'Audio, gauges, seats, infotainment, security, and other documented upgrades.',
+                },
+                {
+                  t: 'Factory parts also considered',
+                  d: 'Coverage can include approved factory parts depending on vehicle, mileage, condition, and plan terms.',
+                },
               ].map((x) => (
                 <li key={x.t} className="flex items-start gap-3">
                   <div className="mt-0.5">✔️</div>
@@ -234,98 +193,190 @@ export default function ApexCoverageSite() {
               ))}
             </ul>
           </div>
+
           <div className="grid sm:grid-cols-2 gap-4">
             {[
-              { title: 'Customizable limits', body: 'Dial in limits and deductibles that match your budget.' },
-              { title: 'Flexible billing', body: 'Monthly, pay-in-full, or autopay with reminders.' },
-              { title: 'Multi-car savings', body: 'Add vehicles or drivers and stack discounts.' },
-              { title: 'Fast documents', body: 'Instant proof of coverage and digital ID cards.' },
+              {
+                title: 'Street Tier',
+                body: 'For daily-driven cars with mild, documented modifications.',
+              },
+              {
+                title: 'Street+ Tier',
+                body: 'For more involved builds with added performance, suspension, or appearance upgrades.',
+              },
+              {
+                title: 'Apex Build Tier',
+                body: 'For higher-value or higher-risk builds that need deeper review.',
+              },
+              {
+                title: 'Auto Insurance Add-On',
+                body: 'Traditional auto insurance is still available as a separate service.',
+              },
             ].map((c) => (
               <div key={c.title} className="border rounded-xl p-5 hover:shadow-md transition">
-                <div className="mt-2 font-semibold">{c.title}</div>
-                <div className="text-sm text-gray-600">{c.body}</div>
+                <div className="font-semibold">{c.title}</div>
+                <div className="mt-2 text-sm text-gray-600">{c.body}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Why Apex */}
-      <section id="why" className="bg-gray-50 border-t">
-        <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-center">
-          <div>
+      {/* How It Works Preview */}
+      <section className="bg-gray-50 border-t">
+        <div className="max-w-7xl mx-auto px-4 py-16">
+          <div className="max-w-3xl">
             <h2 className="text-3xl font-bold">
-              Why choose <span className="text-[#cc0000]">Apex</span>?
+              How Apex Modified Vehicle Protection works
             </h2>
+
             <p className="mt-3 text-gray-600">
-              We pair modern online convenience with real humans. No gimmicks. No surprises. Just coverage that works when you need it.
+              We do not treat every car the same. Your vehicle, driver profile, mileage,
+              ZIP code, parts list, claim history, documentation, and deductible choice all
+              help determine eligibility and pricing.
             </p>
-            <div className="mt-6 grid sm:grid-cols-2 gap-4">
-              {[
-                { t: 'Certified agents', s: 'Talk to experts who explain, not upsell.' },
-                { t: 'Clear pricing', s: 'Transparent options before you buy.' },
-                { t: 'Claims help', s: 'Guidance from first call to settlement.' },
-                { t: 'Data privacy', s: 'Your info stays secure and encrypted.' },
-              ].map((x) => (
-                <div key={x.t} className="flex items-start gap-3">
-                  <div className="mt-0.5">🛡️</div>
-                  <div>
-                    <div className="font-medium">{x.t}</div>
-                    <div className="text-sm text-gray-600">{x.s}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-          <div className="relative border rounded-2xl p-6 bg-white">
-            <div
-              className="absolute -inset-2 rounded-2xl"
-              style={{
-                backgroundImage: 'linear-gradient(120deg, rgba(204,0,0,.12), transparent, rgba(204,0,0,.12))',
-              }}
-            />
-            <h3 className="font-semibold">Switch & save in minutes</h3>
-            <p className="text-sm text-gray-600">
-              Have a policy already? We’ll review it and show you options side-by-side.
-            </p>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li>✔️ Cancel-safe onboarding</li>
-              <li>✔️ No hidden fees</li>
-              <li>✔️ Digital ID cards</li>
-            </ul>
-            <a
-              href="/quote"
-              className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#cc0000] text-white font-semibold hover:bg-red-700"
+
+          <div className="mt-8 grid md:grid-cols-4 gap-5">
+            {[
+              {
+                step: '01',
+                title: 'Submit your build',
+                body: 'Tell us about your vehicle, parts, mileage, install history, and documentation.',
+              },
+              {
+                step: '02',
+                title: 'Apex reviews it',
+                body: 'We review your risk profile, professional installation records, and parts list.',
+              },
+              {
+                step: '03',
+                title: 'Choose your plan',
+                body: 'Pick a deductible and review the tier that fits your vehicle and build.',
+              },
+              {
+                step: '04',
+                title: 'Use support when needed',
+                body: 'Approved claims may be handled by direct-to-shop payment or reimbursement.',
+              },
+            ].map((item) => (
+              <div key={item.step} className="bg-white border rounded-xl p-5">
+                <div className="text-[#cc0000] font-bold">{item.step}</div>
+                <div className="mt-2 font-semibold">{item.title}</div>
+                <div className="mt-2 text-sm text-gray-600">{item.body}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8">
+            <Link
+              href="/how-it-works"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-white transition"
             >
-              Start my quote
-            </a>
+              View Full Process
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Auto Insurance Secondary Section */}
+      <section className="max-w-7xl mx-auto px-4 py-16">
+        <div className="relative border rounded-2xl p-6 md:p-8 bg-white overflow-hidden">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage:
+                'linear-gradient(120deg, rgba(204,0,0,.08), transparent, rgba(204,0,0,.08))',
+            }}
+          />
+
+          <div className="relative grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <p className="text-sm font-semibold text-[#cc0000]">Still available</p>
+
+              <h2 className="mt-2 text-3xl font-bold">
+                Need traditional auto insurance too?
+              </h2>
+
+              <p className="mt-3 text-gray-600">
+                Apex still helps drivers review auto insurance options. We are simply making
+                modified vehicle protection the main focus for enthusiasts who need more than
+                a standard policy conversation.
+              </p>
+            </div>
+
+            <div className="md:text-right">
+              <Link
+                href="/quote"
+                className="inline-flex items-center gap-2 bg-black text-white px-5 py-3 rounded-md font-semibold hover:bg-gray-800 transition"
+              >
+                Start Auto Insurance Quote
+              </Link>
+
+              <p className="mt-3 text-xs text-gray-500">
+                Auto insurance quote requests use a separate form and intake flow.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Reviews */}
-      <section id="reviews" className="max-w-7xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold">What drivers say</h2>
-        <div className="mt-6 grid md:grid-cols-3 gap-6">
-          {['Straightforward and fast.', 'I was surprised how affordable it was.', 'Switched and saved $28/mo.'].map((t, i) => (
-            <div key={i} className="border rounded-xl p-5">
-              <div>★★★★★</div>
-              <p className="mt-3 text-gray-700">“{t}”</p>
-              <div className="mt-4 text-sm text-gray-500">— Verified customer</div>
-            </div>
-          ))}
+      <section className="bg-gray-50 border-t">
+        <div className="max-w-7xl mx-auto px-4 py-16">
+          <h2 className="text-3xl font-bold">Built for people who care about their cars</h2>
+
+          <div className="mt-6 grid md:grid-cols-3 gap-6">
+            {[
+              'Finally, a company that understands modified cars.',
+              'The build review made way more sense than a generic quote form.',
+              'I like that auto insurance is still available, but the focus is on enthusiasts.',
+            ].map((t, i) => (
+              <div key={i} className="bg-white border rounded-xl p-5">
+                <div>★★★★★</div>
+                <p className="mt-3 text-gray-700">“{t}”</p>
+                <div className="mt-4 text-sm text-gray-500">— Apex customer</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="bg-gray-50 border-t">
+      <section className="border-t">
         <div className="max-w-7xl mx-auto px-4 py-16">
           <h2 className="text-3xl font-bold">FAQs</h2>
+
           <div className="mt-4">
-            <FAQItem i={0} q="How fast can I get coverage?" a="In most cases, digital ID cards are available immediately after binding and payment." />
-            <FAQItem i={1} q="Do you cover modified or performance cars?" a="Yes. We’ll review your build list and work with your enthusiast needs." />
-            <FAQItem i={2} q="Can I change my deductibles later?" a="Absolutely. Adjustments can be made at renewal or mid-term in most cases." />
-            <FAQItem i={3} q="How do claims work?" a="Report a claim 24/7. We coordinate with the carrier and keep you updated from start to finish." />
+            <FAQItem
+              i={0}
+              q="Is this the same as auto insurance?"
+              a="No. Auto insurance is still available through Apex as a separate service. Apex Modified Vehicle Protection is focused on approved parts, documentation, professional installation, and repair support for eligible street-driven vehicles."
+            />
+
+            <FAQItem
+              i={1}
+              q="Do you cover any modification?"
+              a="Parts must be documented, professionally installed, and approved as part of the build review. Undocumented parts and non-professional installations are not eligible."
+            />
+
+            <FAQItem
+              i={2}
+              q="What documents do I need?"
+              a="You should be ready to provide receipts, photos, VIN, mileage, installation records, and shop information. The more complete your documentation is, the easier it is to review your build."
+            />
+
+            <FAQItem
+              i={3}
+              q="Can salvage or rebuilt title vehicles apply?"
+              a="Yes, but they require stricter review and may have higher pricing, different deductibles, inspection requirements, or limited eligibility."
+            />
+
+            <FAQItem
+              i={4}
+              q="How are prices determined?"
+              a="Pricing is risk-based. We consider the vehicle, driver profile, ZIP code, mileage, parts list, driving history, claim history, possible discounts, and deductible choice."
+            />
           </div>
         </div>
       </section>
@@ -333,17 +384,23 @@ export default function ApexCoverageSite() {
       {/* CTA */}
       <section className="relative">
         <div className="absolute inset-0 bg-[#cc0000]/5 -z-10" />
+
         <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-between gap-4">
-          <h3 className="text-2xl font-bold">Ready to get covered?</h3>
-          <a
-            href="/quote"
+          <div>
+            <h3 className="text-2xl font-bold">Ready to protect your build?</h3>
+            <p className="mt-1 text-gray-600">
+              Start with a build review and let Apex evaluate your vehicle the right way.
+            </p>
+          </div>
+
+          <Link
+            href="/build-review"
             className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700"
           >
-            Start my quote
-          </a>
+            Start Build Review
+          </Link>
         </div>
       </section>
     </main>
   );
 }
-
