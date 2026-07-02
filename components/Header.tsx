@@ -8,7 +8,7 @@ const NAV = [
   { href: '/', label: 'Modified Vehicle Protection' },
   { href: '/how-it-works', label: 'How It Works' },
   { href: '/tiers', label: 'Tiers' },
-  { href: '/quote', label: 'Auto Insurance' },
+  { href: '/quote', label: 'Auto Coverage' },
   { href: '/about', label: 'About' },
 ];
 
@@ -28,7 +28,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span>✅</span>
-            <span>Protection for professionally installed aftermarket parts</span>
+            <span>Call for a FREE quote • Apex Coverage</span>
           </div>
 
           <a href="tel:+15406990505" className="hover:opacity-90 whitespace-nowrap">
