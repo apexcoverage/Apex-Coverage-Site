@@ -40,7 +40,7 @@ export default function ApexCoverageSite() {
         <div className="max-w-7xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
           <div>
             <p className="inline-flex items-center rounded-full border border-[#cc0000]/20 bg-[#cc0000]/5 px-3 py-1 text-sm font-semibold text-[#cc0000]">
-              Built for street-driven enthusiasts
+              Built for enthusiasts
             </p>
 
             <h1 className="mt-5 text-4xl md:text-6xl font-bold leading-tight">
@@ -51,7 +51,7 @@ export default function ApexCoverageSite() {
 
             <p className="mt-5 text-lg text-gray-600 max-w-prose">
               Apex Modified Vehicle Protection is designed for drivers who invest in
-              professionally installed aftermarket parts and want a smarter way to protect
+              building their car they way they want, and want a smarter way to protect
               their build.
             </p>
 
@@ -73,8 +73,8 @@ export default function ApexCoverageSite() {
 
             <div className="mt-6 flex flex-wrap items-center gap-5 text-sm text-gray-600">
               <span>🧾 Receipts reviewed</span>
-              <span>🔧 Professional installs</span>
-              <span>🚗 Street-driven builds</span>
+              <span>🔧 Professional/DIY installs</span>
+              <span>🚗 Any type of build</span>
             </div>
           </div>
 
@@ -141,8 +141,8 @@ export default function ApexCoverageSite() {
         <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm text-gray-600">
           <div>🔧 Modified-friendly</div>
           <div>🧾 Documentation-based</div>
-          <div>🛠️ Shop install required</div>
-          <div>🚗 Auto insurance available</div>
+          <div>🛠️ DIY installs accepted</div>
+          <div>🚗 Auto coverage reviews</div>
         </div>
       </section>
 
@@ -151,7 +151,7 @@ export default function ApexCoverageSite() {
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h2 className="text-3xl font-bold">
-              Protection for professionally installed aftermarket parts
+              Custom protection that your build deserves
             </h2>
 
             <p className="mt-3 text-gray-600">
@@ -172,7 +172,7 @@ export default function ApexCoverageSite() {
                 },
                 {
                   t: 'Exterior and appearance',
-                  d: 'Wheels, body kits, aero, lighting, wraps, paint protection, and other approved cosmetic upgrades.',
+                  d: 'Wheels, body kits, aero, lighting, wraps, paint protection, and other cosmetic upgrades.',
                 },
                 {
                   t: 'Interior and electronics',
@@ -180,7 +180,7 @@ export default function ApexCoverageSite() {
                 },
                 {
                   t: 'Factory parts also considered',
-                  d: 'Coverage can include approved factory parts depending on vehicle, mileage, condition, and plan terms.',
+                  d: 'Coverage includes factory or OEM parts that are installed to bring your build together.',
                 },
               ].map((x) => (
                 <li key={x.t} className="flex items-start gap-3">
@@ -198,7 +198,7 @@ export default function ApexCoverageSite() {
             {[
               {
                 title: 'Street Tier',
-                body: 'For daily-driven cars with mild, documented modifications.',
+                body: 'For daily-driven enthusiast cars with mild modifications.',
               },
               {
                 title: 'Street+ Tier',
@@ -206,11 +206,11 @@ export default function ApexCoverageSite() {
               },
               {
                 title: 'Apex Build Tier',
-                body: 'For higher-value or higher-risk builds that need deeper review.',
+                body: 'For higher-value or higher-complexity builds that need demand more coverage.',
               },
               {
-                title: 'Auto Insurance Add-On',
-                body: 'Traditional auto insurance is still available as a separate service.',
+                title: 'Salvage/Rebuilt Review',
+                body: 'If your build is on a salvaged chasis, we can still protect your build.',
               },
             ].map((c) => (
               <div key={c.title} className="border rounded-xl p-5 hover:shadow-md transition">
@@ -231,9 +231,9 @@ export default function ApexCoverageSite() {
             </h2>
 
             <p className="mt-3 text-gray-600">
-              We do not treat every car the same. Your vehicle, driver profile, mileage,
+              We understand that every car and every build is different. Your vehicle, driver profile, mileage,
               ZIP code, parts list, claim history, documentation, and deductible choice all
-              help determine eligibility and pricing.
+              help us provide the coverage and piece of mind your build deserves.
             </p>
           </div>
 
@@ -242,17 +242,17 @@ export default function ApexCoverageSite() {
               {
                 step: '01',
                 title: 'Submit your build',
-                body: 'Tell us about your vehicle, parts, mileage, install history, and documentation.',
+                body: 'Tell us about your vehicle, parts, mileage, install history, and any documentation.',
               },
               {
                 step: '02',
                 title: 'Apex reviews it',
-                body: 'We review your risk profile, professional installation records, and parts list.',
+                body: 'We review your build, installation records, and parts list.',
               },
               {
                 step: '03',
                 title: 'Choose your plan',
-                body: 'Pick a deductible and review the tier that fits your vehicle and build.',
+                body: 'Pick a deductible and review the tier that fits your vehicle and build best.',
               },
               {
                 step: '04',
@@ -295,13 +295,12 @@ export default function ApexCoverageSite() {
               <p className="text-sm font-semibold text-[#cc0000]">Still available</p>
 
               <h2 className="mt-2 text-3xl font-bold">
-                Need traditional auto insurance too?
+                Need a traditional auto insurance review?
               </h2>
 
               <p className="mt-3 text-gray-600">
-                Apex still helps drivers review auto insurance options. We are simply making
-                modified vehicle protection the main focus for enthusiasts who need more than
-                a standard policy conversation.
+                Apex still helps drivers review auto insurance options. While our main focus is enthusiasts who need more than
+                a standard policy conversation, ask an agent how they may be able to help.
               </p>
             </div>
 
@@ -310,11 +309,11 @@ export default function ApexCoverageSite() {
                 href="/quote"
                 className="inline-flex items-center gap-2 bg-black text-white px-5 py-3 rounded-md font-semibold hover:bg-gray-800 transition"
               >
-                Start Auto Insurance Quote
+                Start Auto Insurance Review
               </Link>
 
               <p className="mt-3 text-xs text-gray-500">
-                Auto insurance quote requests use a separate form and intake flow.
+                Auto coverage quote requests are handled case by case.
               </p>
             </div>
           </div>
@@ -329,8 +328,8 @@ export default function ApexCoverageSite() {
           <div className="mt-6 grid md:grid-cols-3 gap-6">
             {[
               'Finally, a company that understands modified cars.',
-              'The build review made way more sense than a generic quote form.',
-              'I like that auto insurance is still available, but the focus is on enthusiasts.',
+              'The claims processes was honestly quick and painless.',
+              'I appreicate the piece of mind knowing my built corvette is protected.',
             ].map((t, i) => (
               <div key={i} className="bg-white border rounded-xl p-5">
                 <div>★★★★★</div>
@@ -351,13 +350,13 @@ export default function ApexCoverageSite() {
             <FAQItem
               i={0}
               q="Is this the same as auto insurance?"
-              a="No. Auto insurance is still available through Apex as a separate service. Apex Modified Vehicle Protection is focused on approved parts, documentation, professional installation, and repair support for eligible street-driven vehicles."
+              a="No. Auto coverage revuew is still available through Apex as a separate service. Apex Modified Vehicle Protection is focused on approved parts, documentation, clean installation, and repair support for eligible modified vehicles."
             />
 
             <FAQItem
               i={1}
               q="Do you cover any modification?"
-              a="Parts must be documented, professionally installed, and approved as part of the build review. Undocumented parts and non-professional installations are not eligible."
+              a="Parts must be documented, and installation verified to be approved as part of the build review. Undocumented parts and unapproved installations are not eligible."
             />
 
             <FAQItem
