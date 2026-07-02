@@ -11,7 +11,7 @@ export default function Footer() {
           </Link>
 
           <p className="mt-3 text-sm">
-            For those that drive, not just commute.
+            For those who drive, not just commute.
           </p>
         </div>
 
