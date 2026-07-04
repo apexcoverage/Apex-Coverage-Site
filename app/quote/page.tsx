@@ -33,6 +33,12 @@ export default function QuotePage() {
               <li>✔️ We wont sell your information</li>
               <li>✔️ Help from real humans</li>
             </ul>
+            <a
+              href="/build-review"
+              className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-gray-50 transition"
+            >
+              Looking for Modified Vehicle Protection?
+            </a>
           </div>
 
           {/* Quote form */}
