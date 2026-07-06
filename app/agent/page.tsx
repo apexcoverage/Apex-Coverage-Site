@@ -91,6 +91,9 @@ type DashboardItem =
       status: string;
       agent: string;
       searchText: string;
+      hasAutoCustomer: boolean;
+      hasBuildCustomer: boolean;
+      relatedAutoLead?: AutoLead;
       buildReview: BuildReview;
     }
   | {
@@ -106,6 +109,9 @@ type DashboardItem =
       status: string;
       agent: string;
       searchText: string;
+      hasAutoCustomer: boolean;
+      hasBuildCustomer: boolean;
+      relatedBuildReview?: BuildReview;
       autoLead: AutoLead;
     };
 
@@ -189,12 +195,19 @@ function isAutoCustomer(lead: AutoLead) {
 }
 
 function isBuildCustomer(review: BuildReview) {
-  return ["Approved", "Quoted", "Active"].includes(review.status || "");
+  return (review.status || "") === "Active";
 }
 
 function normalizeAutoInterest(value?: string) {
   const normalized = String(value || "").trim().toLowerCase();
   return normalized === "yes" || normalized === "true" ? "Yes" : "No";
+}
+
+function contactKey(item: { email?: string; phone?: string; name?: string }) {
+  const email = String(item.email || "").trim().toLowerCase();
+  const phone = String(item.phone || "").replace(/\D/g, "");
+  const name = String(item.name || "").trim().toLowerCase();
+  return email || phone || name;
 }
 
 export default function AgentDashboardPage() {
@@ -257,8 +270,26 @@ export default function AgentDashboardPage() {
   }, []);
 
   const dashboardItems = useMemo<DashboardItem[]>(() => {
+    const autoByContact = new Map<string, AutoLead[]>();
+    const buildByContact = new Map<string, BuildReview[]>();
+
+    autoLeads.forEach((lead) => {
+      const key = contactKey(lead);
+      if (!key) return;
+      autoByContact.set(key, [...(autoByContact.get(key) || []), lead]);
+    });
+
+    buildReviews.forEach((review) => {
+      const key = contactKey(review);
+      if (!key) return;
+      buildByContact.set(key, [...(buildByContact.get(key) || []), review]);
+    });
+
     const buildItems: DashboardItem[] = buildReviews.map((review) => {
       const vehicle = vehicleLabel(review);
+      const relatedAutoLeads = autoByContact.get(contactKey(review)) || [];
+      const relatedAutoLead =
+        relatedAutoLeads.find(isAutoCustomer) || relatedAutoLeads[0];
       const searchText = [
         review.name,
         review.email,
@@ -285,6 +316,9 @@ export default function AgentDashboardPage() {
         status: review.status || "New Build Review",
         agent: review.agent || "",
         searchText,
+        hasAutoCustomer: relatedAutoLeads.some(isAutoCustomer),
+        hasBuildCustomer: isBuildCustomer(review),
+        relatedAutoLead,
         buildReview: review,
       };
     });
@@ -293,6 +327,9 @@ export default function AgentDashboardPage() {
       .filter((lead) => !isAutoCustomer(lead))
       .map((lead) => {
         const vehicle = vehicleLabel(lead);
+        const relatedBuildReviews = buildByContact.get(contactKey(lead)) || [];
+        const relatedBuildReview =
+          relatedBuildReviews.find(isBuildCustomer) || relatedBuildReviews[0];
         const searchText = [
           lead.name,
           lead.email,
@@ -316,6 +353,9 @@ export default function AgentDashboardPage() {
           status: lead.status || "New",
           agent: lead.agent || "",
           searchText,
+          hasAutoCustomer: isAutoCustomer(lead),
+          hasBuildCustomer: relatedBuildReviews.some(isBuildCustomer),
+          relatedBuildReview,
           autoLead: lead,
         };
       });
@@ -427,6 +467,86 @@ export default function AgentDashboardPage() {
     } finally {
       setSavingKey(null);
     }
+  }
+
+  async function createBuildCustomerFromAuto(lead: AutoLead) {
+    const key = `auto-quote-${lead.id}`;
+    setSavingKey(key);
+
+    try {
+      const res = await fetch("/api/agent/cross-coverage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          direction: "build-from-auto",
+          autoLeadId: lead.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Could not add build coverage");
+
+      await loadDashboard();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Could not add build coverage: ${err.message || err}`);
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function createAutoCustomerFromBuild(review: BuildReview) {
+    const key = `build-review-${review.id}`;
+    setSavingKey(key);
+
+    try {
+      const res = await fetch("/api/agent/cross-coverage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          direction: "auto-from-build",
+          buildReviewId: review.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Could not add auto customer");
+
+      await loadDashboard();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Could not add auto customer: ${err.message || err}`);
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function addBuildCoverage(item: Extract<DashboardItem, { kind: "auto-quote" }>) {
+    if (item.relatedBuildReview) {
+      await updateBuildReview(item.relatedBuildReview.id, {
+        status: "Active",
+        agent: item.agent,
+        activityNote: "Build coverage marked active from auto quote pipeline",
+      } as Partial<BuildReview>);
+      await loadDashboard();
+      return;
+    }
+
+    await createBuildCustomerFromAuto(item.autoLead);
+  }
+
+  async function addAutoCoverage(item: Extract<DashboardItem, { kind: "build-review" }>) {
+    if (item.relatedAutoLead) {
+      await updateAutoLead(item.relatedAutoLead.id, {
+        status: "Won",
+        agent: item.agent,
+        activityNote: "Auto insurance marked won from build review pipeline",
+      } as Partial<AutoLead>);
+      await loadDashboard();
+      return;
+    }
+
+    await createAutoCustomerFromBuild(item.buildReview);
   }
 
   async function openWorksheet(lead: AutoLead) {
@@ -674,6 +794,14 @@ export default function AgentDashboardPage() {
                     >
                       <td className="px-3 py-3">
                         <ProductBadge kind={item.kind} />
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {item.hasBuildCustomer && (
+                            <MiniBadge label="Build customer" tone="build" />
+                          )}
+                          {item.hasAutoCustomer && (
+                            <MiniBadge label="Auto customer" tone="auto" />
+                          )}
+                        </div>
                         {item.kind === "build-review" &&
                           normalizeAutoInterest(
                             item.buildReview.autoInsuranceReview
@@ -756,23 +884,79 @@ export default function AgentDashboardPage() {
                         </select>
                       </td>
                       <td className="px-3 py-3 text-right">
-                        {item.kind === "build-review" ? (
-                          <button
-                            type="button"
-                            onClick={() => setActiveBuildReview(item.buildReview)}
-                            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                          >
-                            Review
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => openWorksheet(item.autoLead)}
-                            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                          >
-                            Worksheet
-                          </button>
-                        )}
+                        <div className="flex min-w-[170px] flex-wrap justify-end gap-1">
+                          {item.kind === "build-review" ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setActiveBuildReview(item.buildReview)}
+                                className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                              >
+                                Review/Edit
+                              </button>
+                              {!item.hasBuildCustomer && (
+                                <button
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() =>
+                                    updateBuildReview(item.id, {
+                                      status: "Active",
+                                      activityNote: "Build coverage marked active from pipeline",
+                                    } as Partial<BuildReview>)
+                                  }
+                                  className="rounded-md bg-[#cc0000] px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+                                >
+                                  Mark Active
+                                </button>
+                              )}
+                              {!item.hasAutoCustomer && (
+                                <button
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() => addAutoCoverage(item)}
+                                  className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                                >
+                                  Add Auto
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openWorksheet(item.autoLead)}
+                                className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                              >
+                                Worksheet
+                              </button>
+                              {!item.hasAutoCustomer && (
+                                <button
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() =>
+                                    updateAutoLead(item.id, {
+                                      status: "Won",
+                                      activityNote: "Auto insurance marked won from pipeline",
+                                    } as Partial<AutoLead>)
+                                  }
+                                  className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                                >
+                                  Mark Won
+                                </button>
+                              )}
+                              {!item.hasBuildCustomer && (
+                                <button
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() => addBuildCoverage(item)}
+                                  className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                                >
+                                  Add Build
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -800,6 +984,12 @@ export default function AgentDashboardPage() {
         <BuildReviewPanel
           review={activeBuildReview}
           onClose={() => setActiveBuildReview(null)}
+          onSave={async (id, patch) => {
+            await updateBuildReview(id, patch);
+            setActiveBuildReview((prev) =>
+              prev && prev.id === id ? { ...prev, ...patch } : prev
+            );
+          }}
         />
       )}
     </main>
@@ -855,6 +1045,26 @@ function ProductBadge({ kind }: { kind: DashboardItem["kind"] }) {
       }`}
     >
       {isBuild ? "Build Coverage" : "Auto Quote"}
+    </span>
+  );
+}
+
+function MiniBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "build" | "auto";
+}) {
+  return (
+    <span
+      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+        tone === "build"
+          ? "bg-red-50 text-[#cc0000] ring-1 ring-red-100"
+          : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+      }`}
+    >
+      {label}
     </span>
   );
 }
@@ -1085,24 +1295,69 @@ function SelectField({
 function BuildReviewPanel({
   review,
   onClose,
+  onSave,
 }: {
   review: BuildReview;
   onClose: () => void;
+  onSave: (id: number, patch: Partial<BuildReview>) => Promise<void>;
 }) {
+  const [draft, setDraft] = useState<BuildReview>(review);
+  const [saving, setSaving] = useState(false);
+
+  function updateDraft(field: keyof BuildReview, value: string) {
+    setDraft((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function saveChanges() {
+    setSaving(true);
+    try {
+      await onSave(review.id, {
+        name: draft.name,
+        email: draft.email,
+        phone: draft.phone,
+        zip: draft.zip,
+        dob: draft.dob,
+        year: draft.year,
+        make: draft.make,
+        model: draft.model,
+        vin: draft.vin,
+        mileage: draft.mileage,
+        annualMileage: draft.annualMileage,
+        titleStatus: draft.titleStatus,
+        vehicleUse: draft.vehicleUse,
+        partsList: draft.partsList,
+        partsValue: draft.partsValue,
+        professionalInstallStatus: draft.professionalInstallStatus,
+        installerInfo: draft.installerInfo,
+        documentation: draft.documentation,
+        tierInterest: draft.tierInterest,
+        deductible: draft.deductible,
+        drivingHistory: draft.drivingHistory,
+        claimHistory: draft.claimHistory,
+        discountNotes: draft.discountNotes,
+        autoInsuranceReview: draft.autoInsuranceReview,
+        activityNote: "Build review intake updated",
+      } as Partial<BuildReview>);
+      alert("Build review saved.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const details = [
-    ["VIN", review.vin],
-    ["Current mileage", review.mileage],
-    ["Annual mileage", review.annualMileage],
-    ["Title status", review.titleStatus],
-    ["Vehicle use", review.vehicleUse],
-    ["Parts value", review.partsValue],
-    ["Install status", review.professionalInstallStatus],
-    ["Documentation", review.documentation],
-    ["Tier interest", review.tierInterest],
-    ["Deductible", review.deductible],
-    ["Driving history", review.drivingHistory],
-    ["Claim history", review.claimHistory],
-    ["Auto review requested", normalizeAutoInterest(review.autoInsuranceReview)],
+    ["VIN", draft.vin],
+    ["Current mileage", draft.mileage],
+    ["Annual mileage", draft.annualMileage],
+    ["Title status", draft.titleStatus],
+    ["Vehicle use", draft.vehicleUse],
+    ["Parts value", draft.partsValue],
+    ["Install status", draft.professionalInstallStatus],
+    ["Documentation", draft.documentation],
+    ["Tier interest", draft.tierInterest],
+    ["Deductible", draft.deductible],
+    ["Driving history", draft.drivingHistory],
+    ["Claim history", draft.claimHistory],
+    ["Auto review requested", normalizeAutoInterest(draft.autoInsuranceReview)],
   ];
 
   return (
@@ -1113,7 +1368,7 @@ function BuildReviewPanel({
           <div>
             <h2 className="text-lg font-semibold">Build Review Intake</h2>
             <p className="text-xs text-slate-500">
-              {review.name} - {vehicleLabel(review)}
+              {draft.name} - {vehicleLabel(draft)}
             </p>
           </div>
           <button
@@ -1128,43 +1383,123 @@ function BuildReviewPanel({
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4 text-sm">
           <section>
             <h3 className="font-semibold">Contact</h3>
-            <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-              <div>{review.email || "-"}</div>
-              <div>{review.phone || "-"}</div>
-              <div>ZIP {review.zip || "-"}</div>
+            <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+              <BuildInput label="Name" value={draft.name} onChange={(value) => updateDraft("name", value)} />
+              <BuildInput label="Email" value={draft.email} onChange={(value) => updateDraft("email", value)} />
+              <BuildInput label="Phone" value={draft.phone} onChange={(value) => updateDraft("phone", value)} />
+              <BuildInput label="ZIP" value={draft.zip} onChange={(value) => updateDraft("zip", value)} />
+              <BuildInput label="DOB" value={draft.dob} onChange={(value) => updateDraft("dob", value)} />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="font-semibold">Vehicle</h3>
+            <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+              <BuildInput label="Year" value={draft.year} onChange={(value) => updateDraft("year", value)} />
+              <BuildInput label="Make" value={draft.make} onChange={(value) => updateDraft("make", value)} />
+              <BuildInput label="Model" value={draft.model} onChange={(value) => updateDraft("model", value)} />
             </div>
           </section>
 
           <section>
             <h3 className="font-semibold">Review Details</h3>
-            <dl className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+            <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
               {details.map(([label, value]) => (
-                <div
+                <BuildInput
                   key={label}
-                  className="rounded-lg border border-slate-200 bg-white p-3"
-                >
-                  <dt className="font-semibold text-slate-500">{label}</dt>
-                  <dd className="mt-1 text-slate-900">{value || "-"}</dd>
-                </div>
+                  label={label}
+                  value={value || ""}
+                  onChange={(next) => {
+                    const fieldByLabel: Record<string, keyof BuildReview> = {
+                      VIN: "vin",
+                      "Current mileage": "mileage",
+                      "Annual mileage": "annualMileage",
+                      "Title status": "titleStatus",
+                      "Vehicle use": "vehicleUse",
+                      "Parts value": "partsValue",
+                      "Install status": "professionalInstallStatus",
+                      Documentation: "documentation",
+                      "Tier interest": "tierInterest",
+                      Deductible: "deductible",
+                      "Driving history": "drivingHistory",
+                      "Claim history": "claimHistory",
+                      "Auto review requested": "autoInsuranceReview",
+                    };
+                    const field = fieldByLabel[label];
+                    if (field) updateDraft(field, next);
+                  }}
+                />
               ))}
-            </dl>
+            </div>
           </section>
 
           <section>
             <h3 className="font-semibold">Parts List</h3>
-            <p className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-700">
-              {review.partsList || "-"}
-            </p>
+            <textarea
+              rows={5}
+              className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-xs"
+              value={draft.partsList || ""}
+              onChange={(event) => updateDraft("partsList", event.target.value)}
+            />
           </section>
 
           <section>
             <h3 className="font-semibold">Installer / Notes</h3>
-            <p className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-700">
-              {review.installerInfo || review.discountNotes || "-"}
-            </p>
+            <textarea
+              rows={4}
+              className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-xs"
+              value={draft.installerInfo || ""}
+              onChange={(event) => updateDraft("installerInfo", event.target.value)}
+            />
+            <textarea
+              rows={3}
+              className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-xs"
+              value={draft.discountNotes || ""}
+              onChange={(event) => updateDraft("discountNotes", event.target.value)}
+              placeholder="Discount notes"
+            />
           </section>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={saveChanges}
+            disabled={saving}
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+          >
+            {saving ? "Saving..." : "Save Intake"}
+          </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function BuildInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block rounded-lg border border-slate-200 bg-white p-3">
+      <span className="block font-semibold text-slate-500">{label}</span>
+      <input
+        className="mt-1 w-full border-0 p-0 text-xs text-slate-900 outline-none"
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
   );
 }
