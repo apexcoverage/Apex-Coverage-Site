@@ -17,22 +17,14 @@ function assertAgentEnv() {
   }
 }
 
-export async function agentListLeads() {
-  assertAgentEnv();
-
-  const url = new URL(AGENT_URL!);
-  url.searchParams.set("agent", "1");
-  url.searchParams.set("secret", AGENT_SECRET!);
-  url.searchParams.set("action", "listLeads");
-
-  const res = await fetch(url.toString(), { method: "GET" });
+async function parseAgentResponse(res: Response, label: string) {
   const text = await res.text();
 
   let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    throw new Error("Bad JSON from Apps Script (GET): " + text);
+    throw new Error(`Bad JSON from Apps Script (${label}): ${text}`);
   }
 
   if (!res.ok || !data?.ok) {
@@ -42,36 +34,58 @@ export async function agentListLeads() {
   return data;
 }
 
-export async function agentUpdateLead(id: number, patch: Record<string, any>) {
+async function getAgentAction(action: string, params?: Record<string, string>) {
   assertAgentEnv();
 
-  const payload = {
+  const url = new URL(AGENT_URL!);
+  url.searchParams.set("agent", "1");
+  url.searchParams.set("secret", AGENT_SECRET!);
+  url.searchParams.set("action", action);
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+
+  const res = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+  return parseAgentResponse(res, `GET ${action}`);
+}
+
+async function postAgentAction(action: string, payload: Record<string, any>) {
+  assertAgentEnv();
+
+  const body = {
     agent: 1,
     secret: AGENT_SECRET!,
-    action: "updatelead",
-    id,
-    patch,
+    action,
+    ...payload,
   };
 
   const res = await fetch(AGENT_URL!, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 
-  const text = await res.text();
-  let data: any = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    throw new Error("Bad JSON from Apps Script (POST): " + text);
-  }
+  return parseAgentResponse(res, `POST ${action}`);
+}
 
-  if (!res.ok || !data?.ok) {
-    throw new Error(data?.error || text || res.statusText || "Upstream error");
-  }
+export async function agentListLeads() {
+  return getAgentAction("listLeads");
+}
 
-  return data;
+export async function agentListBuildReviews() {
+  return getAgentAction("listBuildReviews");
+}
+
+export async function agentUpdateLead(id: number, patch: Record<string, any>) {
+  return postAgentAction("updatelead", { id, patch });
+}
+
+export async function agentUpdateBuildReview(
+  id: number,
+  patch: Record<string, any>
+) {
+  return postAgentAction("updatebuildreview", { id, patch });
 }
 
 export function getStripeModeFromSecretKey(secretKey: string) {
