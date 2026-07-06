@@ -89,6 +89,14 @@ export async function agentUpdateBuildReview(
   return postAgentAction("updatebuildreview", { id, patch });
 }
 
+export async function agentCreateBuildFromAuto(autoLeadId: number) {
+  return postAgentAction("createbuildfromauto", { autoLeadId });
+}
+
+export async function agentCreateAutoFromBuild(buildReviewId: number) {
+  return postAgentAction("createautofrombuild", { buildReviewId });
+}
+
 export function getStripeModeFromSecretKey(secretKey: string) {
   // Stripe test keys start with "sk_test_"
   return secretKey?.startsWith("sk_test_") ? "test" : "live";
