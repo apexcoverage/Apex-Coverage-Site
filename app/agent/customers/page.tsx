@@ -72,7 +72,7 @@ function recordKey(item: { email?: string; phone?: string; name?: string }) {
 }
 
 function isBuildCustomer(review: BuildReview) {
-  return ["Approved", "Quoted", "Active"].includes(review.status || "");
+  return (review.status || "") === "Active";
 }
 
 function coverageLabel(record: CustomerRecord) {
