@@ -3,6 +3,7 @@ import "server-only";
 
 const AGENT_URL =
   process.env.APPSCRIPT_AGENT_WEBHOOK_URL ||
+  process.env.APPSCRIPT_AGENT_URL ||
   process.env.APPSCRIPT_WEBHOOK_URL;
 
 const AGENT_SECRET =
@@ -12,7 +13,7 @@ const AGENT_SECRET =
 function assertAgentEnv() {
   if (!AGENT_URL || !AGENT_SECRET) {
     throw new Error(
-      "Missing Apps Script env vars. Need APPSCRIPT_AGENT_WEBHOOK_URL or APPSCRIPT_WEBHOOK_URL, and AGENT_BACKEND_SECRET or AGENT_SECRET."
+      "Missing Apps Script env vars. Need APPSCRIPT_AGENT_WEBHOOK_URL, APPSCRIPT_AGENT_URL, or APPSCRIPT_WEBHOOK_URL, and AGENT_BACKEND_SECRET or AGENT_SECRET."
     );
   }
 }
