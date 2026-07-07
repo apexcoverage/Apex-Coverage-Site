@@ -161,7 +161,7 @@ export async function POST(req) {
      *   type: "build-review"
      * }
      *
-     * This check prevents an accidental insurance lead
+     * This check prevents an accidental auto coverage lead
      * from appearing as a successful build review.
      */
     if (data?.type !== 'build-review') {
