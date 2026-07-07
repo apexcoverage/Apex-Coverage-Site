@@ -83,6 +83,12 @@ function coverageLabel(record: CustomerRecord) {
   return "Auto Insurance";
 }
 
+function profileHref(record: CustomerRecord) {
+  if (record.autoLead) return `/agent/customers/auto-${record.autoLead.id}`;
+  const build = record.buildReviews[0];
+  return build ? `/agent/customers/build-${build.id}` : "/agent/customers";
+}
+
 export default function CustomersPage() {
   const [autoLeads, setAutoLeads] = useState<AutoLead[]>([]);
   const [buildReviews, setBuildReviews] = useState<BuildReview[]>([]);
@@ -358,18 +364,12 @@ export default function CustomersPage() {
                         {record.agent || "Unassigned"}
                       </td>
                       <td className="px-3 py-3 text-right">
-                        {record.autoLead ? (
-                          <Link
-                            href={`/agent/customers/${record.autoLead.id}`}
-                            className="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-100"
-                          >
-                            View Profile
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-gray-500">
-                            Build profile next
-                          </span>
-                        )}
+                        <Link
+                          href={profileHref(record)}
+                          className="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-100"
+                        >
+                          View Profile
+                        </Link>
                       </td>
                     </tr>
                   );
