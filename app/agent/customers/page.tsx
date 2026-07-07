@@ -80,7 +80,7 @@ function coverageLabel(record: CustomerRecord) {
   const hasBuild = record.buildReviews.length > 0;
   if (hasAuto && hasBuild) return "Both";
   if (hasBuild) return "Build Coverage";
-  return "Auto Insurance";
+  return "Auto Coverage";
 }
 
 function profileHref(record: CustomerRecord) {
@@ -219,7 +219,7 @@ export default function CustomersPage() {
             <h1 className="mt-1 text-3xl font-bold">Customer Coverage</h1>
             <p className="mt-1 text-sm text-gray-600">
               Customers are grouped by contact info so agents can see build
-              coverage, auto insurance, or both in one row.
+              coverage, auto coverage, or both in one row.
             </p>
           </div>
 
@@ -269,7 +269,7 @@ export default function CustomersPage() {
             >
               <option value="">All coverage</option>
               <option value="Build Coverage">Build Coverage</option>
-              <option value="Auto Insurance">Auto Insurance</option>
+              <option value="Auto Coverage">Auto Coverage</option>
               <option value="Both">Both</option>
             </select>
           </div>
