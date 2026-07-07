@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  agentDeleteBuildReview,
   agentListBuildReviews,
   agentUpdateBuildReview,
 } from "@/lib/agentAppsScript";
@@ -38,6 +39,29 @@ export async function POST(req: Request) {
     await agentUpdateBuildReview(Number(id), patch);
 
     return NextResponse.json({ ok: true, id, patch });
+  } catch (err: any) {
+    return NextResponse.json(
+      { ok: false, error: String(err?.message || err) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const { id } = body || {};
+
+    if (!id) {
+      return NextResponse.json(
+        { ok: false, error: "Missing id" },
+        { status: 400 }
+      );
+    }
+
+    await agentDeleteBuildReview(Number(id));
+
+    return NextResponse.json({ ok: true, id });
   } catch (err: any) {
     return NextResponse.json(
       { ok: false, error: String(err?.message || err) },
