@@ -30,7 +30,7 @@ export async function POST(req) {
     }
 
     /*
-     * Explicitly identify this submission as an auto insurance quote.
+     * Explicitly identify this submission as an auto coverage review.
      *
      * This prevents the website from relying on the Apps Script
      * "anything that is not a claim becomes a lead" fallback forever.
@@ -100,12 +100,12 @@ export async function POST(req) {
      * Do not tell the customer the submission succeeded in that case.
      */
     if (data?.ok !== true) {
-      console.error('Google Apps Script rejected insurance quote:', data);
+      console.error('Google Apps Script rejected auto coverage review:', data);
 
       return Response.json(
         {
           ok: false,
-          error: data?.error || 'Insurance quote submission was rejected.',
+          error: data?.error || 'Auto coverage review submission was rejected.',
           upstream: data,
         },
         {
@@ -124,7 +124,7 @@ export async function POST(req) {
       }
     );
   } catch (err) {
-    console.error('Insurance quote API error:', err);
+    console.error('Auto coverage review API error:', err);
 
     return Response.json(
       {
@@ -132,7 +132,7 @@ export async function POST(req) {
         error:
           err instanceof Error
             ? err.message
-            : 'An unexpected error occurred while submitting the insurance quote.',
+            : 'An unexpected error occurred while submitting the auto coverage review.',
       },
       {
         status: 500,
