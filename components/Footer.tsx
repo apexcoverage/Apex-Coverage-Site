@@ -20,7 +20,7 @@ export default function Footer() {
           <ul className="mt-3 space-y-2 text-sm">
             <li>
               <Link href="/build-review" className="hover:text-white">
-                Build Review
+                Protect My Build
               </Link>
             </li>
             <li>
@@ -45,6 +45,16 @@ export default function Footer() {
           <div className="font-semibold text-white">Support</div>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
+              <Link href="/status" className="hover:text-white">
+                Check Status
+              </Link>
+            </li>
+            <li>
+              <Link href="/document-upload" className="hover:text-white">
+                Upload Documents
+              </Link>
+            </li>
+            <li>
               <Link href="/claims" className="hover:text-white">
                 File a Claim
               </Link>
@@ -52,11 +62,6 @@ export default function Footer() {
             <li>
               <a href="mailto:support@driveapexcoverage.com" className="hover:text-white">
                 Help Center
-              </a>
-            </li>
-            <li>
-              <a href="mailto:claims@driveapexcoverage.com" className="hover:text-white">
-                Claims Support
               </a>
             </li>
           </ul>
@@ -82,16 +87,22 @@ export default function Footer() {
 
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-6 text-xs text-gray-400">
-          © {new Date().getFullYear()} Apex Coverage. All rights reserved. Coverage eligibility,
-          pricing, deductibles, claims, and approved parts are subject to review, documentation,
-          and final approval.
-          <Link href="/privacy" className="underline ml-2 hover:text-white">
-            Privacy
-          </Link>{' '}
-          •{' '}
-          <Link href="/terms" className="underline hover:text-white">
-            Terms
-          </Link>
+          Copyright {new Date().getFullYear()} Apex Coverage. All rights reserved.
+          Coverage eligibility, pricing, deductibles, claims, covered parts, exclusions,
+          and final terms are subject to review, documentation, and approval.
+          <span className="ml-2 inline-flex gap-2">
+            <Link href="/privacy" className="underline hover:text-white">
+              Privacy
+            </Link>
+            <span>/</span>
+            <Link href="/terms" className="underline hover:text-white">
+              Terms
+            </Link>
+            <span>/</span>
+            <Link href="/legal" className="underline hover:text-white">
+              Legal
+            </Link>
+          </span>
         </div>
       </div>
     </footer>
