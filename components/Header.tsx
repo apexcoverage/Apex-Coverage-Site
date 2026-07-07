@@ -9,6 +9,7 @@ const NAV = [
   { href: '/how-it-works', label: 'How It Works' },
   { href: '/tiers', label: 'Tiers' },
   { href: '/quote', label: 'Auto Coverage' },
+  { href: '/status', label: 'Status' },
   { href: '/about', label: 'About' },
 ];
 
@@ -23,12 +24,13 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
-      {/* top bar */}
       <div className="bg-black text-white text-xs sm:text-sm">
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span>✅</span>
-            <span>Call for a FREE quote • Apex Coverage</span>
+            <span className="font-semibold">Apex Coverage</span>
+            <span className="hidden sm:inline text-white/80">
+              For those who drive, not just commute.
+            </span>
           </div>
 
           <a href="tel:+15406990505" className="hover:opacity-90 whitespace-nowrap">
@@ -37,7 +39,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* main nav */}
       <nav className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
           <div className="h-8 w-8 rounded" style={{ background: '#cc0000' }} />
@@ -46,7 +47,6 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* desktop */}
         <ul className="hidden md:flex items-center gap-6 text-sm">
           {NAV.map((item) => {
             const active = isActive(item.href);
@@ -71,22 +71,20 @@ export default function Header() {
             href="/build-review"
             className="hidden sm:inline-flex items-center gap-2 bg-[#cc0000] text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-red-700 transition"
           >
-            Get a Quote
+            Protect My Build
           </Link>
 
-          {/* mobile toggle */}
           <button
             className="md:hidden p-2 border rounded-md"
             onClick={() => setOpen(!open)}
             aria-label="Open menu"
             aria-expanded={open}
           >
-            ☰
+            Menu
           </button>
         </div>
       </nav>
 
-      {/* mobile menu */}
       {open && (
         <div className="md:hidden border-t bg-white">
           <ul className="max-w-7xl mx-auto px-4 py-2 text-sm">
@@ -112,7 +110,7 @@ export default function Header() {
                 onClick={() => setOpen(false)}
                 className="block font-semibold text-[#cc0000]"
               >
-                Get a Quote
+                Protect My Build
               </Link>
             </li>
           </ul>
