@@ -1,10 +1,9 @@
-// app/quote/page.tsx
 import React from "react";
 import QuoteForm from "@/components/QuoteForm";
 
 export const metadata = {
-  title: "Get a Quote | Apex Coverage",
-  description: "Request a quick auto insurance quote from Apex Coverage.",
+  title: "Auto Coverage Review | Apex Coverage",
+  description: "Request an auto coverage review from Apex Coverage.",
 };
 
 export default function QuotePage() {
@@ -21,17 +20,18 @@ export default function QuotePage() {
         <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-start">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Let’s get you covered.
+              Standard auto coverage review.
             </h1>
             <p className="mt-4 text-gray-600 max-w-prose">
-              Fill out a few details and a certified agent will follow up with your options.
-              It takes less than a minute.
+              Fill out a few details and an Apex agent will follow up with
+              available coverage options. If your vehicle is modified, we can
+              also help you start a build review.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-gray-600">
-              <li>✔️ No obligation</li>
-              <li>✔️ Clear pricing before you buy</li>
-              <li>✔️ We wont sell your information</li>
-              <li>✔️ Help from real humans</li>
+              <li>- No obligation</li>
+              <li>- Clear pricing before you buy</li>
+              <li>- We will not sell your information</li>
+              <li>- Help from real humans</li>
             </ul>
             <a
               href="/build-review"
@@ -41,7 +41,6 @@ export default function QuotePage() {
             </a>
           </div>
 
-          {/* Quote form */}
           <div className="relative">
             <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
             <QuoteForm />
@@ -51,4 +50,3 @@ export default function QuotePage() {
     </main>
   );
 }
-
