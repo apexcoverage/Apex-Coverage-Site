@@ -2,8 +2,9 @@ import React from "react";
 import BuildReviewForm from "@/components/BuildReviewForm";
 
 export const metadata = {
-  title: "Start Build Review | Apex Coverage",
-  description: "Request an Apex Modified Vehicle Protection review for your professionally modified street-driven vehicle.",
+  title: "Protect My Build | Apex Coverage",
+  description:
+    "Request an Apex Modified Vehicle Protection review for your modified street-driven vehicle.",
 };
 
 export default function BuildReviewPage() {
@@ -23,19 +24,23 @@ export default function BuildReviewPage() {
               APEX MODIFIED VEHICLE PROTECTION
             </span>
             <h1 className="mt-2 text-4xl md:text-5xl font-bold leading-tight">
-              Start your build review.
+              Protect your build.
             </h1>
             <p className="mt-4 text-gray-600 max-w-prose">
-              This intake is for professionally installed aftermarket parts and street-driven enthusiast vehicles. The form is split into sections so customers are not hit with one long wall of questions.
+              This intake is for documented aftermarket parts and street-driven
+              enthusiast vehicles. The form is split into sections so customers
+              are not hit with one long wall of questions.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-gray-600">
-              <li>✔️ Contact and driver profile</li>
-              <li>✔️ Vehicle, VIN, mileage, title status, and use</li>
-              <li>✔️ Parts list, professional install details, receipts, and photos</li>
-              <li>✔️ Deductible preference, tier interest, driving history, and claims history</li>
+              <li>- Contact and driver profile</li>
+              <li>- Vehicle, VIN, mileage, title status, and use</li>
+              <li>- Parts list, install details, receipts, and photos</li>
+              <li>- Deductible preference, tier interest, driving history, and claims history</li>
             </ul>
             <p className="mt-6 text-xs text-gray-500 max-w-prose">
-              Submitting a request does not guarantee approval. Eligibility, pricing, deductible, covered parts, exclusions, and terms are determined after review.
+              Submitting a request does not guarantee approval. Eligibility,
+              pricing, deductible, covered parts, exclusions, and terms are
+              determined after review.
             </p>
           </div>
 
