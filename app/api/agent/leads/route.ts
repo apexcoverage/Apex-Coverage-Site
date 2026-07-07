@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { agentListLeads, agentUpdateLead } from "@/lib/agentAppsScript";
+import {
+  agentDeleteLead,
+  agentListLeads,
+  agentUpdateLead,
+} from "@/lib/agentAppsScript";
 
 // GET /api/agent/leads  -> list leads for dashboard
 export async function GET() {
@@ -37,6 +41,29 @@ export async function POST(req: Request) {
     await agentUpdateLead(Number(id), patch);
 
     return NextResponse.json({ ok: true, id, patch });
+  } catch (err: any) {
+    return NextResponse.json(
+      { ok: false, error: String(err?.message || err) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const { id } = body || {};
+
+    if (!id) {
+      return NextResponse.json(
+        { ok: false, error: "Missing id" },
+        { status: 400 }
+      );
+    }
+
+    await agentDeleteLead(Number(id));
+
+    return NextResponse.json({ ok: true, id });
   } catch (err: any) {
     return NextResponse.json(
       { ok: false, error: String(err?.message || err) },
