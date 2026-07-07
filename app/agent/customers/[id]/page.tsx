@@ -430,7 +430,7 @@ export default function CustomerProfilePage() {
     ? "Auto + Build"
     : profile?.hasBuild
       ? "Build Coverage"
-      : "Auto Insurance";
+      : "Auto Coverage";
 
   const billingMeta = getBillingStatusMeta(profile?.auto?.billingStatus);
 
@@ -638,7 +638,7 @@ export default function CustomerProfilePage() {
       if (existingAuto) {
         await updateAuto(existingAuto.id, {
           status: "Won",
-          activityNote: "Auto insurance reactivated from customer profile",
+          activityNote: "Auto coverage reactivated from customer profile",
         });
       } else if (profile.primaryBuild) {
         const res = await fetch("/api/agent/cross-coverage", {
@@ -704,8 +704,8 @@ export default function CustomerProfilePage() {
       await updateAuto(profile.auto.id, {
         status: active ? "Won" : "Inactive",
         activityNote: active
-          ? "Auto insurance reactivated"
-          : "Auto insurance deactivated",
+          ? "Auto coverage reactivated"
+          : "Auto coverage deactivated",
       });
       await loadProfile();
     } catch (err: any) {
@@ -1085,7 +1085,7 @@ export default function CustomerProfilePage() {
             <div>
               <h2>{display.name || "Customer"}</h2>
               <div className="badge-row">
-                <CoverageBadge active={profile.hasAuto} label="Auto Insurance" />
+                <CoverageBadge active={profile.hasAuto} label="Auto Coverage" />
                 <CoverageBadge active={profile.hasBuild} label="Build Coverage" />
               </div>
               <p className="meta-text">Coverage: {coverageLabel}</p>
