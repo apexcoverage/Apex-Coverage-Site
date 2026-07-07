@@ -82,11 +82,19 @@ export async function agentUpdateLead(id: number, patch: Record<string, any>) {
   return postAgentAction("updatelead", { id, patch });
 }
 
+export async function agentDeleteLead(id: number) {
+  return postAgentAction("deletelead", { id });
+}
+
 export async function agentUpdateBuildReview(
   id: number,
   patch: Record<string, any>
 ) {
   return postAgentAction("updatebuildreview", { id, patch });
+}
+
+export async function agentDeleteBuildReview(id: number) {
+  return postAgentAction("deletebuildreview", { id });
 }
 
 export async function agentCreateBuildFromAuto(autoLeadId: number) {
