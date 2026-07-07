@@ -285,43 +285,45 @@ export default function AgentDashboardPage() {
       buildByContact.set(key, [...(buildByContact.get(key) || []), review]);
     });
 
-    const buildItems: DashboardItem[] = buildReviews.map((review) => {
-      const vehicle = vehicleLabel(review);
-      const relatedAutoLeads = autoByContact.get(contactKey(review)) || [];
-      const relatedAutoLead =
-        relatedAutoLeads.find(isAutoCustomer) || relatedAutoLeads[0];
-      const searchText = [
-        review.name,
-        review.email,
-        review.phone,
-        review.zip,
-        vehicle,
-        review.vin,
-        review.partsList,
-        review.tierInterest,
-      ]
-        .join(" ")
-        .toLowerCase();
+    const buildItems: DashboardItem[] = buildReviews
+      .filter((review) => !isBuildCustomer(review))
+      .map((review) => {
+        const vehicle = vehicleLabel(review);
+        const relatedAutoLeads = autoByContact.get(contactKey(review)) || [];
+        const relatedAutoLead =
+          relatedAutoLeads.find(isAutoCustomer) || relatedAutoLeads[0];
+        const searchText = [
+          review.name,
+          review.email,
+          review.phone,
+          review.zip,
+          vehicle,
+          review.vin,
+          review.partsList,
+          review.tierInterest,
+        ]
+          .join(" ")
+          .toLowerCase();
 
-      return {
-        key: `build-review-${review.id}`,
-        kind: "build-review",
-        id: review.id,
-        when: review.when,
-        name: review.name,
-        email: review.email,
-        phone: review.phone,
-        zip: review.zip,
-        vehicle,
-        status: review.status || "New Build Review",
-        agent: review.agent || "",
-        searchText,
-        hasAutoCustomer: relatedAutoLeads.some(isAutoCustomer),
-        hasBuildCustomer: isBuildCustomer(review),
-        relatedAutoLead,
-        buildReview: review,
-      };
-    });
+        return {
+          key: `build-review-${review.id}`,
+          kind: "build-review",
+          id: review.id,
+          when: review.when,
+          name: review.name,
+          email: review.email,
+          phone: review.phone,
+          zip: review.zip,
+          vehicle,
+          status: review.status || "New Build Review",
+          agent: review.agent || "",
+          searchText,
+          hasAutoCustomer: relatedAutoLeads.some(isAutoCustomer),
+          hasBuildCustomer: isBuildCustomer(review),
+          relatedAutoLead,
+          buildReview: review,
+        };
+      });
 
     const autoItems: DashboardItem[] = autoLeads
       .filter((lead) => !isAutoCustomer(lead))
@@ -547,6 +549,40 @@ export default function AgentDashboardPage() {
     }
 
     await createAutoCustomerFromBuild(item.buildReview);
+  }
+
+  async function deletePipelineItem(item: DashboardItem) {
+    const label = item.kind === "build-review" ? "build review" : "auto quote";
+    const confirmed = window.confirm(
+      `Remove this ${label} from the pipeline? This will delete the row from Google Sheets.`
+    );
+
+    if (!confirmed) return;
+
+    setSavingKey(item.key);
+
+    try {
+      const res = await fetch(
+        item.kind === "build-review"
+          ? "/api/agent/build-reviews"
+          : "/api/agent/leads",
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.id }),
+        }
+      );
+
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Delete failed");
+
+      await loadDashboard();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Could not remove from pipeline: ${err.message || err}`);
+    } finally {
+      setSavingKey(null);
+    }
   }
 
   async function openWorksheet(lead: AutoLead) {
@@ -906,7 +942,7 @@ export default function AgentDashboardPage() {
                                   }
                                   className="rounded-md bg-[#cc0000] px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
                                 >
-                                  Mark Active
+                                  Mark Customer
                                 </button>
                               )}
                               {!item.hasAutoCustomer && (
@@ -919,6 +955,14 @@ export default function AgentDashboardPage() {
                                   Add Auto
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => deletePipelineItem(item)}
+                                className="rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+                              >
+                                Remove
+                              </button>
                             </>
                           ) : (
                             <>
@@ -941,7 +985,7 @@ export default function AgentDashboardPage() {
                                   }
                                   className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
                                 >
-                                  Mark Won
+                                  Mark Customer
                                 </button>
                               )}
                               {!item.hasBuildCustomer && (
@@ -954,6 +998,14 @@ export default function AgentDashboardPage() {
                                   Add Build
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => deletePipelineItem(item)}
+                                className="rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+                              >
+                                Remove
+                              </button>
                             </>
                           )}
                         </div>
