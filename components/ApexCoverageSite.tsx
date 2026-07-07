@@ -3,31 +3,111 @@
 import Link from 'next/link';
 import React, { useState } from 'react';
 
+const quickProof = [
+  'Receipts and invoices reviewed',
+  'Professional and DIY installs considered',
+  'Street, weekend, show, and mixed-use builds',
+];
+
+const coverageCategories = [
+  {
+    title: 'Performance parts',
+    body: 'Intake, exhaust, cooling, fueling, forced induction, tuning-related supporting parts, and more.',
+  },
+  {
+    title: 'Suspension and handling',
+    body: 'Coilovers, lowering kits, control arms, bushings, sway bars, brake upgrades, and related components.',
+  },
+  {
+    title: 'Exterior and appearance',
+    body: 'Wheels, aero, body kits, lighting, wraps, paint protection, and other cosmetic upgrades.',
+  },
+  {
+    title: 'Interior and electronics',
+    body: 'Audio, gauges, seats, infotainment, security, and other documented upgrades.',
+  },
+  {
+    title: 'Factory parts also considered',
+    body: 'OEM or factory parts can be included when they help complete the documented build.',
+  },
+];
+
+const tierCards = [
+  {
+    title: 'Street Tier',
+    body: 'For daily-driven enthusiast cars with mild modifications.',
+  },
+  {
+    title: 'Street+ Tier',
+    body: 'For more involved builds with performance, suspension, appearance, or audio upgrades.',
+  },
+  {
+    title: 'Apex Build Tier',
+    body: 'For higher-value or higher-complexity builds that need a deeper review.',
+  },
+  {
+    title: 'Salvage/Rebuilt Review',
+    body: 'Rebuilt or salvage-title vehicles can still be reviewed with stricter documentation.',
+  },
+];
+
+const processSteps = [
+  {
+    step: '01',
+    title: 'Submit your build',
+    body: 'Tell us about your vehicle, parts, mileage, install history, and documentation.',
+  },
+  {
+    step: '02',
+    title: 'Apex reviews it',
+    body: 'We review the build, documentation, driver profile, title status, and vehicle use.',
+  },
+  {
+    step: '03',
+    title: 'Choose your fit',
+    body: 'Review the tier, deductible, and next steps that make sense for your vehicle.',
+  },
+  {
+    step: '04',
+    title: 'Keep support close',
+    body: 'Use Apex for updates, claims support, coverage changes, and documentation help.',
+  },
+];
+
+const testimonials = [
+  'Finally, a company that understands modified cars.',
+  'The claims process was quick and easy to follow.',
+  'I appreciate the peace of mind knowing my build has been reviewed.',
+];
+
+const faqs = [
+  {
+    q: 'Is this the same as standard auto coverage?',
+    a: 'No. Standard auto coverage review is available separately. Apex Modified Vehicle Protection is focused on approved parts, documentation, installation quality, and repair support for eligible modified vehicles.',
+  },
+  {
+    q: 'Do you cover any modification?',
+    a: 'Every build is reviewed. Parts must be documented, installation details must be reviewed, and some parts or uses may be excluded.',
+  },
+  {
+    q: 'What documents do I need?',
+    a: 'Receipts, photos, VIN, mileage, installation records, and shop information are the most helpful. The more complete your documentation is, the smoother the review.',
+  },
+  {
+    q: 'Can salvage or rebuilt title vehicles apply?',
+    a: 'Yes, but they require stricter review and may have higher pricing, different deductibles, inspection requirements, or limited eligibility.',
+  },
+  {
+    q: 'How are prices determined?',
+    a: 'Pricing is risk-based. We consider the vehicle, driver profile, ZIP code, mileage, parts list, driving history, claim history, possible discounts, and deductible choice.',
+  },
+];
+
 export default function ApexCoverageSite() {
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
-  function FAQItem({ i, q, a }: { i: number; q: string; a: string }) {
-    const open = faqOpen === i;
-
-    return (
-      <div className="border-b border-gray-200">
-        <button
-          onClick={() => setFaqOpen(open ? null : i)}
-          className="w-full py-4 text-left flex items-center justify-between gap-4"
-          aria-expanded={open}
-        >
-          <span className="font-semibold">{q}</span>
-          <span className="text-[#cc0000]">{open ? '▲' : '▼'}</span>
-        </button>
-
-        {open && <p className="pb-4 text-gray-600">{a}</p>}
-      </div>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-white text-gray-900">
-      {/* Hero */}
       <section className="relative overflow-hidden">
         <div
           className="absolute inset-0 pointer-events-none"
@@ -50,9 +130,9 @@ export default function ApexCoverageSite() {
             </h1>
 
             <p className="mt-5 text-lg text-gray-600 max-w-prose">
-              Apex Modified Vehicle Protection is designed for drivers who invest in
-              building their car they way they want, and want a smarter way to protect
-              their build.
+              Apex Modified Vehicle Protection is designed for drivers who invest
+              in building their car the way they want and need a smarter way to
+              document, review, and protect that build.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -60,7 +140,7 @@ export default function ApexCoverageSite() {
                 href="/build-review"
                 className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition"
               >
-                Start Build Review
+                Protect My Build
               </Link>
 
               <Link
@@ -71,41 +151,42 @@ export default function ApexCoverageSite() {
               </Link>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-5 text-sm text-gray-600">
-              <span>🧾 Receipts reviewed</span>
-              <span>🔧 Professional/DIY installs</span>
-              <span>🚗 Any type of build</span>
+            <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+              {quickProof.map((item) => (
+                <span key={item}>- {item}</span>
+              ))}
             </div>
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
-
             <div className="relative bg-white border rounded-2xl shadow-xl p-6 md:p-8">
-              <div className="text-sm font-semibold text-[#cc0000]">Apex Build Profile</div>
+              <div className="text-sm font-semibold text-[#cc0000]">
+                Apex Build Profile
+              </div>
 
               <h2 className="mt-2 text-2xl font-bold">
                 Your protection starts with your actual build.
               </h2>
 
               <p className="mt-3 text-gray-600">
-                Submit your vehicle, mileage, VIN, parts list, receipts, install records,
-                and photos. Apex reviews the build and matches it to the right protection tier.
+                Submit your vehicle, mileage, VIN, parts list, receipts, install
+                records, and photos. Apex reviews the build and matches it to the
+                right protection tier.
               </p>
 
               <div className="mt-6 space-y-4">
                 {[
                   {
                     title: 'Document your parts',
-                    body: 'Upload or list receipts, install mileage, photos, and shop information.',
+                    body: 'List receipts, install mileage, photos, and shop information.',
                   },
                   {
                     title: 'Review the risk',
                     body: 'We look at the vehicle, modification level, driver profile, and deductible choice.',
                   },
                   {
-                    title: 'Get a custom plan',
-                    body: 'Your plan is built around approved parts, professional installation, and street use.',
+                    title: 'Get a custom fit',
+                    body: 'Your plan is built around approved parts, installation details, and real street use.',
                   },
                 ].map((item, index) => (
                   <div key={item.title} className="flex gap-3">
@@ -124,70 +205,47 @@ export default function ApexCoverageSite() {
                 href="/build-review"
                 className="mt-7 inline-flex w-full justify-center items-center bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition"
               >
-                Begin My Build Review
+                Protect My Build
               </Link>
 
               <p className="mt-3 text-xs text-gray-500">
-                Eligibility, pricing, deductibles, covered parts, and claims are subject to
-                review and final approval.
+                Eligibility, pricing, deductibles, covered parts, and claims are
+                subject to review and final approval.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Trust Icons Strip */}
       <section className="border-t bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm text-gray-600">
-          <div>🔧 Modified-friendly</div>
-          <div>🧾 Documentation-based</div>
-          <div>🛠️ DIY installs accepted</div>
-          <div>🚗 Auto coverage reviews</div>
+          <div>Modified-friendly review</div>
+          <div>Documentation-based</div>
+          <div>DIY installs considered</div>
+          <div>Auto coverage reviews available</div>
         </div>
       </section>
 
-      {/* What We Protect */}
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h2 className="text-3xl font-bold">
-              Custom protection that your build deserves
+              Custom protection your build deserves
             </h2>
 
             <p className="mt-3 text-gray-600">
-              Most traditional auto insurance policies are not built around enthusiast vehicles.
-              Apex is designed to review the actual parts on your car and create a protection
-              option based on your build.
+              Most standard auto coverage is not built around enthusiast
+              vehicles. Apex reviews the actual parts on your car and creates a
+              protection option based on your build.
             </p>
 
             <ul className="mt-6 space-y-3">
-              {[
-                {
-                  t: 'Performance parts',
-                  d: 'Intake, exhaust, cooling, fueling, forced induction, tuning-related supporting parts, and more.',
-                },
-                {
-                  t: 'Suspension and handling',
-                  d: 'Coilovers, lowering kits, control arms, bushings, sway bars, brake upgrades, and related components.',
-                },
-                {
-                  t: 'Exterior and appearance',
-                  d: 'Wheels, body kits, aero, lighting, wraps, paint protection, and other cosmetic upgrades.',
-                },
-                {
-                  t: 'Interior and electronics',
-                  d: 'Audio, gauges, seats, infotainment, security, and other documented upgrades.',
-                },
-                {
-                  t: 'Factory parts also considered',
-                  d: 'Coverage includes factory or OEM parts that are installed to bring your build together.',
-                },
-              ].map((x) => (
-                <li key={x.t} className="flex items-start gap-3">
-                  <div className="mt-0.5">✔️</div>
+              {coverageCategories.map((item) => (
+                <li key={item.title} className="flex items-start gap-3">
+                  <div className="mt-0.5 text-[#cc0000] font-bold">+</div>
                   <div>
-                    <div className="font-medium">{x.t}</div>
-                    <div className="text-gray-600 text-sm">{x.d}</div>
+                    <div className="font-medium">{item.title}</div>
+                    <div className="text-gray-600 text-sm">{item.body}</div>
                   </div>
                 </li>
               ))}
@@ -195,34 +253,16 @@ export default function ApexCoverageSite() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              {
-                title: 'Street Tier',
-                body: 'For daily-driven enthusiast cars with mild modifications.',
-              },
-              {
-                title: 'Street+ Tier',
-                body: 'For more involved builds with added performance, suspension, or appearance upgrades.',
-              },
-              {
-                title: 'Apex Build Tier',
-                body: 'For higher-value or higher-complexity builds that need demand more coverage.',
-              },
-              {
-                title: 'Salvage/Rebuilt Review',
-                body: 'If your build is on a salvaged chasis, we can still protect your build.',
-              },
-            ].map((c) => (
-              <div key={c.title} className="border rounded-xl p-5 hover:shadow-md transition">
-                <div className="font-semibold">{c.title}</div>
-                <div className="mt-2 text-sm text-gray-600">{c.body}</div>
+            {tierCards.map((card) => (
+              <div key={card.title} className="border rounded-xl p-5 hover:shadow-md transition">
+                <div className="font-semibold">{card.title}</div>
+                <div className="mt-2 text-sm text-gray-600">{card.body}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How It Works Preview */}
       <section className="bg-gray-50 border-t">
         <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="max-w-3xl">
@@ -231,35 +271,15 @@ export default function ApexCoverageSite() {
             </h2>
 
             <p className="mt-3 text-gray-600">
-              We understand that every car and every build is different. Your vehicle, driver profile, mileage,
-              ZIP code, parts list, claim history, documentation, and deductible choice all
-              help us provide the coverage and piece of mind your build deserves.
+              Every car and every build is different. Your vehicle, driver
+              profile, mileage, ZIP code, parts list, claim history,
+              documentation, and deductible choice all help us provide the
+              coverage and peace of mind your build deserves.
             </p>
           </div>
 
           <div className="mt-8 grid md:grid-cols-4 gap-5">
-            {[
-              {
-                step: '01',
-                title: 'Submit your build',
-                body: 'Tell us about your vehicle, parts, mileage, install history, and any documentation.',
-              },
-              {
-                step: '02',
-                title: 'Apex reviews it',
-                body: 'We review your build, installation records, and parts list.',
-              },
-              {
-                step: '03',
-                title: 'Choose your plan',
-                body: 'Pick a deductible and review the tier that fits your vehicle and build best.',
-              },
-              {
-                step: '04',
-                title: 'Use support when needed',
-                body: 'Approved claims may be handled by direct-to-shop payment or reimbursement.',
-              },
-            ].map((item) => (
+            {processSteps.map((item) => (
               <div key={item.step} className="bg-white border rounded-xl p-5">
                 <div className="text-[#cc0000] font-bold">{item.step}</div>
                 <div className="mt-2 font-semibold">{item.title}</div>
@@ -279,28 +299,20 @@ export default function ApexCoverageSite() {
         </div>
       </section>
 
-      {/* Auto Insurance Secondary Section */}
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="relative border rounded-2xl p-6 md:p-8 bg-white overflow-hidden">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                'linear-gradient(120deg, rgba(204,0,0,.08), transparent, rgba(204,0,0,.08))',
-            }}
-          />
-
           <div className="relative grid md:grid-cols-2 gap-8 items-center">
             <div>
               <p className="text-sm font-semibold text-[#cc0000]">Still available</p>
 
               <h2 className="mt-2 text-3xl font-bold">
-                Need a traditional auto insurance review?
+                Need a standard auto coverage review too?
               </h2>
 
               <p className="mt-3 text-gray-600">
-                Apex still helps drivers review auto insurance options. While our main focus is enthusiasts who need more than
-                a standard policy conversation, ask an agent how they may be able to help.
+                Apex can still help drivers review standard auto coverage
+                options. Ask an agent how auto coverage can work alongside
+                modified vehicle protection.
               </p>
             </div>
 
@@ -309,78 +321,59 @@ export default function ApexCoverageSite() {
                 href="/quote"
                 className="inline-flex items-center gap-2 bg-black text-white px-5 py-3 rounded-md font-semibold hover:bg-gray-800 transition"
               >
-                Start Auto Insurance Review
+                Start Auto Coverage Review
               </Link>
 
               <p className="mt-3 text-xs text-gray-500">
-                Auto coverage quote requests are handled case by case.
+                Auto coverage requests are handled case by case.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Reviews */}
       <section className="bg-gray-50 border-t">
         <div className="max-w-7xl mx-auto px-4 py-16">
           <h2 className="text-3xl font-bold">Built for people who care about their cars</h2>
 
           <div className="mt-6 grid md:grid-cols-3 gap-6">
-            {[
-              'Finally, a company that understands modified cars.',
-              'The claims processes was honestly quick and painless.',
-              'I appreicate the piece of mind knowing my built corvette is protected.',
-            ].map((t, i) => (
-              <div key={i} className="bg-white border rounded-xl p-5">
-                <div>★★★★★</div>
-                <p className="mt-3 text-gray-700">“{t}”</p>
-                <div className="mt-4 text-sm text-gray-500">— Apex customer</div>
+            {testimonials.map((text) => (
+              <div key={text} className="bg-white border rounded-xl p-5">
+                <div className="text-[#cc0000] font-semibold">Five-star experience</div>
+                <p className="mt-3 text-gray-700">"{text}"</p>
+                <div className="mt-4 text-sm text-gray-500">Apex customer</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
       <section className="border-t">
         <div className="max-w-7xl mx-auto px-4 py-16">
           <h2 className="text-3xl font-bold">FAQs</h2>
 
           <div className="mt-4">
-            <FAQItem
-              i={0}
-              q="Is this the same as auto insurance?"
-              a="No. Auto coverage revuew is still available through Apex as a separate service. Apex Modified Vehicle Protection is focused on approved parts, documentation, clean installation, and repair support for eligible modified vehicles."
-            />
+            {faqs.map((item, index) => {
+              const open = faqOpen === index;
+              return (
+                <div key={item.q} className="border-b border-gray-200">
+                  <button
+                    onClick={() => setFaqOpen(open ? null : index)}
+                    className="w-full py-4 text-left flex items-center justify-between gap-4"
+                    aria-expanded={open}
+                  >
+                    <span className="font-semibold">{item.q}</span>
+                    <span className="text-[#cc0000]">{open ? 'Close' : 'Open'}</span>
+                  </button>
 
-            <FAQItem
-              i={1}
-              q="Do you cover any modification?"
-              a="Parts must be documented, and installation verified to be approved as part of the build review. Undocumented parts and unapproved installations are not eligible."
-            />
-
-            <FAQItem
-              i={2}
-              q="What documents do I need?"
-              a="You should be ready to provide receipts, photos, VIN, mileage, installation records, and shop information. The more complete your documentation is, the easier it is to review your build."
-            />
-
-            <FAQItem
-              i={3}
-              q="Can salvage or rebuilt title vehicles apply?"
-              a="Yes, but they require stricter review and may have higher pricing, different deductibles, inspection requirements, or limited eligibility."
-            />
-
-            <FAQItem
-              i={4}
-              q="How are prices determined?"
-              a="Pricing is risk-based. We consider the vehicle, driver profile, ZIP code, mileage, parts list, driving history, claim history, possible discounts, and deductible choice."
-            />
+                  {open && <p className="pb-4 text-gray-600">{item.a}</p>}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
       <section className="relative">
         <div className="absolute inset-0 bg-[#cc0000]/5 -z-10" />
 
@@ -396,7 +389,7 @@ export default function ApexCoverageSite() {
             href="/build-review"
             className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700"
           >
-            Start Build Review
+            Protect My Build
           </Link>
         </div>
       </section>
