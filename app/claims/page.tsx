@@ -3,7 +3,7 @@ import ClaimForm from "@/components/ClaimForm";
 
 export const metadata = {
   title: "File a Claim | Apex Coverage",
-  description: "Report an auto claim to Apex Coverage.",
+  description: "Report a claim to Apex Coverage.",
 };
 
 export default function ClaimsPage() {
@@ -23,20 +23,22 @@ export default function ClaimsPage() {
               File a claim
             </h1>
             <p className="mt-4 text-gray-600 max-w-prose">
-              Tell us what happened. We’ll guide you through next steps and coordinate
-              with a resolution with you.
+              Tell us what happened. We will guide you through next steps and
+              help coordinate the resolution.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-gray-600">
-              <li>✔️ Quick intake</li>
-              <li>✔️ Human help when you need it</li>
-              <li>✔️ We understand these things happen</li>
+              <li>- Quick intake</li>
+              <li>- Human help when you need it</li>
+              <li>- Support for build and auto coverage customers</li>
             </ul>
             <div className="mt-6 text-sm text-gray-600">
-              <b>Emergency?</b> Call <a className="underline" href="tel:+15406990505">(540) 699-0505</a>.
+              <b>Emergency?</b> Call{" "}
+              <a className="underline" href="tel:+15406990505">
+                (540) 699-0505
+              </a>.
             </div>
           </div>
 
-          {/* Form */}
           <div className="relative">
             <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
             <ClaimForm />
