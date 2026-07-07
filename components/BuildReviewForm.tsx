@@ -2,13 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 
-const steps = [
-  'Contact',
-  'Vehicle',
-  'Build',
-  'Coverage',
-  'Submit',
-];
+const steps = ['Contact', 'Vehicle', 'Build', 'Coverage', 'Submit'];
 
 export default function BuildReviewForm() {
   const [step, setStep] = useState(0);
@@ -77,10 +71,13 @@ export default function BuildReviewForm() {
   if (formStatus === 'success') {
     return (
       <div className="relative bg-white border rounded-2xl shadow-xl p-6 text-center">
-        <div className="mx-auto h-12 w-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-2xl">✓</div>
+        <div className="mx-auto h-12 w-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-sm font-bold">
+          OK
+        </div>
         <h3 className="mt-4 text-2xl font-semibold text-green-700">Build Review Submitted</h3>
         <p className="mt-2 text-gray-700">
-          Thanks. Apex will review the vehicle, professionally installed parts, documentation, deductible preference, and coverage goals before following up.
+          Thanks. Apex will review the vehicle, documented parts, deductible preference,
+          coverage goals, and risk details before following up.
         </p>
         <button
           onClick={() => setFormStatus('idle')}
@@ -115,7 +112,7 @@ export default function BuildReviewForm() {
 
       {formStatus === 'error' && (
         <div className="mb-3 rounded-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
-          We couldn’t submit your build review. Please try again in a moment or email{' '}
+          We could not submit your build review. Please try again in a moment or email{' '}
           <a className="underline" href="mailto:support@driveapexcoverage.com">
             support@driveapexcoverage.com
           </a>.
@@ -172,8 +169,8 @@ export default function BuildReviewForm() {
             <select name="annualMileage" required className="w-full mt-1 border rounded-md px-3 py-2">
               <option value="">Select one</option>
               <option value="under-5000">Under 5,000 miles</option>
-              <option value="5000-10000">5,000–10,000 miles</option>
-              <option value="10000-15000">10,000–15,000 miles</option>
+              <option value="5000-10000">5,000-10,000 miles</option>
+              <option value="10000-15000">10,000-15,000 miles</option>
               <option value="15000-plus">15,000+ miles</option>
             </select>
           </div>
@@ -201,7 +198,7 @@ export default function BuildReviewForm() {
 
         <section data-step="2" className={step === 2 ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'hidden'}>
           <div className="sm:col-span-2">
-            <label className="text-sm">Professionally installed parts or build list</label>
+            <label className="text-sm">Parts or build list</label>
             <textarea
               name="partsList"
               required
@@ -215,14 +212,14 @@ export default function BuildReviewForm() {
             <select name="partsValue" required className="w-full mt-1 border rounded-md px-3 py-2">
               <option value="">Select one</option>
               <option value="under-2500">Under $2,500</option>
-              <option value="2500-5000">$2,500–$5,000</option>
-              <option value="5000-10000">$5,000–$10,000</option>
-              <option value="10000-25000">$10,000–$25,000</option>
+              <option value="2500-5000">$2,500-$5,000</option>
+              <option value="5000-10000">$5,000-$10,000</option>
+              <option value="10000-25000">$10,000-$25,000</option>
               <option value="25000-plus">$25,000+</option>
             </select>
           </div>
           <div>
-            <label className="text-sm">Professional install status</label>
+            <label className="text-sm">Install status</label>
             <select name="professionalInstallStatus" required className="w-full mt-1 border rounded-md px-3 py-2">
               <option value="">Select one</option>
               <option value="all-professional">All listed parts were professionally installed</option>
@@ -308,7 +305,7 @@ export default function BuildReviewForm() {
           <div className="sm:col-span-2">
             <label className="inline-flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" name="autoInsuranceReview" value="yes" />
-              I would also like Apex to review my traditional auto insurance options.
+              I would also like Apex to review my standard auto coverage options.
             </label>
           </div>
         </section>
@@ -317,12 +314,15 @@ export default function BuildReviewForm() {
           <div className="rounded-xl border bg-gray-50 p-4">
             <h4 className="font-semibold">Before you submit</h4>
             <p className="mt-2 text-sm text-gray-600">
-              Apex will use this information to review eligibility, documentation, risk, deductible preference, and possible tier fit. Submitting this form does not guarantee approval or final pricing.
+              Apex will use this information to review eligibility, documentation,
+              risk, deductible preference, and possible tier fit. Submitting this
+              form does not guarantee approval or final pricing.
             </p>
             <ul className="mt-3 space-y-1 text-sm text-gray-700">
-              <li>✔️ Professionally installed and documented parts are easier to review.</li>
-              <li>✔️ Salvage or rebuilt vehicles may require stricter review and higher pricing.</li>
-              <li>✔️ Undocumented parts and non-professional installs may be excluded.</li>
+              <li>- Documented parts are easier to review.</li>
+              <li>- Salvage or rebuilt vehicles may require stricter review and higher pricing.</li>
+              <li>- Undocumented parts may be excluded.</li>
+              <li>- If an agent asks for receipts or photos during a call, use the document upload link they provide.</li>
             </ul>
           </div>
           <label className="inline-flex items-start gap-2 text-xs text-gray-600">
@@ -333,7 +333,9 @@ export default function BuildReviewForm() {
               className="mt-1"
             />
             <span>
-              By submitting, you consent to be contacted by Apex Coverage via phone, email, or text regarding your build review. Consent is not required for purchase.
+              By submitting, you consent to be contacted by Apex Coverage via
+              phone, email, or text regarding your build review. Consent is not
+              required for purchase.
             </span>
           </label>
         </section>
@@ -367,7 +369,9 @@ export default function BuildReviewForm() {
         </div>
 
         <p className="mt-4 text-[11px] text-gray-500">
-          Apex Modified Vehicle Protection is subject to review, documentation, eligibility, deductible selection, and final terms. Traditional auto insurance is available separately.
+          Apex Modified Vehicle Protection is subject to review, documentation,
+          eligibility, deductible selection, and final terms. Standard auto
+          coverage is available separately.
         </p>
       </form>
     </div>
