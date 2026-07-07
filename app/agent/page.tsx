@@ -248,7 +248,7 @@ export default function AgentDashboardPage() {
       const buildData: ApiListResponse<BuildReview> = await buildRes.json();
 
       if (!leadsData.ok || !leadsData.rows) {
-        throw new Error(leadsData.error || "Failed to load auto quote leads");
+        throw new Error(leadsData.error || "Failed to load auto coverage leads");
       }
 
       if (!buildData.ok || !buildData.rows) {
@@ -440,7 +440,7 @@ export default function AgentDashboardPage() {
       );
     } catch (err: any) {
       console.error(err);
-      alert(`Could not save auto quote changes: ${err.message || err}`);
+      alert(`Could not save auto coverage changes: ${err.message || err}`);
     } finally {
       setSavingKey(null);
     }
@@ -528,7 +528,7 @@ export default function AgentDashboardPage() {
       await updateBuildReview(item.relatedBuildReview.id, {
         status: "Active",
         agent: item.agent,
-        activityNote: "Build coverage marked active from auto quote pipeline",
+        activityNote: "Build coverage marked active from auto coverage pipeline",
       } as Partial<BuildReview>);
       await loadDashboard();
       return;
@@ -542,7 +542,7 @@ export default function AgentDashboardPage() {
       await updateAutoLead(item.relatedAutoLead.id, {
         status: "Won",
         agent: item.agent,
-        activityNote: "Auto insurance marked won from build review pipeline",
+        activityNote: "Auto coverage marked won from build review pipeline",
       } as Partial<AutoLead>);
       await loadDashboard();
       return;
@@ -552,7 +552,8 @@ export default function AgentDashboardPage() {
   }
 
   async function deletePipelineItem(item: DashboardItem) {
-    const label = item.kind === "build-review" ? "build review" : "auto quote";
+    const label =
+      item.kind === "build-review" ? "build review" : "auto coverage request";
     const confirmed = window.confirm(
       `Remove this ${label} from the pipeline? This will delete the row from Google Sheets.`
     );
@@ -707,7 +708,7 @@ export default function AgentDashboardPage() {
             </p>
             <h1 className="mt-1 text-3xl font-bold">Coverage Pipeline</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Manage build reviews, auto quote requests, assignments, and next
+              Manage build reviews, auto coverage requests, assignments, and next
               steps from one queue.
             </p>
           </div>
@@ -739,7 +740,7 @@ export default function AgentDashboardPage() {
 
         <section className="mb-6 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Open Build Reviews" value={stats.buildOpen} />
-          <StatCard label="Open Auto Quotes" value={stats.autoOpen} />
+          <StatCard label="Open Auto Coverage" value={stats.autoOpen} />
           <StatCard label="Build Customers" value={stats.customersWithBuild} />
           <StatCard label="Auto Customers" value={stats.customersWithAuto} />
           <StatCard label="Both Requested" value={stats.bothInterested} />
@@ -765,7 +766,7 @@ export default function AgentDashboardPage() {
             options={[
               { label: "All coverage", value: "all" },
               { label: "Build Reviews", value: "build-review" },
-              { label: "Auto Quotes", value: "auto-quote" },
+              { label: "Auto Coverage", value: "auto-quote" },
             ]}
           />
 
@@ -980,7 +981,7 @@ export default function AgentDashboardPage() {
                                   onClick={() =>
                                     updateAutoLead(item.id, {
                                       status: "Won",
-                                      activityNote: "Auto insurance marked won from pipeline",
+                                      activityNote: "Auto coverage marked won from pipeline",
                                     } as Partial<AutoLead>)
                                   }
                                   className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
@@ -1096,7 +1097,7 @@ function ProductBadge({ kind }: { kind: DashboardItem["kind"] }) {
           : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
       }`}
     >
-      {isBuild ? "Build Coverage" : "Auto Quote"}
+      {isBuild ? "Build Coverage" : "Auto Coverage"}
     </span>
   );
 }
@@ -1188,7 +1189,7 @@ function AutoWorksheetPanel({
       <div className="flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold">Auto Quote Worksheet</h2>
+            <h2 className="text-lg font-semibold">Auto Coverage Worksheet</h2>
             <p className="text-xs text-slate-500">
               {lead.name} - {lead.zip} - {vehicleLabel(lead)}
             </p>
@@ -1275,7 +1276,7 @@ function AutoWorksheetPanel({
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              Underwriting / Quote Notes
+              Underwriting / Coverage Notes
             </label>
             <textarea
               rows={4}
