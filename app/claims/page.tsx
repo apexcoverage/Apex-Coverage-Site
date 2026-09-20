@@ -33,8 +33,8 @@ export default function ClaimsPage() {
             </ul>
             <div className="mt-6 text-sm text-gray-600">
               <b>Emergency?</b> Call{" "}
-              <a className="underline" href="tel:+15406990505">
-                (540) 699-0505
+              <a className="underline" href="tel:+18443982739">
+                844-398-2739
               </a>.
             </div>
           </div>
