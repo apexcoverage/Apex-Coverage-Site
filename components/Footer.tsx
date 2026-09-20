@@ -6,7 +6,11 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-4 gap-8">
         <div>
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded" style={{ background: '#cc0000' }} />
+            <img
+              src="/brand/apex-logo.svg"
+              alt="Apex Coverage shield logo"
+              className="h-9 w-9"
+            />
             <span className="font-semibold text-white">Apex Coverage</span>
           </Link>
 
@@ -71,8 +75,8 @@ export default function Footer() {
           <div className="font-semibold text-white">Contact</div>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <a href="tel:+15406990505" className="hover:text-white">
-                (540) 699-0505
+              <a href="tel:+18443982739" className="hover:text-white">
+                844-398-2739
               </a>
             </li>
             <li>
