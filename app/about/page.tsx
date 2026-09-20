@@ -105,7 +105,7 @@ export default function AboutPage() {
           </div>
           <div className="border rounded-2xl p-6 bg-white">
             <div className="text-sm text-gray-600">
-              <div><b>Phone:</b> (540) 699-0505</div>
+              <div><b>Phone:</b> 844-398-2739</div>
               <div className="mt-1"><b>Email:</b> support@driveapexcoverage.com</div>
               <div className="mt-1"><b>Address:</b> Richmond, VA</div>
             </div>
@@ -141,7 +141,7 @@ export default function AboutPage() {
             name: "Apex Coverage",
             url: "https://www.driveapexcoverage.com/about",
             areaServed: "US-VA",
-            telephone: "(540) 699-0505",
+            telephone: "844-398-2739",
             address: {
               "@type": "PostalAddress",
               addressLocality: "Richmond",
