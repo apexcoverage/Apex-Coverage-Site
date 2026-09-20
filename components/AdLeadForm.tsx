@@ -67,7 +67,7 @@ export default function AdLeadForm() {
         </label>
         <label className="text-sm">
           Phone
-          <input name="phone" required className="mt-1 w-full rounded-md border px-3 py-2" placeholder="(540) 699-0505" />
+          <input name="phone" required className="mt-1 w-full rounded-md border px-3 py-2" placeholder="844-398-2739" />
         </label>
         <label className="text-sm">
           Email
