@@ -29,19 +29,23 @@ export default function Header() {
           <div className="flex items-center gap-2">
             <span className="font-semibold">Apex Coverage</span>
             <span className="hidden sm:inline text-white/80">
-              For those who drive, not just commute.
+              Coverage built around the vehicle you actually drive
             </span>
           </div>
 
-          <a href="tel:+15406990505" className="hover:opacity-90 whitespace-nowrap">
-            (540) 699-0505
+          <a href="tel:+18443982739" className="hover:opacity-90 whitespace-nowrap">
+            844-398-2739
           </a>
         </div>
       </div>
 
       <nav className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <div className="h-8 w-8 rounded" style={{ background: '#cc0000' }} />
+          <img
+            src="/brand/apex-logo.svg"
+            alt="Apex Coverage shield logo"
+            className="h-9 w-9"
+          />
           <span className="font-semibold tracking-tight">
             Apex <span style={{ color: '#cc0000' }}>Coverage</span>
           </span>
