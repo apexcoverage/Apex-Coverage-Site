@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 
-const steps = ['Contact', 'Vehicle', 'Build', 'Coverage', 'Submit'];
+const steps = ['Contact', 'Vehicle', 'Parts', 'Options', 'Submit'];
 
 export default function BuildReviewForm() {
   const [step, setStep] = useState(0);
@@ -107,7 +107,7 @@ export default function BuildReviewForm() {
 
       <h3 className="text-xl font-semibold mb-1">Start your build review</h3>
       <p className="text-sm text-gray-600 mb-4">
-        Step {step + 1} of {steps.length}: fill out one section at a time, then submit on the last step.
+        Step {step + 1} of {steps.length}: share the details Apex needs to review your build.
       </p>
 
       {formStatus === 'error' && (
@@ -219,28 +219,28 @@ export default function BuildReviewForm() {
             </select>
           </div>
           <div>
-            <label className="text-sm">Install status</label>
+            <label className="text-sm">Install details</label>
             <select name="professionalInstallStatus" required className="w-full mt-1 border rounded-md px-3 py-2">
               <option value="">Select one</option>
-              <option value="all-professional">All listed parts were professionally installed</option>
-              <option value="mostly-professional">Mostly professional, some details need review</option>
+              <option value="shop-installed">Shop installed</option>
+              <option value="mixed-shop-diy">Mix of shop and DIY work</option>
+              <option value="diy">DIY installed</option>
               <option value="not-sure">Not sure</option>
-              <option value="diy">Some DIY installs</option>
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm">Shop / installer names</label>
+            <label className="text-sm">Shop, installer, or DIY notes</label>
             <textarea
               name="installerInfo"
               rows={3}
               className="w-full mt-1 border rounded-md px-3 py-2"
-              placeholder="List the shops or installers used, if known."
+              placeholder="List shops, installers, or DIY notes if known. Example: installed at home, local performance shop, previous owner records..."
             />
           </div>
           <div className="sm:col-span-2">
             <label className="text-sm">Documentation available</label>
             <div className="mt-2 grid sm:grid-cols-2 gap-2 text-sm text-gray-700">
-              {['Receipts', 'Photos', 'VIN', 'Mileage at install', 'Installer invoice', 'Maintenance records', 'Still gathering docs'].map((item) => (
+              {['Receipts', 'Photos', 'VIN', 'Mileage at install', 'Labor invoice', 'Maintenance records', 'Still gathering docs'].map((item) => (
                 <label key={item} className="inline-flex items-center gap-2 border rounded-md px-3 py-2">
                   <input type="checkbox" name="documentation" value={item} />
                   {item}
@@ -314,9 +314,9 @@ export default function BuildReviewForm() {
           <div className="rounded-xl border bg-gray-50 p-4">
             <h4 className="font-semibold">Before you submit</h4>
             <p className="mt-2 text-sm text-gray-600">
-              Apex will use this information to review eligibility, documentation,
-              risk, deductible preference, and possible tier fit. Submitting this
-              form does not guarantee approval or final pricing.
+              Apex will review your vehicle, parts value, documentation, use,
+              deductible preference, and risk details. The review is free, and
+              an agent will explain any available options before anything starts.
             </p>
             <ul className="mt-3 space-y-1 text-sm text-gray-700">
               <li>- Documented parts are easier to review.</li>
