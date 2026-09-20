@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 
 const quickProof = [
   'Receipts and invoices reviewed',
-  'Professional and DIY installs considered',
+  'Shop and DIY installs considered',
   'Street, weekend, show, and mixed-use builds',
 ];
 
@@ -221,7 +221,7 @@ export default function ApexCoverageSite() {
         <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm text-gray-600">
           <div>Modified-friendly review</div>
           <div>Documentation-based</div>
-          <div>DIY installs considered</div>
+          <div>Shop and DIY installs considered</div>
           <div>Auto coverage reviews available</div>
         </div>
       </section>
