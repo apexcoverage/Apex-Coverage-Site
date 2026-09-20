@@ -87,7 +87,7 @@ export default function StatusPage() {
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 className="mt-1 w-full border rounded-md px-3 py-2"
-                placeholder="(540) 699-0505"
+                placeholder="844-398-2739"
               />
             </label>
           </div>
@@ -101,7 +101,7 @@ export default function StatusPage() {
 
           <p className="mt-3 text-xs text-gray-500">
             Status lookup is informational only. For urgent updates, call Apex at
-            (540) 699-0505.
+            844-398-2739.
           </p>
         </form>
 
