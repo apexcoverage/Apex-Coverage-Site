@@ -10,6 +10,10 @@ export type AutoCoverageDocumentData = {
   zip?: string;
   agent?: string;
   policyNumber?: string;
+  mailingAddress?: string;
+  effectiveDate?: string;
+  policyPeriodStart?: string;
+  policyPeriodEnd?: string;
   status?: string;
   coverage?: string;
   deductibles?: string;
@@ -411,53 +415,261 @@ function buildPartsRows(input: BuildProtectionDocumentData) {
   return parts.map((part, index) => [String(index + 1), part]);
 }
 
+function parseAutoVehicleLine(line: string) {
+  const trimmed = clean(line);
+  if (!trimmed) {
+    return {
+      vin: "",
+      year: "",
+      make: "",
+      model: "",
+      vehicle: "Vehicle schedule pending",
+    };
+  }
+
+  const parts = trimmed.split(/\s+/);
+  const first = parts[0] || "";
+  const second = parts[1] || "";
+  const looksLikeVin =
+    /^[A-HJ-NPR-Z0-9]{11,17}$/i.test(first) ||
+    /^[A-HJ-NPR-Z0-9-]{11,20}$/i.test(first);
+  const yearIndex = looksLikeVin ? 1 : 0;
+  const looksLikeYear = /^\d{4}$/.test(parts[yearIndex] || "");
+
+  if (looksLikeVin) {
+    return {
+      vin: first,
+      year: looksLikeYear ? second : "",
+      make: parts[2] || "",
+      model: parts.slice(3).join(" "),
+      vehicle: trimmed,
+    };
+  }
+
+  if (looksLikeYear) {
+    return {
+      vin: "",
+      year: parts[0] || "",
+      make: parts[1] || "",
+      model: parts.slice(2).join(" "),
+      vehicle: trimmed,
+    };
+  }
+
+  return {
+    vin: "",
+    year: "",
+    make: parts[0] || "",
+    model: parts.slice(1).join(" "),
+    vehicle: trimmed,
+  };
+}
+
+function autoVehicleDeclarationRows(input: AutoCoverageDocumentData) {
+  const vehicles = normalizeVehicleLines(input.vehicles);
+  if (!vehicles.length) {
+    return [["1", "Pending", "Pending", "Pending", "Vehicle schedule pending"]];
+  }
+
+  return vehicles.map((vehicle, index) => {
+    const parsed = parseAutoVehicleLine(vehicle);
+    return [
+      String(index + 1),
+      clean(parsed.vin, "Not on file"),
+      clean(parsed.year, "-"),
+      clean(parsed.make, "-"),
+      clean(parsed.model || parsed.vehicle, "-"),
+    ];
+  });
+}
+
+function compDeductible(value?: string) {
+  const text = clean(value);
+  if (!text) return "$500";
+  const match = text.match(/comp(?:rehensive)?[^$0-9]*([$]?\d[\d,]*)/i);
+  return match?.[1] || "$500";
+}
+
+function collisionDeductible(value?: string) {
+  const text = clean(value);
+  if (!text) return "$1,000";
+  const match = text.match(/coll(?:ision)?[^$0-9]*([$]?\d[\d,]*)/i);
+  return match?.[1] || "$1,000";
+}
+
+function autoCoverageScheduleRows(input: AutoCoverageDocumentData) {
+  return [
+    ["Coverage Type", "Limits", "Deductible", "Premium Allocation"],
+    ["Bodily Injury Liability", "$50,000", "N/A", "26%"],
+    ["Property Damage Liability", "$25,000", "N/A", "13%"],
+    ["Medical Payments", "$1,000", "N/A", "1%"],
+    ["Uncovered / Undercovered Motorist", "$25,000", "N/A", "9%"],
+    ["Comprehensive", "Cash Value Less Deductible", compDeductible(input.deductibles), "25%"],
+    ["Collision", "Cash Value Less Deductible", collisionDeductible(input.deductibles), "26%"],
+  ];
+}
+
+function policySection(title: string, paragraphs: string[]) {
+  return `${heading(title)}${paragraphs
+    .map((text) =>
+      paragraph(text, {
+        color: BRAND_MID,
+        size: 20,
+        after: 110,
+      })
+    )
+    .join("")}`;
+}
+
 function autoDocumentBody(input: AutoCoverageDocumentData) {
   const policyNumber = clean(input.policyNumber, "Pending");
   const discounts = normalizeDiscounts(input.discounts);
+  const effectiveDate = clean(
+    input.effectiveDate || input.policyPeriodStart,
+    "Pending confirmation"
+  );
+  const periodStart = clean(input.policyPeriodStart || input.effectiveDate, "Pending confirmation");
+  const periodEnd = clean(input.policyPeriodEnd || input.renewalDate, "Pending confirmation");
+  const mailingAddress = clean(
+    input.mailingAddress,
+    input.zip ? `ZIP ${input.zip}` : "Pending confirmation"
+  );
   const titleRows: Array<[string, string]> = [
     ["Document", makeDocumentNumber("APX-AUTO", policyNumber)],
     ["Policy number", policyNumber],
-    ["Customer", clean(input.customerName, "Customer name pending")],
-    ["Status", clean(input.status, "Pending")],
-    ["Monthly premium", formatCurrency(input.monthlyPremium)],
-    ["Renewal date", formatDate(input.renewalDate)],
+    ["Named covered", clean(input.customerName, "Customer name pending")],
+    ["Total premium", formatCurrency(input.monthlyPremium)],
+    ["Effective date", effectiveDate],
   ];
 
   return `
     ${coverBlock(
-      "Auto Coverage Packet",
-      "A customer-facing summary of the auto coverage record, vehicle schedule, billing status, and service instructions currently recorded by Apex.",
+      "Auto Coverage Declarations And Policy Packet",
+      "For those who drive, not just commute. This packet contains the declarations page, coverage schedule, policy terms, claims instructions, and Apex contact information for the auto coverage record shown below.",
       titleRows
     )}
-    ${heading("Customer And Service Information")}
-    ${twoColumnFacts(contactRows(input))}
-    ${heading("Vehicle Schedule")}
-    ${table([["#", "Covered vehicle"], ...autoVehicleRows(input)], {
+    ${heading("Declarations Page")}
+    ${twoColumnFacts([
+      ["Named Covered", clean(input.customerName, "Customer name pending")],
+      ["Mailing Address", mailingAddress],
+      ["Policy Number", policyNumber],
+      ["Effective Date", effectiveDate],
+      [
+        "Policy Period",
+        `From ${periodStart} to ${periodEnd}, 12:01 A.M. local time at the named address.`,
+      ],
+      ["Apex Contact", "844-398-2739"],
+    ])}
+    ${heading("Covered Auto Schedule")}
+    ${table([["#", "VIN", "Year", "Make", "Model"], ...autoVehicleDeclarationRows(input)], {
       header: true,
-      widths: [900, 9180],
+      widths: [700, 2500, 1100, 1900, 3880],
     })}
-    ${heading("Coverage Summary")}
+    ${heading("Coverage Schedule")}
+    ${table(autoCoverageScheduleRows(input), {
+      header: true,
+      widths: [3100, 3100, 1900, 1980],
+    })}
+    ${heading("Premium And Discounts")}
     ${table(
       [
         ["Item", "Recorded detail"],
-        ["Coverage selected", clean(input.coverage, "Pending confirmation")],
-        ["Deductibles", clean(input.deductibles, "Pending confirmation")],
-        [
-          "Premium",
-          `${formatCurrency(input.monthlyPremium)} monthly unless updated by Apex or the carrier.`,
-        ],
-        [
-          "Discounts",
-          discounts.length ? discounts.join("\n") : "No discounts recorded yet.",
-        ],
+        ["Total Premium", formatCurrency(input.monthlyPremium)],
+        ["Deductibles Recorded", clean(input.deductibles, "See coverage schedule")],
+        ["Coverage Selection", clean(input.coverage, "See coverage schedule")],
+        ["Policy Discounts", discounts.length ? discounts.join("\n") : "No discounts recorded."],
       ],
       { header: true, widths: [2700, 7380] }
     )}
-    ${sectionText(
-      "Important Coverage Note",
-      "This packet summarizes information currently recorded by Apex. It is not a replacement for the final carrier coverage contract, declarations, endorsements, invoices, exclusions, or state-specific notices. If any item conflicts with final carrier documents, the final carrier documents control."
+    ${pageBreak()}
+    ${policySection(
+      "Section I Coverage Agreement",
+      [
+        "Apex Coverage agrees to provide the coverages shown on the Declarations Page in consideration of the required premium and subject to the terms, conditions, limitations, and exclusions contained in this packet and any final written coverage documents.",
+        "Coverage applies only to the specific coverages, limits, deductibles, covered autos, named covered, and policy period shown on the Declarations Page or later written endorsement.",
+      ]
+    )}
+    ${policySection(
+      "Section II Definitions",
+      [
+        '"You" and "your" mean the Named Covered shown on the Declarations Page and, when applicable, a spouse residing in the same household.',
+        '"Covered Auto" means the vehicle or vehicles described on the Declarations Page, including an eligible replacement auto, additional auto, or temporary substitute auto when accepted under the applicable coverage rules.',
+        '"Bodily injury" means bodily harm, sickness, disease, or death sustained by a person.',
+        '"Property damage" means physical injury to, destruction of, or loss of use of tangible property.',
+      ]
+    )}
+    ${policySection(
+      "Section III Liability Coverage",
+      [
+        "Subject to the terms and exclusions of this packet, liability coverage applies to covered damages for bodily injury or property damage for which a covered person becomes legally responsible because of an auto accident involving a Covered Auto.",
+        "Apex or the applicable carrier may investigate, negotiate, defend, and settle covered claims or suits. The duty to defend ends when the applicable limit of liability has been exhausted by payment of judgments or settlements.",
+        "Liability coverage does not apply to intentional acts, property owned by or transported by a covered person, use for hire or delivery, racing, speed contests, organized competitive driving, or other excluded uses.",
+      ]
+    )}
+    ${policySection(
+      "Section IV Medical Payments Coverage",
+      [
+        "Subject to the terms and exclusions of this packet, medical payments coverage applies to reasonable and necessary medical or funeral expenses incurred because of bodily injury caused by an auto accident and sustained while occupying or being struck by a Covered Auto.",
+        "This coverage does not apply to injury sustained while occupying a vehicle with fewer than four wheels, while using a vehicle as a public or livery conveyance, or during employment when workers compensation or similar benefits are available.",
+      ]
+    )}
+    ${policySection(
+      "Section V Uncovered Or Undercovered Motorist Coverage",
+      [
+        "Subject to the terms and exclusions of this packet, uncovered or undercovered motorist coverage applies when a covered person is legally entitled to recover compensatory damages from the owner or operator of an uncovered, undercovered, or hit-and-run vehicle.",
+        "The legal entitlement to recover damages may be established by agreement with Apex or the applicable carrier, or by judgment entered by a court with proper authority.",
+      ]
+    )}
+    ${policySection(
+      "Section VI Comprehensive Coverage",
+      [
+        "Subject to the terms and exclusions of this packet, comprehensive coverage applies to direct and accidental loss to a Covered Auto other than collision, including fire, theft, vandalism, glass breakage, contact with a bird or animal, weather-related events, falling objects, explosion, and other covered causes of loss.",
+        "For each covered comprehensive loss, the deductible shown on the Declarations Page applies separately to each vehicle and each occurrence.",
+      ]
+    )}
+    ${policySection(
+      "Section VII Collision Coverage",
+      [
+        "Subject to the terms and exclusions of this packet, collision coverage applies to direct and accidental loss to a Covered Auto caused by collision with another object, upset, or overturn.",
+        "For each covered collision loss, the deductible shown on the Declarations Page applies separately to each vehicle and each occurrence.",
+      ]
     )}
     ${pageBreak()}
+    ${policySection(
+      "Section VIII Duties After An Accident Or Loss",
+      [
+        "You must notify Apex promptly of how, when, and where the accident or loss occurred. Notice should be provided as soon as practical after the event giving rise to the claim.",
+        "You must cooperate fully in the investigation, adjustment, settlement, or defense of any claim. This includes providing access to records, witnesses, photos, estimates, statements, and other relevant information requested.",
+        "You must promptly forward every notice, demand, summons, lawsuit, or other legal paper received in connection with any claim or suit.",
+        "Upon request, you must submit to examination under oath and sign the transcript as often as reasonably required.",
+        "Failure to comply with required duties may result in partial or total denial of coverage to the extent permitted by applicable law.",
+      ]
+    )}
+    ${policySection(
+      "Section IX Exclusions",
+      [
+        "Coverage does not apply to intentional, willful, or deliberate acts that result in or are intended to result in injury, property damage, or loss.",
+        "Coverage does not apply to illegal activities, use of a Covered Auto in the commission of an illegal act, racing, speed contests, organized competitive driving, use for hire, delivery for compensation, or other excluded uses.",
+        "Coverage does not apply to normal wear and tear, gradual deterioration, corrosion, rust, freezing, mechanical breakdown, electrical failure, defects in materials or workmanship, or confiscation, seizure, impoundment, destruction, or requisition by government authority.",
+      ]
+    )}
+    ${policySection(
+      "Section X General Conditions",
+      [
+        "No change, modification, or waiver of any term or condition is valid unless made by written endorsement or updated written coverage document issued by Apex or the applicable carrier.",
+        "No interest in this coverage may be assigned, transferred, or otherwise conveyed without prior written consent. Any attempted transfer without consent is void.",
+        "The Named Covered may request cancellation by written notice. Apex or the applicable carrier may cancel or decline renewal only in accordance with applicable law and required notice.",
+        "Renewal is subject to review, continued eligibility, payment status, claim history, vehicle use, and applicable program rules.",
+        "A claim filed within the first six months after the effective date or reinstatement may be subject to additional eligibility and documentation review. Any deductible adjustment, surcharge, or claim limitation will apply only to the extent permitted by applicable law and final written terms.",
+      ]
+    )}
+    ${policySection(
+      "Section XI Important Notices",
+      [
+        "This packet is prepared from information available in the Apex customer record. Final coverage terms, carrier documents, endorsements, invoices, state notices, and written amendments control if there is any conflict.",
+        "For customer care, call 844-398-2739 or email support@driveapexcoverage.com. For claim-specific support, email claims@driveapexcoverage.com.",
+      ]
+    )}
     ${heading("Service And Claims Instructions")}
     ${bulletList([
       "Keep this packet with your current coverage records.",
@@ -466,17 +678,6 @@ function autoDocumentBody(input: AutoCoverageDocumentData) {
       "Call Apex at 844-398-2739 or email support@driveapexcoverage.com for customer care.",
       "For claim-specific support, email claims@driveapexcoverage.com.",
     ])}
-    ${heading("Agent Review Checklist")}
-    ${table(
-      [
-        ["Review item", "Status"],
-        ["Customer contact information reviewed", "Pending agent confirmation"],
-        ["Vehicle schedule reviewed", "Pending agent confirmation"],
-        ["Premium and billing setup reviewed", "Pending agent confirmation"],
-        ["Final carrier documents delivered or scheduled", "Pending agent confirmation"],
-      ],
-      { header: true, widths: [6000, 4080] }
-    )}
   `;
 }
 
@@ -490,7 +691,6 @@ function buildDocumentBody(input: BuildProtectionDocumentData) {
     ["Document", makeDocumentNumber("APX-MVP", planNumber)],
     ["Protection plan", planNumber],
     ["Customer", clean(input.customerName, "Customer name pending")],
-    ["Status", clean(input.status, "Pending")],
     ["Vehicle", clean(vehicle, "Vehicle pending")],
     ["Parts value", clean(input.partsValue, "Pending confirmation")],
   ];
@@ -498,7 +698,7 @@ function buildDocumentBody(input: BuildProtectionDocumentData) {
   return `
     ${coverBlock(
       "Modified Vehicle Protection Packet",
-      "A customer-facing summary of the approved build profile, documented parts, deductible preference, and customer responsibilities for Apex Modified Vehicle Protection.",
+      "This packet contains the approved build profile, documented parts schedule, deductible selection, claims instructions, and customer responsibilities for Apex Modified Vehicle Protection.",
       titleRows
     )}
     ${heading("Customer And Service Information")}
@@ -552,18 +752,14 @@ function buildDocumentBody(input: BuildProtectionDocumentData) {
       ["Claims support", "claims@driveapexcoverage.com"],
       ["Customer care", "844-398-2739"],
     ])}
-    ${heading("Agent Review Checklist")}
-    ${table(
-      [
-        ["Review item", "Status"],
-        ["Vehicle identity reviewed", "Pending agent confirmation"],
-        ["Parts schedule reviewed", "Pending agent confirmation"],
-        ["Receipts/photos/documentation reviewed", "Pending agent confirmation"],
-        ["Tier and deductible reviewed with customer", "Pending agent confirmation"],
-        ["Final protection terms delivered or scheduled", "Pending agent confirmation"],
-      ],
-      { header: true, widths: [6000, 4080] }
-    )}
+    ${heading("Customer Responsibilities")}
+    ${bulletList([
+      "Keep receipts, photos, invoices, mileage records, and installer details current with Apex.",
+      "Contact Apex before adding major parts, changing vehicle use, racing, tracking, selling, or transferring the vehicle.",
+      "Report claims as soon as practical and preserve damaged parts until Apex or the applicable administrator confirms next steps.",
+      "Call Apex at 844-398-2739 or email support@driveapexcoverage.com for customer care.",
+      "For claim-specific support, email claims@driveapexcoverage.com.",
+    ])}
   `;
 }
 
