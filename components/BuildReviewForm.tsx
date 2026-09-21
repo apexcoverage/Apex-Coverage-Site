@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import ConsentDisclosure from './ConsentDisclosure';
 
 const steps = ['Contact', 'Vehicle', 'Parts', 'Options', 'Submit'];
 
@@ -332,11 +333,7 @@ export default function BuildReviewForm() {
               onChange={(e) => setConsent(e.target.checked)}
               className="mt-1"
             />
-            <span>
-              By submitting, you consent to be contacted by Apex Coverage via
-              phone, email, or text regarding your build review. Consent is not
-              required for purchase.
-            </span>
+            <ConsentDisclosure />
           </label>
         </section>
 
