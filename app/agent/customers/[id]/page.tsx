@@ -1104,7 +1104,7 @@ export default function CustomerProfilePage() {
                 onClick={generateAutoCoveragePacket}
                 disabled={saving === "auto-document"}
               >
-                {saving === "auto-document" ? "Generating..." : "Generate Auto Packet"}
+                {saving === "auto-document" ? "Generating..." : "Generate Auto Declarations"}
               </button>
             )}
             {primaryBuild && (
@@ -1113,7 +1113,7 @@ export default function CustomerProfilePage() {
                 onClick={generateBuildProtectionPacket}
                 disabled={saving === "build-document"}
               >
-                {saving === "build-document" ? "Generating..." : "Generate Build Packet"}
+                {saving === "build-document" ? "Generating..." : "Generate Build Protection"}
               </button>
             )}
             <button className="btn-primary" onClick={openContactEditor}>
@@ -1178,6 +1178,46 @@ export default function CustomerProfilePage() {
               <p>{display.email || "-"}</p>
               <p>ZIP {display.zip || "-"}</p>
               <p className="meta-text">Created: {display.when || "-"}</p>
+            </div>
+          </section>
+
+          <section className="card">
+            <div className="card-header">
+              <h2>Coverage Documents</h2>
+              <p className="subtitle">
+                Generate customer paperwork for the coverage records attached to this profile.
+              </p>
+            </div>
+            <div className="card-body document-actions">
+              {auto ? (
+                <button
+                  className="btn-primary"
+                  onClick={generateAutoCoveragePacket}
+                  disabled={saving === "auto-document"}
+                >
+                  {saving === "auto-document"
+                    ? "Generating..."
+                    : "Generate Auto Declarations"}
+                </button>
+              ) : (
+                <p className="meta-text">No auto coverage record is attached.</p>
+              )}
+              {primaryBuild ? (
+                <button
+                  className="btn-secondary"
+                  onClick={generateBuildProtectionPacket}
+                  disabled={saving === "build-document"}
+                >
+                  {saving === "build-document"
+                    ? "Generating..."
+                    : "Generate Build Protection Packet"}
+                </button>
+              ) : (
+                <p className="meta-text">
+                  No build coverage record is attached. Add build coverage before generating
+                  build protection paperwork.
+                </p>
+              )}
             </div>
           </section>
 
@@ -1673,6 +1713,13 @@ export default function CustomerProfilePage() {
           display: flex;
           flex-wrap: wrap;
           gap: 0.5rem;
+        }
+
+        .document-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+          align-items: center;
         }
 
         .empty-state {
