@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import ConsentDisclosure from './ConsentDisclosure';
 
 export default function AdLeadForm() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -113,10 +114,7 @@ export default function AdLeadForm() {
 
       <label className="mt-4 flex items-start gap-2 text-xs text-gray-600">
         <input name="consent" type="checkbox" required className="mt-1" />
-        <span>
-          I consent to be contacted by Apex Coverage by phone, email, or text
-          about my request. Consent is not required for purchase.
-        </span>
+        <ConsentDisclosure />
       </label>
 
       {status === 'error' && (
