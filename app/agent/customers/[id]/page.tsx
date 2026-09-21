@@ -180,6 +180,41 @@ function formatCurrency(value?: string) {
   }).format(amount);
 }
 
+function fileSafeName(value?: string) {
+  return String(value || "customer")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "customer";
+}
+
+function buildProtectionNumber(build: BuildReview) {
+  return `APX-MVP-${String(build.id).padStart(5, "0")}`;
+}
+
+async function downloadCoverageDocument(payload: Record<string, any>, filename: string) {
+  const res = await fetch("/api/coverage-documents/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || "Error generating coverage document");
+  }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 function formatPaymentAmount(value?: string, currency?: string) {
   if (!value) return "-";
   const amount = Number(String(value).replace(/[$,\s]/g, ""));
@@ -928,59 +963,93 @@ export default function CustomerProfilePage() {
     }
   }
 
-  async function generateDeclarationsPage() {
+  async function generateAutoCoveragePacket() {
     const auto = profile?.auto;
     if (!auto) return;
 
     try {
+      setSaving("auto-document");
       const vehicleLines = String(auto.vehicles || vehicleLabel(auto) || "")
         .split(/\r?\n/)
         .map((v) => v.trim())
         .filter(Boolean);
-      const discountParts = String(auto.discounts || "")
-        .split(/[|,\n]/)
-        .map((d) => d.trim())
-        .filter(Boolean);
 
-      const res = await fetch("/api/declarations/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: auto.name || "",
+      await downloadCoverageDocument(
+        {
+          type: "auto",
+          customerName: auto.name || "",
+          email: auto.email || "",
+          phone: auto.phone || "",
+          zip: auto.zip || "",
+          agent: auto.agent || "",
           policyNumber: auto.policyNumber || "",
-          startDate: auto.renewalDate || "",
-          endDate: auto.renewalDate || "",
-          totalPremium: auto.monthlyPremium || "",
-          vehicles: vehicleLines,
+          status: auto.status || "",
+          coverage: auto.coverage || "",
+          deductibles: auto.deductibles || "",
           discounts: auto.discounts || "",
-          discount1: discountParts[0] || "",
-          discount2: discountParts[1] || "",
-          discount3: discountParts[2] || "",
-          discount4: discountParts[3] || "",
-          discount5: discountParts[4] || "",
-        }),
-      });
+          renewalDate: auto.renewalDate || "",
+          monthlyPremium: auto.monthlyPremium || "",
+          vehicles: vehicleLines,
+        },
+        `${fileSafeName(auto.name)}-auto-coverage-packet.docx`
+      );
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Error generating declaration");
-      }
-
-      await updateAuto(auto.id, { activityNote: "Declarations page generated" });
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `declaration-${auto.name || "customer"}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      await updateAuto(auto.id, { activityNote: "Auto coverage packet generated" });
       await loadProfile();
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Error generating declaration");
+      alert(err.message || "Error generating auto coverage packet");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function generateBuildProtectionPacket() {
+    const build = profile?.primaryBuild;
+    if (!build) return;
+
+    try {
+      setSaving("build-document");
+
+      await downloadCoverageDocument(
+        {
+          type: "build",
+          customerName: build.name || "",
+          email: build.email || "",
+          phone: build.phone || "",
+          zip: build.zip || "",
+          agent: build.agent || "",
+          planNumber: buildProtectionNumber(build),
+          status: build.status || "",
+          year: build.year || "",
+          make: build.make || "",
+          model: build.model || "",
+          vin: build.vin || "",
+          mileage: build.mileage || "",
+          annualMileage: build.annualMileage || "",
+          titleStatus: build.titleStatus || "",
+          vehicleUse: build.vehicleUse || "",
+          partsList: build.partsList || "",
+          partsValue: build.partsValue || "",
+          installStatus: build.professionalInstallStatus || "",
+          installerInfo: build.installerInfo || "",
+          documentation: build.documentation || "",
+          tierInterest: build.tierInterest || "",
+          deductible: build.deductible || "",
+          drivingHistory: build.drivingHistory || "",
+          claimHistory: build.claimHistory || "",
+          discountNotes: build.discountNotes || "",
+        },
+        `${fileSafeName(build.name)}-build-protection-packet.docx`
+      );
+
+      await updateBuild(build.id, { activityNote: "Build protection packet generated" });
+      await loadProfile();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Error generating build protection packet");
+    } finally {
+      setSaving(null);
     }
   }
 
@@ -1030,8 +1099,21 @@ export default function CustomerProfilePage() {
               Add Note
             </button>
             {auto && (
-              <button className="btn-secondary" onClick={generateDeclarationsPage}>
-                Generate Declarations Page
+              <button
+                className="btn-secondary"
+                onClick={generateAutoCoveragePacket}
+                disabled={saving === "auto-document"}
+              >
+                {saving === "auto-document" ? "Generating..." : "Generate Auto Packet"}
+              </button>
+            )}
+            {primaryBuild && (
+              <button
+                className="btn-secondary"
+                onClick={generateBuildProtectionPacket}
+                disabled={saving === "build-document"}
+              >
+                {saving === "build-document" ? "Generating..." : "Generate Build Packet"}
               </button>
             )}
             <button className="btn-primary" onClick={openContactEditor}>
