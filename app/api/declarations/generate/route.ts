@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       phone,
       zip,
       agent,
+      mailingAddress,
     } = body || {};
 
     const documentData = {
@@ -39,6 +40,10 @@ export async function POST(req: Request) {
       zip: safeString(zip),
       agent: safeString(agent),
       policyNumber: safeString(policyNumber),
+      mailingAddress: safeString(mailingAddress),
+      effectiveDate: safeString(startDate),
+      policyPeriodStart: safeString(startDate),
+      policyPeriodEnd: safeString(endDate || renewalDate),
       status: safeString(status) || "Active",
       coverage: safeString(coverage),
       deductibles: safeString(deductibles),
