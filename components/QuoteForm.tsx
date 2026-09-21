@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import ConsentDisclosure from './ConsentDisclosure';
 
 export default function QuoteForm() {
   const [consent, setConsent] = useState(false);
@@ -112,11 +113,7 @@ export default function QuoteForm() {
               onChange={(e) => setConsent(e.target.checked)}
               className="mt-1"
             />
-            <span>
-              By submitting, you consent to be contacted by Apex Coverage via
-              phone, email, or text regarding your coverage request. Consent is
-              not required for purchase.
-            </span>
+            <ConsentDisclosure />
           </label>
         </div>
         <div className="sm:col-span-2">
