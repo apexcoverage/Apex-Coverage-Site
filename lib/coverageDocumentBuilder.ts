@@ -1,4 +1,6 @@
 import PizZip from "pizzip";
+import fs from "fs";
+import path from "path";
 
 export type CoverageDocumentType = "auto" | "build";
 
@@ -9,11 +11,12 @@ export type AutoCoverageDocumentData = {
   phone?: string;
   zip?: string;
   agent?: string;
-  policyNumber?: string;
   mailingAddress?: string;
+  policyNumber?: string;
   effectiveDate?: string;
   policyPeriodStart?: string;
   policyPeriodEnd?: string;
+  policyTerm?: string;
   status?: string;
   coverage?: string;
   deductibles?: string;
@@ -31,7 +34,12 @@ export type BuildProtectionDocumentData = {
   phone?: string;
   zip?: string;
   agent?: string;
+  mailingAddress?: string;
   planNumber?: string;
+  effectiveDate?: string;
+  policyPeriodStart?: string;
+  policyPeriodEnd?: string;
+  policyTerm?: string;
   status?: string;
   year?: string;
   make?: string;
@@ -64,6 +72,26 @@ const BRAND_MID = "374151";
 const BRAND_LIGHT = "F3F4F6";
 const BORDER = "D1D5DB";
 const TEXT_MUTED = "6B7280";
+const LOGO_REL_ID = "rIdLogo";
+
+function getLogoBuffer() {
+  const candidates = [
+    path.join(process.cwd(), "public", "Apex_Logo.png"),
+    path.join(process.cwd(), "public", "brand", "apex-logo.png"),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return fs.readFileSync(candidate);
+      }
+    } catch {
+      // Fall back to a text-only cover if the logo cannot be read.
+    }
+  }
+
+  return null;
+}
 
 function clean(value: unknown, fallback = "") {
   const text = String(value ?? "").trim();
@@ -191,6 +219,64 @@ function paragraph(
     .join("");
 
   return `<w:p><w:pPr>${pPr}</w:pPr>${run(content, options)}</w:p>`;
+}
+
+function logoImageParagraph(includeLogo: boolean) {
+  if (!includeLogo) {
+    return paragraph("APEX COVERAGE", {
+      bold: true,
+      color: BRAND_RED,
+      size: 30,
+      align: "center",
+      after: 80,
+    });
+  }
+
+  const size = 1371600;
+
+  return `<w:p>
+    <w:pPr>
+      <w:jc w:val="center"/>
+      <w:spacing w:before="240" w:after="160"/>
+    </w:pPr>
+    <w:r>
+      <w:drawing>
+        <wp:inline distT="0" distB="0" distL="0" distR="0">
+          <wp:extent cx="${size}" cy="${size}"/>
+          <wp:effectExtent l="0" t="0" r="0" b="0"/>
+          <wp:docPr id="1" name="Apex shield logo"/>
+          <wp:cNvGraphicFramePr>
+            <a:graphicFrameLocks noChangeAspect="1"/>
+          </wp:cNvGraphicFramePr>
+          <a:graphic>
+            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+              <pic:pic>
+                <pic:nvPicPr>
+                  <pic:cNvPr id="1" name="Apex shield logo"/>
+                  <pic:cNvPicPr/>
+                </pic:nvPicPr>
+                <pic:blipFill>
+                  <a:blip r:embed="${LOGO_REL_ID}"/>
+                  <a:stretch>
+                    <a:fillRect/>
+                  </a:stretch>
+                </pic:blipFill>
+                <pic:spPr>
+                  <a:xfrm>
+                    <a:off x="0" y="0"/>
+                    <a:ext cx="${size}" cy="${size}"/>
+                  </a:xfrm>
+                  <a:prstGeom prst="rect">
+                    <a:avLst/>
+                  </a:prstGeom>
+                </pic:spPr>
+              </pic:pic>
+            </a:graphicData>
+          </a:graphic>
+        </wp:inline>
+      </w:drawing>
+    </w:r>
+  </w:p>`;
 }
 
 function mixedParagraph(
@@ -367,28 +453,78 @@ function makeDocumentNumber(prefix: string, value?: string) {
   return `${prefix}-${seed || "PENDING"}`;
 }
 
-function coverBlock(title: string, subtitle: string, rows: Array<[string, string]>) {
+function policyTermLabel(input: {
+  policyTerm?: string;
+  monthlyPremium?: string;
+}) {
+  const explicit = clean(input.policyTerm);
+  if (explicit) return explicit;
+  if (clean(input.monthlyPremium)) return "Monthly";
+  return "Pending confirmation";
+}
+
+function policyPeriodSummary(input: {
+  policyPeriodStart?: string;
+  policyPeriodEnd?: string;
+  effectiveDate?: string;
+  renewalDate?: string;
+  policyTerm?: string;
+  monthlyPremium?: string;
+}) {
+  const term = policyTermLabel(input);
+  const start = formatDate(input.policyPeriodStart || input.effectiveDate);
+  const end = formatDate(input.policyPeriodEnd || input.renewalDate);
+
+  if (start !== "Pending confirmation" && end !== "Pending confirmation") {
+    return `${term}; ${start} to ${end}`;
+  }
+
+  if (start !== "Pending confirmation") {
+    return `${term}; begins ${start}`;
+  }
+
+  return term;
+}
+
+function coverBlock(
+  title: string,
+  subtitle: string,
+  rows: Array<[string, string]>,
+  includeLogo: boolean
+) {
   return `
+    ${logoImageParagraph(includeLogo)}
     ${paragraph("APEX COVERAGE", {
+      bold: true,
+      color: BRAND_DARK,
+      size: 26,
+      caps: true,
+      align: "center",
+      after: 30,
+    })}
+    ${paragraph("For those who drive, not just commute.", {
       bold: true,
       color: BRAND_RED,
       size: 22,
-      caps: true,
-      after: 40,
+      align: "center",
+      after: 240,
     })}
     ${paragraph(title, {
       style: "Title",
       bold: true,
       color: BRAND_DARK,
       size: 42,
+      align: "center",
       after: 100,
     })}
     ${paragraph(subtitle, {
       color: BRAND_MID,
       size: 22,
+      align: "center",
       after: 260,
     })}
     ${twoColumnFacts(rows)}
+    ${pageBreak()}
   `;
 }
 
@@ -521,7 +657,80 @@ function policySection(title: string, paragraphs: string[]) {
     .join("")}`;
 }
 
-function autoDocumentBody(input: AutoCoverageDocumentData) {
+function autoPolicyTerms() {
+  return `
+    ${policySection("Section I Coverage Agreement", [
+      'Apex Coverage LLC, referred to in this packet as "we," "our," or "us," agrees to cover you, the Named Covered shown on the Declarations Page, in consideration of the payment of the required premium and subject to all terms, conditions, limitations, and exclusions contained in this Policy.',
+      "Coverage is provided only with respect to the specific coverages and limits of liability indicated on the Declarations Page applicable to the described Covered Auto or Covered Autos.",
+    ])}
+    ${policySection("Section II Definitions", [
+      "For purposes of this Policy, the following terms, whether appearing in the singular or plural, have the meanings set forth below.",
+      '"You" or "Your" means the Named Covered shown on the Declarations Page and, if a spouse resides in the same household, also includes such spouse.',
+      '"Covered Auto" means the vehicle or vehicles described in the Declarations Page, including any replacement auto acquired during the policy term for one shown in the Declarations; any additional auto newly acquired during the policy term, subject to notice requirements and applicable premium; or any temporary substitute auto used with the permission of the owner while the described vehicle is out of normal use because of breakdown, repair, servicing, loss, or destruction.',
+      '"Bodily Injury" means bodily harm, sickness, or disease sustained by a person, including death resulting from bodily harm, sickness, or disease.',
+      '"Property Damage" means physical injury to, destruction of, or loss of use of tangible property.',
+    ])}
+    ${policySection("Section III Liability Coverage", [
+      "A. Covering Agreement. Subject to the terms, conditions, and exclusions of this Policy, the Company agrees to pay all sums for bodily injury or property damage for which any covered becomes legally responsible because of an auto accident involving a Covered Auto.",
+      "The Company agrees to defend any claim or lawsuit seeking such damages, even if the allegations are groundless, false, or fraudulent. The Company's duty to defend ends when the applicable limit of liability under this Policy has been exhausted by payment of judgments or settlements.",
+      "In connection with any such defense, the Company may, at its discretion, investigate, negotiate, and settle any claim or suit as it deems appropriate.",
+      "B. Exclusions. This coverage does not apply to any liability or damages arising out of intentional acts; property owned by, rented to, or being transported by any covered; use of any vehicle as a public or livery conveyance or for the delivery of goods or materials for compensation; or participation in, preparation for, or operation of a vehicle in any race, speed contest, or organized competitive driving event.",
+      "C. Limits of Liability. The limit of the Company's liability for this coverage shall not exceed the amounts shown on the Declarations Page, regardless of the number of covereds, claims made, or vehicles covered under this Policy.",
+    ])}
+    ${policySection("Section IV Medical Payments Coverage", [
+      "A. Covering Agreement. Subject to the terms, conditions, and exclusions of this Policy, the Company will pay reasonable and necessary medical and funeral expenses incurred within three years from the date of an accident for bodily injury caused by an automobile accident and sustained by a covered while occupying or being struck by a Covered Auto.",
+      "Such expenses include, but are not limited to, medical, surgical, dental, hospital, and funeral services reasonably required as a result of the accident.",
+      "B. Exclusions. This coverage does not apply to bodily injury sustained while occupying or operating any vehicle having fewer than four wheels; sustained while using a vehicle as a public or livery conveyance, including ride-sharing or delivery services for hire; or sustained in the course of employment if benefits are available or required under any workers compensation or similar law.",
+      "C. Limits of Liability. The limit of liability for this coverage shall not exceed the amount shown for Medical Payments Coverage on the Declarations Page, regardless of the number of covereds, claims made, or vehicles described in this Policy.",
+    ])}
+    ${policySection("Section V Not Covered Or Under Covered Motorist Coverage", [
+      "A. Covering Agreement. Subject to the terms, conditions, and exclusions of this Policy, the Company will pay all sums which a covered is legally entitled to recover as compensatory damages from the owner or operator of a not covered or under covered motor vehicle because of bodily injury or property damage sustained by a covered and caused by an accident.",
+      "This coverage includes damages resulting from accidents involving hit-and-run vehicles whose owners or operators cannot be identified.",
+      "B. Determination of Legal Liability. The legal entitlement to recover damages under this Section must be established by agreement between the covered and the Company or by judgment entered in a court of competent jurisdiction.",
+      "C. Limits of Liability. The maximum amount payable under this Section shall not exceed the limits of liability shown for Not Covered or Under Covered Motorist Coverage on the Declarations Page.",
+    ])}
+    ${policySection("Section VI Comprehensive Coverage", [
+      "A. Covering Agreement. Subject to all terms, conditions, and exclusions of this Policy, the Company agrees to pay for direct and accidental loss to a Covered Auto, other than loss caused by collision, resulting from fire, theft, vandalism, glass breakage, contact with a bird or animal, weather-related events including windstorm, hail, flood, or lightning, falling objects, explosion, or any other cause of loss not otherwise excluded under this Policy.",
+      "B. Deductible. For each covered loss under this Section, the Company's liability shall be reduced by the deductible amount shown on the Declarations Page. The deductible applies separately to each vehicle and each occurrence of loss.",
+    ])}
+    ${policySection("Section VII Collision Coverage", [
+      "A. Covering Agreement. Subject to the terms, conditions, and exclusions of this Policy, the Company agrees to pay for direct and accidental loss to a Covered Auto caused by collision with another object, upset, or overturn of the vehicle.",
+      "B. Deductible. For each covered loss, the Company's liability shall be reduced by the applicable deductible amount shown on the Declarations Page. The deductible applies separately to each vehicle and each occurrence of loss.",
+    ])}
+    ${pageBreak()}
+    ${policySection("Section VIII Duties After An Accident Or Loss", [
+      "In the event of an accident, occurrence, or loss which may result in a claim under this Policy, the Named Covered or any Covered Person must comply with the following obligations as conditions precedent to coverage.",
+      "Notice of Loss. You must notify the Company promptly of how, when, and where the accident or loss occurred. Notice must be provided as soon as practicable after the event giving rise to the claim.",
+      "Cooperation. You must cooperate fully with the Company in the investigation, adjustment, settlement, or defense of any claim or legal proceeding. This includes providing access to records, witnesses, and any relevant information requested.",
+      "Forwarding of Documents. You must promptly forward to the Company every notice, demand, summons, or other legal paper received in connection with any claim or suit.",
+      "Examination Under Oath. Upon request, you must submit to an examination under oath and sign the transcript, as often as may reasonably be required by the Company.",
+      "Effect of Non-Compliance. Failure to comply with any of the duties or conditions set forth in this Section may, to the extent permitted by law, result in partial or total denial of coverage under this Policy.",
+    ])}
+    ${policySection("Section IX Exclusions", [
+      "A. General Exclusions. The insurance provided under this Policy does not apply to any claim, loss, damage, or liability arising directly or indirectly from, or in any way connected with, intentional acts, illegal or unlawful activities, use for illegal purposes, wear, tear, mechanical or electrical failure, or governmental action.",
+      "Intentional Acts include any intentional, willful, or deliberate act or omission by any Covered Person that results in or is intended to result in bodily injury, property damage, or any other form of loss.",
+      "Illegal or Unlawful Activities include any accident, event, or occurrence arising out of or in connection with conduct that constitutes a violation of any criminal law, ordinance, or regulation, whether or not prosecution or conviction occurs.",
+      "Use for Illegal Purposes includes the ownership, maintenance, or use of any covered Vehicle in the commission of, or attempt to commit, an illegal act, or for any purpose not permitted by law.",
+      "Wear, Tear, and Mechanical or Electrical Failure includes normal wear and tear, gradual deterioration, corrosion, rust, freezing, mechanical breakdown, electrical failure, or any defect in materials, workmanship, or design.",
+      "Governmental Action includes confiscation, seizure, impoundment, destruction, or requisition of property by, or under the authority of, any governmental, military, or civil entity.",
+    ])}
+    ${policySection("Section X General Conditions", [
+      "A. Policy Changes. No change, modification, or waiver of any term or condition of this Policy shall be valid unless made by written endorsement issued by the Company and made a part of this Policy. No agent, broker, or representative is authorized to alter or waive any provision of this Policy unless expressly stated in such written endorsement.",
+      "B. Transfer of Interest. No interest in this Policy may be assigned, transferred, or otherwise conveyed to any person or entity without the prior written consent of the Company. Any attempted transfer or assignment without such consent shall be void and of no effect.",
+      "C. Cancellation. The Named Covered may cancel this Policy at any time by providing written notice to the Company, stating the effective date of cancellation. The Company may cancel this Policy only in accordance with applicable state law, and any such cancellation shall be effective upon proper notice to the Named Covered as required by law.",
+      "D. Renewal. Renewal of this Policy is subject to underwriting review, continued eligibility, and compliance with applicable law. The Company reserves the right to decline renewal in accordance with governing statutory and regulatory requirements.",
+      "E. Early Claim Limitation. In the event a claim is filed within the first six months following the effective date of this Policy or any reinstatement, the claim is subject to additional underwriting and verification review to confirm eligibility, insurable interest, and absence of material misrepresentation at policy inception.",
+      "The Company may apply an Early-Claim Adjustment Surcharge or increase the applicable deductible by up to 230% or $2,500 for that specific claim, as reflected on an endorsement or claim acknowledgment issued by the Company, to the extent permitted by applicable law and insurance regulation.",
+      "This provision is intended solely to offset the increased risk associated with claims occurring during the initial policy period and shall not operate to deny coverage otherwise available under this Policy.",
+    ])}
+    ${policySection("Section XI Important Notices", [
+      "None.",
+      "For customer care, call 844-398-2739 or email support@driveapexcoverage.com. For claim-specific support, email claims@driveapexcoverage.com.",
+    ])}
+  `;
+}
+
+function autoDocumentBody(input: AutoCoverageDocumentData, includeLogo: boolean) {
   const policyNumber = clean(input.policyNumber, "Pending");
   const discounts = normalizeDiscounts(input.discounts);
   const effectiveDate = clean(
@@ -530,33 +739,34 @@ function autoDocumentBody(input: AutoCoverageDocumentData) {
   );
   const periodStart = clean(input.policyPeriodStart || input.effectiveDate, "Pending confirmation");
   const periodEnd = clean(input.policyPeriodEnd || input.renewalDate, "Pending confirmation");
-  const mailingAddress = clean(
-    input.mailingAddress,
-    input.zip ? `ZIP ${input.zip}` : "Pending confirmation"
-  );
+  const mailingAddress = clean(input.mailingAddress, "Not provided");
+  const periodSummary = policyPeriodSummary(input);
   const titleRows: Array<[string, string]> = [
-    ["Document", makeDocumentNumber("APX-AUTO", policyNumber)],
-    ["Policy number", policyNumber],
-    ["Named covered", clean(input.customerName, "Customer name pending")],
-    ["Total premium", formatCurrency(input.monthlyPremium)],
-    ["Effective date", effectiveDate],
+    ["Customer", clean(input.customerName, "Customer name pending")],
+    ["Mailing Address", mailingAddress],
+    ["Policy Number", policyNumber],
+    ["Effective Date", formatDate(effectiveDate)],
+    ["Policy Period / Length", periodSummary],
+    ["Prepared Date", formatDate(input.generatedAt)],
   ];
 
   return `
     ${coverBlock(
       "Auto Coverage Declarations And Policy Packet",
-      "For those who drive, not just commute. This packet contains the declarations page, coverage schedule, policy terms, claims instructions, and Apex contact information for the auto coverage record shown below.",
-      titleRows
+      "This packet contains the declarations page, coverage schedule, policy terms, claims instructions, and Apex contact information for the auto coverage record shown below.",
+      titleRows,
+      includeLogo
     )}
     ${heading("Declarations Page")}
     ${twoColumnFacts([
       ["Named Covered", clean(input.customerName, "Customer name pending")],
       ["Mailing Address", mailingAddress],
       ["Policy Number", policyNumber],
-      ["Effective Date", effectiveDate],
+      ["Effective Date", formatDate(effectiveDate)],
+      ["Policy Period / Length", periodSummary],
       [
         "Policy Period",
-        `From ${periodStart} to ${periodEnd}, 12:01 A.M. local time at the named address.`,
+        `From ${formatDate(periodStart)} to ${formatDate(periodEnd)}, 12:01 A.M. local time at the named address.`,
       ],
       ["Apex Contact", "844-398-2739"],
     ])}
@@ -582,94 +792,7 @@ function autoDocumentBody(input: AutoCoverageDocumentData) {
       { header: true, widths: [2700, 7380] }
     )}
     ${pageBreak()}
-    ${policySection(
-      "Section I Coverage Agreement",
-      [
-        "Apex Coverage agrees to provide the coverages shown on the Declarations Page in consideration of the required premium and subject to the terms, conditions, limitations, and exclusions contained in this packet and any final written coverage documents.",
-        "Coverage applies only to the specific coverages, limits, deductibles, covered autos, named covered, and policy period shown on the Declarations Page or later written endorsement.",
-      ]
-    )}
-    ${policySection(
-      "Section II Definitions",
-      [
-        '"You" and "your" mean the Named Covered shown on the Declarations Page and, when applicable, a spouse residing in the same household.',
-        '"Covered Auto" means the vehicle or vehicles described on the Declarations Page, including an eligible replacement auto, additional auto, or temporary substitute auto when accepted under the applicable coverage rules.',
-        '"Bodily injury" means bodily harm, sickness, disease, or death sustained by a person.',
-        '"Property damage" means physical injury to, destruction of, or loss of use of tangible property.',
-      ]
-    )}
-    ${policySection(
-      "Section III Liability Coverage",
-      [
-        "Subject to the terms and exclusions of this packet, liability coverage applies to covered damages for bodily injury or property damage for which a covered person becomes legally responsible because of an auto accident involving a Covered Auto.",
-        "Apex or the applicable carrier may investigate, negotiate, defend, and settle covered claims or suits. The duty to defend ends when the applicable limit of liability has been exhausted by payment of judgments or settlements.",
-        "Liability coverage does not apply to intentional acts, property owned by or transported by a covered person, use for hire or delivery, racing, speed contests, organized competitive driving, or other excluded uses.",
-      ]
-    )}
-    ${policySection(
-      "Section IV Medical Payments Coverage",
-      [
-        "Subject to the terms and exclusions of this packet, medical payments coverage applies to reasonable and necessary medical or funeral expenses incurred because of bodily injury caused by an auto accident and sustained while occupying or being struck by a Covered Auto.",
-        "This coverage does not apply to injury sustained while occupying a vehicle with fewer than four wheels, while using a vehicle as a public or livery conveyance, or during employment when workers compensation or similar benefits are available.",
-      ]
-    )}
-    ${policySection(
-      "Section V Uncovered Or Undercovered Motorist Coverage",
-      [
-        "Subject to the terms and exclusions of this packet, uncovered or undercovered motorist coverage applies when a covered person is legally entitled to recover compensatory damages from the owner or operator of an uncovered, undercovered, or hit-and-run vehicle.",
-        "The legal entitlement to recover damages may be established by agreement with Apex or the applicable carrier, or by judgment entered by a court with proper authority.",
-      ]
-    )}
-    ${policySection(
-      "Section VI Comprehensive Coverage",
-      [
-        "Subject to the terms and exclusions of this packet, comprehensive coverage applies to direct and accidental loss to a Covered Auto other than collision, including fire, theft, vandalism, glass breakage, contact with a bird or animal, weather-related events, falling objects, explosion, and other covered causes of loss.",
-        "For each covered comprehensive loss, the deductible shown on the Declarations Page applies separately to each vehicle and each occurrence.",
-      ]
-    )}
-    ${policySection(
-      "Section VII Collision Coverage",
-      [
-        "Subject to the terms and exclusions of this packet, collision coverage applies to direct and accidental loss to a Covered Auto caused by collision with another object, upset, or overturn.",
-        "For each covered collision loss, the deductible shown on the Declarations Page applies separately to each vehicle and each occurrence.",
-      ]
-    )}
-    ${pageBreak()}
-    ${policySection(
-      "Section VIII Duties After An Accident Or Loss",
-      [
-        "You must notify Apex promptly of how, when, and where the accident or loss occurred. Notice should be provided as soon as practical after the event giving rise to the claim.",
-        "You must cooperate fully in the investigation, adjustment, settlement, or defense of any claim. This includes providing access to records, witnesses, photos, estimates, statements, and other relevant information requested.",
-        "You must promptly forward every notice, demand, summons, lawsuit, or other legal paper received in connection with any claim or suit.",
-        "Upon request, you must submit to examination under oath and sign the transcript as often as reasonably required.",
-        "Failure to comply with required duties may result in partial or total denial of coverage to the extent permitted by applicable law.",
-      ]
-    )}
-    ${policySection(
-      "Section IX Exclusions",
-      [
-        "Coverage does not apply to intentional, willful, or deliberate acts that result in or are intended to result in injury, property damage, or loss.",
-        "Coverage does not apply to illegal activities, use of a Covered Auto in the commission of an illegal act, racing, speed contests, organized competitive driving, use for hire, delivery for compensation, or other excluded uses.",
-        "Coverage does not apply to normal wear and tear, gradual deterioration, corrosion, rust, freezing, mechanical breakdown, electrical failure, defects in materials or workmanship, or confiscation, seizure, impoundment, destruction, or requisition by government authority.",
-      ]
-    )}
-    ${policySection(
-      "Section X General Conditions",
-      [
-        "No change, modification, or waiver of any term or condition is valid unless made by written endorsement or updated written coverage document issued by Apex or the applicable carrier.",
-        "No interest in this coverage may be assigned, transferred, or otherwise conveyed without prior written consent. Any attempted transfer without consent is void.",
-        "The Named Covered may request cancellation by written notice. Apex or the applicable carrier may cancel or decline renewal only in accordance with applicable law and required notice.",
-        "Renewal is subject to review, continued eligibility, payment status, claim history, vehicle use, and applicable program rules.",
-        "A claim filed within the first six months after the effective date or reinstatement may be subject to additional eligibility and documentation review. Any deductible adjustment, surcharge, or claim limitation will apply only to the extent permitted by applicable law and final written terms.",
-      ]
-    )}
-    ${policySection(
-      "Section XI Important Notices",
-      [
-        "This packet is prepared from information available in the Apex customer record. Final coverage terms, carrier documents, endorsements, invoices, state notices, and written amendments control if there is any conflict.",
-        "For customer care, call 844-398-2739 or email support@driveapexcoverage.com. For claim-specific support, email claims@driveapexcoverage.com.",
-      ]
-    )}
+    ${autoPolicyTerms()}
     ${heading("Service And Claims Instructions")}
     ${bulletList([
       "Keep this packet with your current coverage records.",
@@ -681,25 +804,33 @@ function autoDocumentBody(input: AutoCoverageDocumentData) {
   `;
 }
 
-function buildDocumentBody(input: BuildProtectionDocumentData) {
+function buildDocumentBody(input: BuildProtectionDocumentData, includeLogo: boolean) {
   const planNumber = clean(input.planNumber, "Pending");
   const vehicle = [input.year, input.make, input.model]
     .map((item) => clean(item))
     .filter(Boolean)
     .join(" ");
+  const mailingAddress = clean(input.mailingAddress, "Not provided");
+  const effectiveDate = clean(
+    input.effectiveDate || input.policyPeriodStart,
+    "Pending confirmation"
+  );
+  const periodSummary = policyPeriodSummary(input);
   const titleRows: Array<[string, string]> = [
-    ["Document", makeDocumentNumber("APX-MVP", planNumber)],
-    ["Protection plan", planNumber],
     ["Customer", clean(input.customerName, "Customer name pending")],
+    ["Mailing Address", mailingAddress],
+    ["Protection Plan Number", planNumber],
+    ["Effective Date", formatDate(effectiveDate)],
+    ["Plan Period / Length", periodSummary],
     ["Vehicle", clean(vehicle, "Vehicle pending")],
-    ["Parts value", clean(input.partsValue, "Pending confirmation")],
   ];
 
   return `
     ${coverBlock(
       "Modified Vehicle Protection Packet",
       "This packet contains the approved build profile, documented parts schedule, deductible selection, claims instructions, and customer responsibilities for Apex Modified Vehicle Protection.",
-      titleRows
+      titleRows,
+      includeLogo
     )}
     ${heading("Customer And Service Information")}
     ${twoColumnFacts(contactRows(input))}
@@ -763,11 +894,14 @@ function buildDocumentBody(input: BuildProtectionDocumentData) {
   `;
 }
 
-function documentXml(input: CoverageDocumentData) {
-  const body = input.type === "auto" ? autoDocumentBody(input) : buildDocumentBody(input);
+function documentXml(input: CoverageDocumentData, includeLogo: boolean) {
+  const body =
+    input.type === "auto"
+      ? autoDocumentBody(input, includeLogo)
+      : buildDocumentBody(input, includeLogo);
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-  <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
     <w:body>
       ${body}
       <w:sectPr>
@@ -848,11 +982,12 @@ function settingsXml() {
   </w:settings>`;
 }
 
-function contentTypesXml() {
+function contentTypesXml(includeLogo: boolean) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
     <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
     <Default Extension="xml" ContentType="application/xml"/>
+    ${includeLogo ? '<Default Extension="png" ContentType="image/png"/>' : ""}
     <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
     <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
     <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
@@ -872,13 +1007,18 @@ function rootRelsXml() {
   </Relationships>`;
 }
 
-function documentRelsXml() {
+function documentRelsXml(includeLogo: boolean) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
     <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
     <Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
     <Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
     <Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
+    ${
+      includeLogo
+        ? `<Relationship Id="${LOGO_REL_ID}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/apex-logo.png"/>`
+        : ""
+    }
   </Relationships>`;
 }
 
@@ -918,20 +1058,26 @@ export function buildCoverageDocumentBuffer(input: CoverageDocumentData): Buffer
     ...input,
     generatedAt: input.generatedAt || new Date().toISOString(),
   } as CoverageDocumentData;
+  const logoBuffer = getLogoBuffer();
+  const includeLogo = !!logoBuffer;
   const zip = new PizZip();
 
-  zip.file("[Content_Types].xml", contentTypesXml());
+  zip.file("[Content_Types].xml", contentTypesXml(includeLogo));
   zip.folder("_rels")?.file(".rels", rootRelsXml());
   zip.folder("docProps")?.file("core.xml", coreXml(documentInput));
   zip.folder("docProps")?.file("app.xml", appXml());
 
   const word = zip.folder("word");
-  word?.file("document.xml", documentXml(documentInput));
+  word?.file("document.xml", documentXml(documentInput, includeLogo));
   word?.file("styles.xml", stylesXml());
   word?.file("settings.xml", settingsXml());
   word?.file("header1.xml", headerXml());
   word?.file("footer1.xml", footerXml());
-  word?.folder("_rels")?.file("document.xml.rels", documentRelsXml());
+  word?.folder("_rels")?.file("document.xml.rels", documentRelsXml(includeLogo));
+
+  if (logoBuffer) {
+    word?.folder("media")?.file("apex-logo.png", logoBuffer);
+  }
 
   return zip.generate({
     type: "nodebuffer",
