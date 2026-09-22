@@ -449,7 +449,10 @@ function table(
   ${paragraph("", { after: 80 })}`;
 }
 
-function twoColumnFacts(rows: Array<[string, string]>) {
+function twoColumnFacts(
+  rows: Array<[string, string]>,
+  widths = [2200, 2840, 2200, 2840]
+) {
   const pairedRows: string[][] = [];
   for (let index = 0; index < rows.length; index += 2) {
     const left = rows[index];
@@ -459,7 +462,7 @@ function twoColumnFacts(rows: Array<[string, string]>) {
 
   return table(pairedRows, {
     boldColumns: [0, 2],
-    widths: [2200, 2840, 2200, 2840],
+    widths,
     compact: true,
   });
 }
@@ -530,7 +533,7 @@ function coverInfoLine(label: string, value: string) {
       { text: `${label}: `, bold: true, color: BRAND_DARK, size: 22 },
       { text: value, color: BRAND_MID, size: 22 },
     ],
-    { after: 70, indentLeft: 1980, spacing: 300 }
+    { after: 70, spacing: 300 }
   );
 }
 
@@ -841,6 +844,9 @@ function mvpProtectionTerms() {
       "This plan may not be transferred to another person, vehicle, or build without prior written approval from Apex. Any attempted transfer without written approval may be void.",
       "Renewal or continuation of protection is subject to eligibility review, payment status, documentation, vehicle use, state availability, claim history, and any program rules in effect at the time of review.",
       "If a claim occurs shortly after the effective date, reinstatement, major build update, or significant value increase, Apex may require additional review to confirm that the claim did not involve prior damage, undisclosed damage, or material misrepresentation.",
+      "Early Claim Limitation. In the event a claim is filed within the first six months following the effective date of this plan or any reinstatement, the claim is subject to additional underwriting and verification review to confirm eligibility, protected interest, and absence of material misrepresentation at plan inception.",
+      "Apex may apply an Early-Claim Adjustment Surcharge or increase the applicable deductible by up to 230% or $2,500 for that specific claim, as reflected on an endorsement or claim acknowledgment issued by Apex, to the extent permitted by applicable law and program requirements.",
+      "This provision is intended solely to offset the increased risk associated with claims occurring during the initial plan period and shall not operate to deny protection otherwise available under this plan.",
     ])}
     ${policySection("Section XI Important Notices", [
       "This Modified Vehicle Protection Plan is designed to help protect eligible aftermarket parts and documented build value. It does not replace your responsibility to maintain your vehicle, keep accurate records, drive safely, and keep Apex informed of material changes.",
@@ -987,7 +993,7 @@ function buildDocumentBody(input: BuildProtectionDocumentData, includeLogo: bool
       ["Claim history", clean(input.claimHistory, "Not on file")],
       ["Claims support", "claims@driveapexcoverage.com"],
       ["Customer care", "844-398-2739"],
-    ])}
+    ], [2100, 3900, 2100, 1980])}
     ${pageBreak()}
     ${mvpProtectionTerms()}
     ${heading("Service And Claims Instructions")}
