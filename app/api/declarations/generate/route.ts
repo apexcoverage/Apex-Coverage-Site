@@ -30,6 +30,7 @@ export async function POST(req: Request) {
       zip,
       agent,
       mailingAddress,
+      policyTerm,
     } = body || {};
 
     const documentData = {
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
       effectiveDate: safeString(startDate),
       policyPeriodStart: safeString(startDate),
       policyPeriodEnd: safeString(endDate || renewalDate),
+      policyTerm: safeString(policyTerm) || (safeString(totalPremium) ? "Monthly" : ""),
       status: safeString(status) || "Active",
       coverage: safeString(coverage),
       deductibles: safeString(deductibles),
