@@ -75,18 +75,36 @@ const TEXT_MUTED = "6B7280";
 const LOGO_REL_ID = "rIdLogo";
 
 function getLogoBuffer() {
-  const candidates = [
+  const pngCandidates = [
     path.join(process.cwd(), "public", "Apex_Logo.png"),
     path.join(process.cwd(), "public", "brand", "apex-logo.png"),
   ];
 
-  for (const candidate of candidates) {
+  for (const candidate of pngCandidates) {
     try {
       if (fs.existsSync(candidate)) {
         return fs.readFileSync(candidate);
       }
     } catch {
       // Fall back to a text-only cover if the logo cannot be read.
+    }
+  }
+
+  const svgCandidates = [
+    path.join(process.cwd(), "public", "brand", "apex-logo.svg"),
+    path.join(process.cwd(), "public", "favicon.svg"),
+  ];
+
+  for (const candidate of svgCandidates) {
+    try {
+      if (!fs.existsSync(candidate)) continue;
+      const svg = fs.readFileSync(candidate, "utf8");
+      const match = svg.match(/data:image\/png;base64,([^"')\s]+)/);
+      if (match?.[1]) {
+        return Buffer.from(match[1], "base64");
+      }
+    } catch {
+      // Fall back to a text-only cover if the SVG logo cannot be read.
     }
   }
 
@@ -166,10 +184,12 @@ function run(
     color?: string;
     size?: number;
     caps?: boolean;
+    font?: string;
   } = {}
 ) {
+  const font = options.font || "Aptos";
   const props = [
-    '<w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:cs="Aptos"/>',
+    `<w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}"/>`,
     options.bold ? "<w:b/>" : "",
     options.italic ? "<w:i/>" : "",
     options.caps ? "<w:caps/>" : "",
@@ -205,6 +225,7 @@ function paragraph(
     spacing?: number;
     keepNext?: boolean;
     caps?: boolean;
+    font?: string;
   } = {}
 ) {
   const pPr = [
@@ -225,7 +246,7 @@ function logoImageParagraph(includeLogo: boolean) {
   if (!includeLogo) {
     return paragraph("APEX COVERAGE", {
       bold: true,
-      color: BRAND_RED,
+      color: BRAND_DARK,
       size: 30,
       align: "center",
       after: 80,
@@ -486,6 +507,17 @@ function policyPeriodSummary(input: {
   return term;
 }
 
+function mlaCoverLine(label: string, value: string) {
+  return paragraph(`${label}: ${value}`, {
+    font: "Times New Roman",
+    size: 24,
+    color: BRAND_DARK,
+    before: 0,
+    after: 0,
+    spacing: 480,
+  });
+}
+
 function coverBlock(
   title: string,
   subtitle: string,
@@ -494,43 +526,41 @@ function coverBlock(
 ) {
   return `
     ${logoImageParagraph(includeLogo)}
-    ${paragraph("APEX COVERAGE", {
-      bold: true,
-      color: BRAND_DARK,
-      size: 26,
-      caps: true,
-      align: "center",
-      after: 30,
-    })}
     ${paragraph("For those who drive, not just commute.", {
-      bold: true,
-      color: BRAND_RED,
-      size: 22,
+      font: "Times New Roman",
+      color: BRAND_DARK,
+      size: 24,
       align: "center",
+      before: 0,
       after: 240,
+      spacing: 480,
     })}
     ${paragraph(title, {
-      style: "Title",
-      bold: true,
+      font: "Times New Roman",
       color: BRAND_DARK,
-      size: 42,
+      size: 24,
       align: "center",
-      after: 100,
+      before: 0,
+      after: 240,
+      spacing: 480,
     })}
     ${paragraph(subtitle, {
+      font: "Times New Roman",
       color: BRAND_MID,
-      size: 22,
+      size: 24,
       align: "center",
-      after: 260,
+      before: 0,
+      after: 240,
+      spacing: 480,
     })}
-    ${twoColumnFacts(rows)}
+    ${rows.map(([label, value]) => mlaCoverLine(label, value)).join("")}
     ${pageBreak()}
   `;
 }
 
 function contactRows(input: CoverageDocumentData): Array<[string, string]> {
   return [
-    ["Customer", clean(input.customerName, "Customer name pending")],
+    ["Customer Name", clean(input.customerName, "Customer name pending")],
     ["Email", clean(input.email, "Not on file")],
     ["Phone", clean(input.phone, "Not on file")],
     ["ZIP", clean(input.zip, "Not on file")],
@@ -742,7 +772,7 @@ function autoDocumentBody(input: AutoCoverageDocumentData, includeLogo: boolean)
   const mailingAddress = clean(input.mailingAddress, "Not provided");
   const periodSummary = policyPeriodSummary(input);
   const titleRows: Array<[string, string]> = [
-    ["Customer", clean(input.customerName, "Customer name pending")],
+    ["Customer Name", clean(input.customerName, "Customer name pending")],
     ["Mailing Address", mailingAddress],
     ["Policy Number", policyNumber],
     ["Effective Date", formatDate(effectiveDate)],
@@ -817,7 +847,7 @@ function buildDocumentBody(input: BuildProtectionDocumentData, includeLogo: bool
   );
   const periodSummary = policyPeriodSummary(input);
   const titleRows: Array<[string, string]> = [
-    ["Customer", clean(input.customerName, "Customer name pending")],
+    ["Customer Name", clean(input.customerName, "Customer name pending")],
     ["Mailing Address", mailingAddress],
     ["Protection Plan Number", planNumber],
     ["Effective Date", formatDate(effectiveDate)],
@@ -905,7 +935,6 @@ function documentXml(input: CoverageDocumentData, includeLogo: boolean) {
     <w:body>
       ${body}
       <w:sectPr>
-        <w:headerReference w:type="default" r:id="rIdHeader1"/>
         <w:footerReference w:type="default" r:id="rIdFooter1"/>
         <w:pgSz w:w="12240" w:h="15840"/>
         <w:pgMar w:top="720" w:right="1080" w:bottom="720" w:left="1080" w:header="360" w:footer="360" w:gutter="0"/>
@@ -914,19 +943,6 @@ function documentXml(input: CoverageDocumentData, includeLogo: boolean) {
       </w:sectPr>
     </w:body>
   </w:document>`;
-}
-
-function headerXml() {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-  <w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-    ${paragraph("APEX COVERAGE", {
-      bold: true,
-      color: BRAND_RED,
-      size: 18,
-      after: 0,
-      spacing: 220,
-    })}
-  </w:hdr>`;
 }
 
 function footerXml() {
@@ -991,7 +1007,6 @@ function contentTypesXml(includeLogo: boolean) {
     <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
     <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
     <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
-    <Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
     <Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
     <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
     <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
@@ -1012,7 +1027,6 @@ function documentRelsXml(includeLogo: boolean) {
   <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
     <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
     <Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
-    <Relationship Id="rIdHeader1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
     <Relationship Id="rIdFooter1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
     ${
       includeLogo
@@ -1071,7 +1085,6 @@ export function buildCoverageDocumentBuffer(input: CoverageDocumentData): Buffer
   word?.file("document.xml", documentXml(documentInput, includeLogo));
   word?.file("styles.xml", stylesXml());
   word?.file("settings.xml", settingsXml());
-  word?.file("header1.xml", headerXml());
   word?.file("footer1.xml", footerXml());
   word?.folder("_rels")?.file("document.xml.rels", documentRelsXml(includeLogo));
 
