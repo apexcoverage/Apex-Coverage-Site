@@ -222,6 +222,7 @@ function paragraph(
     size?: number;
     before?: number;
     after?: number;
+    indentLeft?: number;
     spacing?: number;
     keepNext?: boolean;
     caps?: boolean;
@@ -232,6 +233,7 @@ function paragraph(
     options.style ? `<w:pStyle w:val="${options.style}"/>` : "",
     options.align ? `<w:jc w:val="${options.align}"/>` : "",
     options.keepNext ? "<w:keepNext/>" : "",
+    options.indentLeft ? `<w:ind w:left="${options.indentLeft}"/>` : "",
     `<w:spacing w:before="${options.before ?? 0}" w:after="${
       options.after ?? 120
     }" w:line="${options.spacing ?? 276}" w:lineRule="auto"/>`,
@@ -308,11 +310,23 @@ function mixedParagraph(
     color?: string;
     size?: number;
   }>,
-  options: { before?: number; after?: number; spacing?: number } = {}
+  options: {
+    align?: "left" | "center" | "right";
+    before?: number;
+    after?: number;
+    indentLeft?: number;
+    spacing?: number;
+  } = {}
 ) {
-  const pPr = `<w:spacing w:before="${options.before ?? 0}" w:after="${
-    options.after ?? 120
-  }" w:line="${options.spacing ?? 276}" w:lineRule="auto"/>`;
+  const pPr = [
+    options.align ? `<w:jc w:val="${options.align}"/>` : "",
+    options.indentLeft ? `<w:ind w:left="${options.indentLeft}"/>` : "",
+    `<w:spacing w:before="${options.before ?? 0}" w:after="${
+      options.after ?? 120
+    }" w:line="${options.spacing ?? 276}" w:lineRule="auto"/>`,
+  ]
+    .filter(Boolean)
+    .join("");
   return `<w:p><w:pPr>${pPr}</w:pPr>${pieces
     .map((piece) => run(piece.text, piece))
     .join("")}</w:p>`;
@@ -392,12 +406,14 @@ function cell(
 function table(
   rows: string[][],
   options: {
+    boldColumns?: number[];
     widths?: number[];
     header?: boolean;
     compact?: boolean;
   } = {}
 ) {
   const widths = options.widths || rows[0]?.map(() => Math.floor(10080 / rows[0].length)) || [];
+  const boldColumns = new Set(options.boldColumns || [0]);
   const body = rows
     .map((row, rowIndex) => {
       const isHeader = options.header && rowIndex === 0;
@@ -407,7 +423,7 @@ function table(
             width: widths[index],
             fill: isHeader ? BRAND_DARK : rowIndex % 2 === 0 ? "FFFFFF" : "F9FAFB",
             color: isHeader ? "FFFFFF" : BRAND_DARK,
-            bold: isHeader || index === 0,
+            bold: isHeader || boldColumns.has(index),
             size: options.compact ? 18 : 20,
           })
         )
@@ -442,6 +458,7 @@ function twoColumnFacts(rows: Array<[string, string]>) {
   }
 
   return table(pairedRows, {
+    boldColumns: [0, 2],
     widths: [2200, 2840, 2200, 2840],
     compact: true,
   });
@@ -507,15 +524,14 @@ function policyPeriodSummary(input: {
   return term;
 }
 
-function mlaCoverLine(label: string, value: string) {
-  return paragraph(`${label}: ${value}`, {
-    font: "Times New Roman",
-    size: 24,
-    color: BRAND_DARK,
-    before: 0,
-    after: 0,
-    spacing: 480,
-  });
+function coverInfoLine(label: string, value: string) {
+  return mixedParagraph(
+    [
+      { text: `${label}: `, bold: true, color: BRAND_DARK, size: 22 },
+      { text: value, color: BRAND_MID, size: 22 },
+    ],
+    { after: 70, indentLeft: 1980, spacing: 300 }
+  );
 }
 
 function coverBlock(
@@ -527,33 +543,41 @@ function coverBlock(
   return `
     ${logoImageParagraph(includeLogo)}
     ${paragraph("For those who drive, not just commute.", {
-      font: "Times New Roman",
-      color: BRAND_DARK,
-      size: 24,
+      bold: true,
+      color: BRAND_RED,
+      size: 22,
       align: "center",
       before: 0,
-      after: 240,
-      spacing: 480,
+      after: 220,
+      spacing: 280,
     })}
     ${paragraph(title, {
-      font: "Times New Roman",
+      bold: true,
       color: BRAND_DARK,
-      size: 24,
+      size: 34,
       align: "center",
       before: 0,
-      after: 240,
-      spacing: 480,
+      after: 120,
+      spacing: 300,
     })}
     ${paragraph(subtitle, {
-      font: "Times New Roman",
       color: BRAND_MID,
-      size: 24,
+      size: 20,
       align: "center",
       before: 0,
-      after: 240,
-      spacing: 480,
+      after: 340,
+      spacing: 280,
     })}
-    ${rows.map(([label, value]) => mlaCoverLine(label, value)).join("")}
+    ${paragraph("Packet Details", {
+      bold: true,
+      color: BRAND_DARK,
+      size: 23,
+      before: 0,
+      after: 120,
+      indentLeft: 1980,
+      spacing: 280,
+    })}
+    ${rows.map(([label, value]) => coverInfoLine(label, value)).join("")}
     ${pageBreak()}
   `;
 }
@@ -564,8 +588,8 @@ function contactRows(input: CoverageDocumentData): Array<[string, string]> {
     ["Email", clean(input.email, "Not on file")],
     ["Phone", clean(input.phone, "Not on file")],
     ["ZIP", clean(input.zip, "Not on file")],
-    ["Apex agent", clean(input.agent, "Unassigned")],
-    ["Generated", formatDate(input.generatedAt)],
+    ["Apex contact", clean(input.agent, "Apex Coverage")],
+    ["Prepared", formatDate(input.generatedAt)],
   ];
 }
 
@@ -760,6 +784,71 @@ function autoPolicyTerms() {
   `;
 }
 
+function mvpProtectionTerms() {
+  return `
+    ${policySection("Section I Protection Agreement", [
+      'Apex Coverage, referred to in this packet as "we," "our," or "us," agrees to provide Modified Vehicle Protection for you, the Named Protected shown in this packet, subject to the terms, conditions, limitations, exclusions, deductible, documentation requirements, and approved protection details shown in this packet.',
+      "Protection applies only to the covered vehicle and eligible aftermarket parts, upgrades, and build components that have been disclosed to Apex, reviewed by Apex, and included in the approved build profile or other written confirmation issued by Apex.",
+      "This packet should be kept with your vehicle and build records. It is intended to explain what information Apex has on file, what duties apply to you, and how claims or updates should be handled.",
+    ])}
+    ${policySection("Section II Definitions", [
+      "For purposes of this Modified Vehicle Protection Plan, the following terms have the meanings shown below.",
+      '"You" and "your" mean the Named Protected listed in this packet and any person authorized by the Named Protected to discuss, update, or submit records for the covered vehicle.',
+      '"Covered Vehicle" means the specific vehicle identified in this packet, including its year, make, model, VIN when provided, and documented build profile.',
+      '"Approved Build Profile" means the list of eligible parts, upgrades, supporting documents, estimated values, use details, mileage information, deductible selection, and other build information that Apex has accepted for the covered vehicle.',
+      '"Eligible Part" means an aftermarket part, upgrade, or build component that is disclosed to Apex, supported by reasonable documentation, physically attached to or intended for the covered vehicle, and accepted into the Approved Build Profile.',
+      '"Covered Event" means a direct, sudden, and accidental event that may qualify for protection under this packet, subject to the deductible, documentation, exclusions, and claim review requirements that apply.',
+    ])}
+    ${policySection("Section III Vehicle And Build Eligibility", [
+      "All vehicles may be submitted for review, including vehicles with owner-installed parts, shop-installed parts, custom builds, cosmetic upgrades, performance upgrades, wheels, suspension, audio, lighting, body components, interior upgrades, and other qualifying modifications.",
+      "Eligibility and final terms depend on the condition of the vehicle, how the vehicle is used, the completeness of the documentation provided, the estimated value of the parts, the deductible selected, claim history, driving history, state availability, and any other underwriting or program requirements that apply.",
+      "The covered vehicle must remain street-driven, lawfully titled or registered where required, maintained in a safe operating condition, and used in a manner consistent with the vehicle use information shown in this packet.",
+    ])}
+    ${policySection("Section IV Eligible Parts And Documentation", [
+      "Eligible parts may include documented aftermarket parts and upgrades whether installed by you, by a prior owner, by a shop, or by another installer, as long as Apex can reasonably verify the part, its estimated value, its fitment to the covered vehicle, and its connection to the Approved Build Profile.",
+      "Documentation may include receipts, invoices, order confirmations, photographs, installation records, appraisals, part lists, mileage records, videos, shop notes, or other records requested by Apex.",
+      "Parts that are not disclosed, cannot be reasonably verified, are materially misrepresented, or are added after the effective date without required notice may be excluded from protection until Apex reviews and accepts the update in writing.",
+    ])}
+    ${policySection("Section V Protection Provided", [
+      "Subject to the terms of this packet, Apex will review covered events involving eligible parts listed in the Approved Build Profile and may provide payment, reimbursement, repair coordination, replacement support, or other approved claim resolution up to the applicable protected value shown in the plan details.",
+      "Protection is limited to the eligible parts and build components accepted by Apex. Factory equipment, ordinary maintenance items, consumables, wear items, and items covered by another coverage source may be limited or excluded unless specifically accepted by Apex in writing.",
+      "Apex may determine the appropriate claim resolution based on documentation, part availability, repair estimate, replacement cost, depreciation when applicable, salvage value, prior condition, claim facts, and any other information reasonably needed to evaluate the claim.",
+    ])}
+    ${policySection("Section VI Deductible And Protected Value", [
+      "For each approved claim, your responsibility is reduced by the deductible shown in this packet or any written update issued by Apex. The deductible applies separately to each covered event unless Apex confirms otherwise in writing.",
+      "The protected value for eligible parts is based on the values accepted by Apex during review and may differ from retail price, replacement cost, sentimental value, labor cost, market availability, or the amount shown on a receipt.",
+      "Apex may request updated documentation before approving payment when part values, market prices, vehicle condition, or claim facts require additional verification.",
+    ])}
+    ${pageBreak()}
+    ${policySection("Section VII Duties After A Loss", [
+      "You must notify Apex as soon as practical after any event that may result in a claim. Notice should include when and where the event happened, what parts may be affected, whether the vehicle is safe to move, and whether any other party or coverage source may be involved.",
+      "You must protect the vehicle and damaged parts from additional damage when it is safe to do so. Do not discard damaged parts, approve final repairs, sell the vehicle, or transfer affected parts until Apex has had a reasonable opportunity to review the claim.",
+      "You must cooperate with Apex during claim review. This may include providing photos, invoices, receipts, repair estimates, inspection access, mileage information, police reports, shop statements, proof of ownership, and any other reasonable information requested.",
+      "Failure to provide notice, cooperate with review, preserve evidence, or provide requested documentation may delay payment, reduce the amount payable, or result in denial of protection to the extent allowed by the plan terms.",
+    ])}
+    ${policySection("Section VIII Exclusions", [
+      "This plan does not apply to loss, damage, cost, or expense caused by intentional acts, fraud, misrepresentation, illegal use, racing, timed events, organized competitive driving, off-road abuse, theft by a person entrusted with the vehicle, prior damage, undisclosed damage, or use inconsistent with the approved vehicle use.",
+      "This plan does not cover ordinary wear and tear, gradual deterioration, corrosion, rust, mechanical breakdown, electrical failure, manufacturer defect, workmanship defect, installation error, tuning error, lack of maintenance, cosmetic condition that existed before the effective date, or any part not accepted into the Approved Build Profile.",
+      "This plan does not cover fines, penalties, diminished value, lost wages, loss of use, rental cost, storage cost, towing cost, emotional distress, punitive damages, custom labor not accepted by Apex, or any amount payable by another coverage source unless Apex confirms otherwise in writing.",
+    ])}
+    ${policySection("Section IX Changes To The Build", [
+      "You should contact Apex before adding major parts, removing protected parts, changing the vehicle use, changing the garaging address, selling the vehicle, transferring ownership, or making changes that materially affect the value, risk, or eligibility of the covered vehicle.",
+      "New parts or build changes are not automatically included. Apex may require photos, receipts, invoices, updated mileage, updated value information, or additional review before adding new parts to the Approved Build Profile.",
+      "If a material change is not disclosed, Apex may adjust the protected value, require additional documentation, exclude the undisclosed part, change the deductible, or decline protection for a claim connected to the undisclosed change.",
+    ])}
+    ${policySection("Section X General Conditions", [
+      "No change, modification, waiver, or exception to this plan is valid unless confirmed in writing by Apex. Verbal discussions do not change the written terms of this packet unless Apex later issues written confirmation.",
+      "This plan may not be transferred to another person, vehicle, or build without prior written approval from Apex. Any attempted transfer without written approval may be void.",
+      "Renewal or continuation of protection is subject to eligibility review, payment status, documentation, vehicle use, state availability, claim history, and any program rules in effect at the time of review.",
+      "If a claim occurs shortly after the effective date, reinstatement, major build update, or significant value increase, Apex may require additional review to confirm that the claim did not involve prior damage, undisclosed damage, or material misrepresentation.",
+    ])}
+    ${policySection("Section XI Important Notices", [
+      "This Modified Vehicle Protection Plan is designed to help protect eligible aftermarket parts and documented build value. It does not replace your responsibility to maintain your vehicle, keep accurate records, drive safely, and keep Apex informed of material changes.",
+      "For customer care, call 844-398-2739 or email support@driveapexcoverage.com. For claim-specific support, email claims@driveapexcoverage.com.",
+    ])}
+  `;
+}
+
 function autoDocumentBody(input: AutoCoverageDocumentData, includeLogo: boolean) {
   const policyNumber = clean(input.policyNumber, "Pending");
   const discounts = normalizeDiscounts(input.discounts);
@@ -813,9 +902,9 @@ function autoDocumentBody(input: AutoCoverageDocumentData, includeLogo: boolean)
     ${heading("Premium And Discounts")}
     ${table(
       [
-        ["Item", "Recorded detail"],
+        ["Item", "Information on file"],
         ["Total Premium", formatCurrency(input.monthlyPremium)],
-        ["Deductibles Recorded", clean(input.deductibles, "See coverage schedule")],
+        ["Deductibles", clean(input.deductibles, "See coverage schedule")],
         ["Coverage Selection", clean(input.coverage, "See coverage schedule")],
         ["Policy Discounts", discounts.length ? discounts.join("\n") : "No discounts recorded."],
       ],
@@ -858,11 +947,11 @@ function buildDocumentBody(input: BuildProtectionDocumentData, includeLogo: bool
   return `
     ${coverBlock(
       "Modified Vehicle Protection Packet",
-      "This packet contains the approved build profile, documented parts schedule, deductible selection, claims instructions, and customer responsibilities for Apex Modified Vehicle Protection.",
+      "This packet contains your build profile, documented parts schedule, deductible selection, protection terms, claims instructions, and customer care information for Apex Modified Vehicle Protection.",
       titleRows,
       includeLogo
     )}
-    ${heading("Customer And Service Information")}
+    ${heading("Your Contact And Plan Information")}
     ${twoColumnFacts(contactRows(input))}
     ${heading("Vehicle And Build Profile")}
     ${twoColumnFacts([
@@ -878,33 +967,19 @@ function buildDocumentBody(input: BuildProtectionDocumentData, includeLogo: bool
     ${heading("Covered Build Schedule")}
     ${table([["#", "Documented part or upgrade"], ...buildPartsRows(input)], {
       header: true,
-      widths: [900, 9180],
+      widths: [1600, 8480],
     })}
-    ${heading("Documentation And Installation")}
+    ${heading("Documentation And Protection Details")}
     ${table(
       [
-        ["Item", "Recorded detail"],
+        ["Detail", "Information on file"],
         ["Documented parts value", clean(input.partsValue, "Pending confirmation")],
         ["Install status", clean(input.installStatus, "Pending confirmation")],
         ["Installer information", clean(input.installerInfo, "Not on file")],
         ["Documentation", clean(input.documentation, "Pending confirmation")],
         ["Discount notes", clean(input.discountNotes, "No discount notes recorded.")],
       ],
-      { header: true, widths: [2700, 7380] }
-    )}
-    ${pageBreak()}
-    ${heading("Protection Terms Summary")}
-    ${sectionText(
-      "What This Packet Does",
-      "This packet summarizes the build information currently recorded by Apex. It helps the customer and agent review the vehicle, documented parts, estimated build value, deductible preference, and supporting records before final terms are issued."
-    )}
-    ${sectionText(
-      "What Must Stay Current",
-      "The customer should keep receipts, photos, mileage records, invoices, installer details, and new part updates current with Apex. Newly added parts may need review before they are included in the approved build profile."
-    )}
-    ${sectionText(
-      "Important Protection Note",
-      "Apex Modified Vehicle Protection is subject to review, approval, documentation, deductibles, exclusions, claim facts, and final written terms. Undocumented parts, undisclosed modifications, racing use, illegal use, wear and tear, and prior damage may be excluded."
+      { header: true, widths: [3200, 6880] }
     )}
     ${heading("Driving And Claim History")}
     ${twoColumnFacts([
@@ -913,7 +988,9 @@ function buildDocumentBody(input: BuildProtectionDocumentData, includeLogo: bool
       ["Claims support", "claims@driveapexcoverage.com"],
       ["Customer care", "844-398-2739"],
     ])}
-    ${heading("Customer Responsibilities")}
+    ${pageBreak()}
+    ${mvpProtectionTerms()}
+    ${heading("Service And Claims Instructions")}
     ${bulletList([
       "Keep receipts, photos, invoices, mileage records, and installer details current with Apex.",
       "Contact Apex before adding major parts, changing vehicle use, racing, tracking, selling, or transferring the vehicle.",
