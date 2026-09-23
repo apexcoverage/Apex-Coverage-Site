@@ -192,6 +192,66 @@ function buildProtectionNumber(build: BuildReview) {
   return `APX-MVP-${String(build.id).padStart(5, "0")}`;
 }
 
+function autoCoverageDocumentPayload(auto: AutoLead) {
+  const vehicleLines = String(auto.vehicles || vehicleLabel(auto) || "")
+    .split(/\r?\n/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  return {
+    type: "auto",
+    customerName: auto.name || "",
+    email: auto.email || "",
+    phone: auto.phone || "",
+    zip: auto.zip || "",
+    agent: auto.agent || "",
+    policyNumber: auto.policyNumber || "",
+    effectiveDate: auto.renewalDate || "",
+    policyPeriodStart: auto.renewalDate || "",
+    policyPeriodEnd: auto.renewalDate || "",
+    policyTerm: auto.monthlyPremium ? "Monthly" : "",
+    status: auto.status || "",
+    coverage: auto.coverage || "",
+    deductibles: auto.deductibles || "",
+    discounts: auto.discounts || "",
+    renewalDate: auto.renewalDate || "",
+    monthlyPremium: auto.monthlyPremium || "",
+    vehicles: vehicleLines,
+  };
+}
+
+function buildProtectionDocumentPayload(build: BuildReview) {
+  return {
+    type: "build",
+    customerName: build.name || "",
+    email: build.email || "",
+    phone: build.phone || "",
+    zip: build.zip || "",
+    agent: build.agent || "",
+    planNumber: buildProtectionNumber(build),
+    policyTerm: "Pending confirmation",
+    status: build.status || "",
+    year: build.year || "",
+    make: build.make || "",
+    model: build.model || "",
+    vin: build.vin || "",
+    mileage: build.mileage || "",
+    annualMileage: build.annualMileage || "",
+    titleStatus: build.titleStatus || "",
+    vehicleUse: build.vehicleUse || "",
+    partsList: build.partsList || "",
+    partsValue: build.partsValue || "",
+    installStatus: build.professionalInstallStatus || "",
+    installerInfo: build.installerInfo || "",
+    documentation: build.documentation || "",
+    tierInterest: build.tierInterest || "",
+    deductible: build.deductible || "",
+    drivingHistory: build.drivingHistory || "",
+    claimHistory: build.claimHistory || "",
+    discountNotes: build.discountNotes || "",
+  };
+}
+
 async function downloadCoverageDocument(payload: Record<string, any>, filename: string) {
   const res = await fetch("/api/coverage-documents/generate", {
     method: "POST",
@@ -213,6 +273,21 @@ async function downloadCoverageDocument(payload: Record<string, any>, filename: 
   a.click();
   a.remove();
   window.URL.revokeObjectURL(url);
+}
+
+async function sendCoveragePdf(payload: Record<string, any>) {
+  const res = await fetch("/api/coverage-documents/send-pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || data.ok === false) {
+    throw new Error(data?.error || "Error sending coverage PDF");
+  }
+
+  return data as { ok: true; to: string; filename: string };
 }
 
 function formatPaymentAmount(value?: string, currency?: string) {
@@ -969,32 +1044,8 @@ export default function CustomerProfilePage() {
 
     try {
       setSaving("auto-document");
-      const vehicleLines = String(auto.vehicles || vehicleLabel(auto) || "")
-        .split(/\r?\n/)
-        .map((v) => v.trim())
-        .filter(Boolean);
-
       await downloadCoverageDocument(
-        {
-          type: "auto",
-          customerName: auto.name || "",
-          email: auto.email || "",
-          phone: auto.phone || "",
-          zip: auto.zip || "",
-          agent: auto.agent || "",
-          policyNumber: auto.policyNumber || "",
-          effectiveDate: auto.renewalDate || "",
-          policyPeriodStart: auto.renewalDate || "",
-          policyPeriodEnd: auto.renewalDate || "",
-          policyTerm: auto.monthlyPremium ? "Monthly" : "",
-          status: auto.status || "",
-          coverage: auto.coverage || "",
-          deductibles: auto.deductibles || "",
-          discounts: auto.discounts || "",
-          renewalDate: auto.renewalDate || "",
-          monthlyPremium: auto.monthlyPremium || "",
-          vehicles: vehicleLines,
-        },
+        autoCoverageDocumentPayload(auto),
         `${fileSafeName(auto.name)}-auto-coverage-packet.docx`
       );
 
@@ -1008,6 +1059,30 @@ export default function CustomerProfilePage() {
     }
   }
 
+  async function sendAutoCoveragePdf() {
+    const auto = profile?.auto;
+    if (!auto) return;
+    if (!auto.email) {
+      alert("Add a customer email before sending the auto coverage PDF.");
+      return;
+    }
+
+    try {
+      setSaving("auto-pdf-email");
+      const result = await sendCoveragePdf(autoCoverageDocumentPayload(auto));
+      await updateAuto(auto.id, {
+        activityNote: `Auto coverage PDF emailed to ${result.to}`,
+      });
+      await loadProfile();
+      alert(`Auto coverage PDF sent to ${result.to}.`);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Error sending auto coverage PDF");
+    } finally {
+      setSaving(null);
+    }
+  }
+
   async function generateBuildProtectionPacket() {
     const build = profile?.primaryBuild;
     if (!build) return;
@@ -1016,35 +1091,7 @@ export default function CustomerProfilePage() {
       setSaving("build-document");
 
       await downloadCoverageDocument(
-        {
-          type: "build",
-          customerName: build.name || "",
-          email: build.email || "",
-          phone: build.phone || "",
-          zip: build.zip || "",
-          agent: build.agent || "",
-          planNumber: buildProtectionNumber(build),
-          policyTerm: "Pending confirmation",
-          status: build.status || "",
-          year: build.year || "",
-          make: build.make || "",
-          model: build.model || "",
-          vin: build.vin || "",
-          mileage: build.mileage || "",
-          annualMileage: build.annualMileage || "",
-          titleStatus: build.titleStatus || "",
-          vehicleUse: build.vehicleUse || "",
-          partsList: build.partsList || "",
-          partsValue: build.partsValue || "",
-          installStatus: build.professionalInstallStatus || "",
-          installerInfo: build.installerInfo || "",
-          documentation: build.documentation || "",
-          tierInterest: build.tierInterest || "",
-          deductible: build.deductible || "",
-          drivingHistory: build.drivingHistory || "",
-          claimHistory: build.claimHistory || "",
-          discountNotes: build.discountNotes || "",
-        },
+        buildProtectionDocumentPayload(build),
         `${fileSafeName(build.name)}-build-protection-packet.docx`
       );
 
@@ -1053,6 +1100,30 @@ export default function CustomerProfilePage() {
     } catch (err: any) {
       console.error(err);
       alert(err.message || "Error generating build protection packet");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function sendBuildProtectionPdf() {
+    const build = profile?.primaryBuild;
+    if (!build) return;
+    if (!build.email) {
+      alert("Add a customer email before sending the build protection PDF.");
+      return;
+    }
+
+    try {
+      setSaving("build-pdf-email");
+      const result = await sendCoveragePdf(buildProtectionDocumentPayload(build));
+      await updateBuild(build.id, {
+        activityNote: `Build protection PDF emailed to ${result.to}`,
+      });
+      await loadProfile();
+      alert(`Build protection PDF sent to ${result.to}.`);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Error sending build protection PDF");
     } finally {
       setSaving(null);
     }
@@ -1195,28 +1266,52 @@ export default function CustomerProfilePage() {
             </div>
             <div className="card-body document-actions">
               {auto ? (
-                <button
-                  className="btn-primary"
-                  onClick={generateAutoCoveragePacket}
-                  disabled={saving === "auto-document"}
-                >
-                  {saving === "auto-document"
-                    ? "Generating..."
-                    : "Generate Auto Declarations"}
-                </button>
+                <>
+                  <button
+                    className="btn-primary"
+                    onClick={generateAutoCoveragePacket}
+                    disabled={saving === "auto-document"}
+                  >
+                    {saving === "auto-document"
+                      ? "Generating..."
+                      : "Generate Auto Declarations"}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={sendAutoCoveragePdf}
+                    disabled={saving === "auto-pdf-email" || !auto.email}
+                    title={!auto.email ? "Add a customer email before sending." : undefined}
+                  >
+                    {saving === "auto-pdf-email"
+                      ? "Sending..."
+                      : "Email Auto PDF"}
+                  </button>
+                </>
               ) : (
                 <p className="meta-text">No auto coverage record is attached.</p>
               )}
               {primaryBuild ? (
-                <button
-                  className="btn-secondary"
-                  onClick={generateBuildProtectionPacket}
-                  disabled={saving === "build-document"}
-                >
-                  {saving === "build-document"
-                    ? "Generating..."
-                    : "Generate Build Protection Packet"}
-                </button>
+                <>
+                  <button
+                    className="btn-secondary"
+                    onClick={generateBuildProtectionPacket}
+                    disabled={saving === "build-document"}
+                  >
+                    {saving === "build-document"
+                      ? "Generating..."
+                      : "Generate Build Protection Packet"}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={sendBuildProtectionPdf}
+                    disabled={saving === "build-pdf-email" || !primaryBuild.email}
+                    title={!primaryBuild.email ? "Add a customer email before sending." : undefined}
+                  >
+                    {saving === "build-pdf-email"
+                      ? "Sending..."
+                      : "Email Build PDF"}
+                  </button>
+                </>
               ) : (
                 <p className="meta-text">
                   No build coverage record is attached. Add build coverage before generating
