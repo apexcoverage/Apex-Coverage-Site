@@ -105,6 +105,16 @@ export async function agentCreateAutoFromBuild(buildReviewId: number) {
   return postAgentAction("createautofrombuild", { buildReviewId });
 }
 
+export async function agentSendCoveragePdf(payload: {
+  to: string;
+  customerName?: string;
+  documentType: "auto" | "build";
+  filename: string;
+  pdfBase64: string;
+}) {
+  return postAgentAction("sendcoveragepdf", payload);
+}
+
 export function getStripeModeFromSecretKey(secretKey: string) {
   // Stripe test keys start with "sk_test_"
   return secretKey?.startsWith("sk_test_") ? "test" : "live";
