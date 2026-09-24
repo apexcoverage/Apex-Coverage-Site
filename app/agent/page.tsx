@@ -699,37 +699,37 @@ export default function AgentDashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-gray-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <main className="apex-agent-shell">
+      <div className="apex-agent-container">
+        <header className="apex-agent-hero mb-6 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-semibold text-[#cc0000]">
+            <p className="apex-agent-eyebrow">
               Apex Coverage Agent Workspace
             </p>
-            <h1 className="mt-1 text-3xl font-bold">Coverage Pipeline</h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <h1 className="apex-agent-title mt-2">Coverage Pipeline</h1>
+            <p className="apex-agent-subtitle mt-3 text-sm">
               Manage build reviews, auto coverage requests, assignments, and next
               steps from one queue.
             </p>
           </div>
 
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1 text-xs font-medium shadow-sm">
+            <div className="apex-agent-nav">
               <Link
                 href="/agent"
-                className="px-3 py-1.5 rounded-full bg-slate-900 text-white shadow-sm"
+                className="apex-agent-nav-link apex-agent-nav-link-active"
               >
                 Pipeline
               </Link>
               <Link
                 href="/agent/customers"
-                className="px-3 py-1.5 rounded-full text-slate-700 hover:bg-slate-100"
+                className="apex-agent-nav-link"
               >
                 Customers
               </Link>
               <Link
                 href="/agent/quotes"
-                className="px-3 py-1.5 rounded-full text-slate-700 hover:bg-slate-100"
+                className="apex-agent-nav-link"
               >
                 Quote Tool
               </Link>
@@ -737,7 +737,7 @@ export default function AgentDashboardPage() {
 
             <button
               onClick={loadDashboard}
-              className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
+              className="apex-agent-button-secondary px-4 py-2 text-sm"
             >
               Refresh
             </button>
@@ -753,15 +753,15 @@ export default function AgentDashboardPage() {
           <StatCard label="Unassigned" value={stats.unassigned} />
         </section>
 
-        <section className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto] lg:items-end">
-          <div className="flex flex-col text-xs text-gray-600">
+        <section className="apex-agent-card mb-6 grid gap-3 p-4 lg:grid-cols-[1fr_auto_auto_auto] lg:items-end">
+          <div className="flex flex-col text-xs">
             <span className="mb-1">Search</span>
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search name, email, phone, ZIP, vehicle, VIN, parts..."
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+              className="apex-agent-input px-3 py-2 text-sm"
             />
           </div>
 
@@ -807,15 +807,15 @@ export default function AgentDashboardPage() {
         )}
 
         {loading ? (
-          <div className="text-sm text-gray-600">Loading pipeline...</div>
+          <div className="apex-agent-soft-text text-sm">Loading pipeline...</div>
         ) : visibleItems.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
+          <div className="apex-agent-card p-6 text-sm text-blue-100">
             No records match your current filters.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="apex-agent-table overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 text-left">
+              <thead className="bg-slate-100 text-left">
                 <tr>
                   <th className="px-3 py-2 font-semibold">Coverage</th>
                   <th className="px-3 py-2 font-semibold">Received</th>
@@ -833,7 +833,7 @@ export default function AgentDashboardPage() {
                   return (
                     <tr
                       key={item.key}
-                      className="border-t border-gray-100 align-top hover:bg-gray-50"
+                      className="border-t border-slate-100 align-top hover:bg-blue-50/70"
                     >
                       <td className="px-3 py-3">
                         <ProductBadge kind={item.kind} />
@@ -881,7 +881,7 @@ export default function AgentDashboardPage() {
                       </td>
                       <td className="px-3 py-3">
                         <select
-                          className="w-full min-w-[150px] rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
+                          className="w-full min-w-[150px] rounded-md border border-slate-300 bg-white px-2 py-1 text-xs"
                           value={item.status || ""}
                           disabled={disabled}
                           onChange={(event) =>
@@ -906,7 +906,7 @@ export default function AgentDashboardPage() {
                       </td>
                       <td className="px-3 py-3">
                         <select
-                          className="w-full min-w-[130px] rounded-md border border-gray-300 bg-white px-2 py-1 text-xs"
+                          className="w-full min-w-[130px] rounded-md border border-slate-300 bg-white px-2 py-1 text-xs"
                           value={item.agent || ""}
                           disabled={disabled}
                           onChange={(event) =>
@@ -933,7 +933,7 @@ export default function AgentDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => setActiveBuildReview(item.buildReview)}
-                                className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                                className="rounded-md border border-blue-200 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                               >
                                 Review/Edit
                               </button>
@@ -947,7 +947,7 @@ export default function AgentDashboardPage() {
                                       activityNote: "Build coverage marked active from pipeline",
                                     } as Partial<BuildReview>)
                                   }
-                                  className="rounded-md bg-[#cc0000] px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+                                  className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                                 >
                                   Mark Customer
                                 </button>
@@ -957,7 +957,7 @@ export default function AgentDashboardPage() {
                                   type="button"
                                   disabled={disabled}
                                   onClick={() => addAutoCoverage(item)}
-                                  className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                                  className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                                 >
                                   Add Auto
                                 </button>
@@ -976,7 +976,7 @@ export default function AgentDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => openWorksheet(item.autoLead)}
-                                className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                                className="rounded-md border border-blue-200 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                               >
                                 Worksheet
                               </button>
@@ -990,7 +990,7 @@ export default function AgentDashboardPage() {
                                       activityNote: "Auto coverage marked won from pipeline",
                                     } as Partial<AutoLead>)
                                   }
-                                  className="rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                                  className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                                 >
                                   Mark Customer
                                 </button>
@@ -1000,7 +1000,7 @@ export default function AgentDashboardPage() {
                                   type="button"
                                   disabled={disabled}
                                   onClick={() => addBuildCoverage(item)}
-                                  className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                                  className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-blue-50 disabled:opacity-60"
                                 >
                                   Add Build
                                 </button>
@@ -1057,9 +1057,9 @@ export default function AgentDashboardPage() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="mt-1 text-xs font-medium text-gray-500">{label}</div>
+    <div className="apex-agent-stat">
+      <div className="apex-agent-stat-value">{value}</div>
+      <div className="apex-agent-stat-label">{label}</div>
     </div>
   );
 }
@@ -1076,10 +1076,10 @@ function FilterSelect({
   options: { label: string; value: string }[];
 }) {
   return (
-    <div className="flex flex-col text-xs text-gray-600">
+    <div className="flex flex-col text-xs">
       <span className="mb-1">{label}</span>
       <select
-        className="min-w-[150px] rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs shadow-sm"
+        className="apex-agent-input min-w-[150px] px-2 py-2 text-xs"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -1099,8 +1099,8 @@ function ProductBadge({ kind }: { kind: DashboardItem["kind"] }) {
     <span
       className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${
         isBuild
-          ? "bg-red-50 text-[#cc0000] ring-1 ring-red-100"
-          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
+          ? "apex-agent-pill-build"
+          : "apex-agent-pill-auto"
       }`}
     >
       {isBuild ? "Build Coverage" : "Auto Coverage"}
@@ -1119,7 +1119,7 @@ function MiniBadge({
     <span
       className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
         tone === "build"
-          ? "bg-red-50 text-[#cc0000] ring-1 ring-red-100"
+          ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100"
           : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
       }`}
     >
@@ -1203,7 +1203,7 @@ function AutoWorksheetPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+            className="rounded-full border border-slate-300 px-2 py-1 text-xs hover:bg-blue-50"
           >
             Close
           </button>
@@ -1265,7 +1265,7 @@ function AutoWorksheetPanel({
                 return (
                   <label
                     key={discount}
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 px-2 py-1 hover:bg-slate-50"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 px-2 py-1 hover:bg-blue-50"
                   >
                     <input
                       type="checkbox"
@@ -1300,7 +1300,7 @@ function AutoWorksheetPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-blue-50"
           >
             Close
           </button>
@@ -1308,7 +1308,7 @@ function AutoWorksheetPanel({
             type="button"
             onClick={onSave}
             disabled={savingWorksheet}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
             {savingWorksheet ? "Saving..." : "Save Worksheet"}
           </button>
@@ -1433,7 +1433,7 @@ function BuildReviewPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+            className="rounded-full border border-slate-300 px-2 py-1 text-xs hover:bg-blue-50"
           >
             Close
           </button>
@@ -1524,7 +1524,7 @@ function BuildReviewPanel({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-blue-50"
           >
             Close
           </button>
@@ -1532,7 +1532,7 @@ function BuildReviewPanel({
             type="button"
             onClick={saveChanges}
             disabled={saving}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save Intake"}
           </button>

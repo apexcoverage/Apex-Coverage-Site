@@ -6,3 +6,230 @@
 :root { color-scheme: light; }
 html, body { height: 100%; }
 body { background: #fff; }
+
+@layer components {
+  .apex-agent-shell {
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 12% 12%, rgba(37, 99, 235, 0.28), transparent 34rem),
+      radial-gradient(circle at 88% 8%, rgba(220, 38, 38, 0.18), transparent 28rem),
+      linear-gradient(135deg, #020817 0%, #071225 42%, #081a33 100%);
+    color: #e5eefc;
+  }
+
+  .apex-agent-shell::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: linear-gradient(to bottom, black, transparent 72%);
+    mask-image: linear-gradient(to bottom, black, transparent 72%);
+  }
+
+  .apex-agent-shell > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .apex-agent-container {
+    width: min(calc(100% - 2rem), 80rem);
+    margin: 0 auto;
+    padding: 2rem 0 3rem;
+  }
+
+  .apex-agent-hero {
+    border: 1px solid rgba(147, 197, 253, 0.18);
+    border-radius: 1.5rem;
+    background:
+      linear-gradient(105deg, rgba(2, 8, 23, 0.95) 0%, rgba(7, 25, 50, 0.88) 45%, rgba(37, 99, 235, 0.42) 100%),
+      url("/brand/apex-city-build.png");
+    background-position: center;
+    background-size: cover;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    padding: 1.5rem;
+  }
+
+  .apex-agent-hero-compact {
+    padding: 1.25rem;
+  }
+
+  .apex-agent-eyebrow {
+    color: #60a5fa;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .apex-agent-title {
+    color: #ffffff;
+    font-size: clamp(2rem, 4vw, 3.3rem);
+    font-weight: 900;
+    line-height: 0.95;
+  }
+
+  .apex-agent-subtitle {
+    color: rgba(219, 234, 254, 0.84);
+    max-width: 46rem;
+  }
+
+  .apex-agent-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.25rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+  }
+
+  .apex-agent-nav-link {
+    border-radius: 999px;
+    color: rgba(219, 234, 254, 0.88);
+    padding: 0.45rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .apex-agent-nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  .apex-agent-nav-link-active {
+    background: linear-gradient(135deg, #0b63ff, #3487ff);
+    color: #ffffff;
+    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.35);
+  }
+
+  .apex-agent-card {
+    border: 1px solid rgba(147, 197, 253, 0.18);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.075);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(16px);
+  }
+
+  .apex-agent-card-light {
+    border: 1px solid rgba(226, 232, 240, 0.92);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.98);
+    color: #0f172a;
+    box-shadow: 0 18px 45px rgba(2, 8, 23, 0.2);
+  }
+
+  .apex-agent-stat {
+    border: 1px solid rgba(147, 197, 253, 0.18);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.055));
+    padding: 1rem;
+    box-shadow: 0 16px 36px rgba(2, 8, 23, 0.25);
+  }
+
+  .apex-agent-stat-value {
+    color: #ffffff;
+    font-size: 1.75rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .apex-agent-stat-label {
+    margin-top: 0.35rem;
+    color: rgba(191, 219, 254, 0.78);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .apex-agent-label {
+    color: rgba(219, 234, 254, 0.88);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .apex-agent-input {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.96);
+    color: #0f172a;
+    box-shadow: 0 10px 24px rgba(2, 8, 23, 0.15);
+  }
+
+  .apex-agent-input:focus {
+    border-color: #60a5fa;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22);
+  }
+
+  .apex-agent-table {
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.985);
+    color: #0f172a;
+    box-shadow: 0 22px 60px rgba(2, 8, 23, 0.26);
+  }
+
+  .apex-agent-button,
+  .apex-agent-button-secondary,
+  .apex-agent-button-primary,
+  .apex-agent-button-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    font-weight: 800;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .apex-agent-button:hover,
+  .apex-agent-button-secondary:hover,
+  .apex-agent-button-primary:hover,
+  .apex-agent-button-danger:hover {
+    transform: translateY(-1px);
+  }
+
+  .apex-agent-button-secondary {
+    border: 1px solid rgba(147, 197, 253, 0.22);
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  .apex-agent-button-primary {
+    border: 1px solid rgba(59, 130, 246, 0.9);
+    background: linear-gradient(135deg, #0b63ff, #3487ff);
+    color: #ffffff;
+    box-shadow: 0 12px 30px rgba(37, 99, 235, 0.28);
+  }
+
+  .apex-agent-button-danger {
+    border: 1px solid rgba(248, 113, 113, 0.35);
+    background: rgba(254, 226, 226, 0.94);
+    color: #991b1b;
+  }
+
+  .apex-agent-soft-text {
+    color: rgba(219, 234, 254, 0.78);
+  }
+
+  .apex-agent-pill-build {
+    background: rgba(29, 78, 216, 0.11);
+    color: #1d4ed8;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.18);
+  }
+
+  .apex-agent-pill-auto {
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.1);
+  }
+}

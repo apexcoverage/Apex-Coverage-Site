@@ -1607,20 +1607,23 @@ export default function CustomerProfilePage() {
 
       <style>{`
         :root {
-          --bg-page: #f3f4f6;
+          --bg-page: #020817;
           --bg-card: #ffffff;
-          --border-subtle: #e5e7eb;
+          --border-subtle: #dbe4f0;
           --text-main: #111827;
           --text-muted: #6b7280;
-          --primary: #dc2626;
+          --primary: #0b63ff;
           --accent: #2563eb;
-          --radius-lg: 0.75rem;
-          --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.06);
+          --radius-lg: 1rem;
+          --shadow-soft: 0 20px 55px rgba(2, 8, 23, 0.22);
         }
 
         body {
           margin: 0;
-          background: var(--bg-page);
+          background:
+            radial-gradient(circle at 14% 10%, rgba(37, 99, 235, 0.28), transparent 34rem),
+            radial-gradient(circle at 88% 4%, rgba(220, 38, 38, 0.16), transparent 28rem),
+            linear-gradient(135deg, #020817 0%, #071225 44%, #081a33 100%);
           color: var(--text-main);
           font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
             sans-serif;
@@ -1629,7 +1632,8 @@ export default function CustomerProfilePage() {
         .crm-page {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 1.5rem;
+          padding: 2rem 1.5rem 3rem;
+          position: relative;
         }
 
         .crm-header,
@@ -1645,13 +1649,28 @@ export default function CustomerProfilePage() {
         }
 
         .crm-header {
+          background:
+            linear-gradient(105deg, rgba(2, 8, 23, 0.94), rgba(8, 26, 51, 0.9) 48%, rgba(37, 99, 235, 0.42)),
+            url("/brand/apex-city-build.png");
+          background-position: center;
+          background-size: cover;
+          border: 1px solid rgba(147, 197, 253, 0.18);
+          border-radius: 1.5rem;
+          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
           justify-content: space-between;
           margin-bottom: 1rem;
+          padding: 1.25rem;
         }
 
         .crm-header h1 {
+          color: #fff;
           margin: 0;
-          font-size: 1.5rem;
+          font-size: 2rem;
+          line-height: 1;
+        }
+
+        .crm-header .meta-text {
+          color: rgba(219, 234, 254, 0.82);
         }
 
         .crm-main {
@@ -1669,6 +1688,8 @@ export default function CustomerProfilePage() {
         }
 
         .card-summary {
+          background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(239, 246, 255, 0.96));
           display: flex;
           justify-content: space-between;
           gap: 1rem;
@@ -1680,6 +1701,7 @@ export default function CustomerProfilePage() {
         }
 
         .card-header {
+          background: linear-gradient(90deg, #f8fbff, #ffffff);
           padding: 0.9rem 1.25rem;
           border-bottom: 1px solid var(--border-subtle);
           justify-content: space-between;
@@ -1857,6 +1879,7 @@ export default function CustomerProfilePage() {
           background: var(--primary);
           border: 1px solid var(--primary);
           color: #fff;
+          box-shadow: 0 12px 30px rgba(37, 99, 235, 0.22);
         }
 
         .btn-secondary,
@@ -1864,6 +1887,12 @@ export default function CustomerProfilePage() {
           background: #fff;
           border: 1px solid var(--border-subtle);
           color: var(--text-main);
+        }
+
+        .crm-header .btn-secondary {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.18);
+          color: #fff;
         }
 
         .link-button {
@@ -1884,8 +1913,8 @@ export default function CustomerProfilePage() {
 
         .coverage-active,
         .status-active {
-          background: #dcfce7;
-          color: #166534;
+          background: #dbeafe;
+          color: #1d4ed8;
         }
 
         .coverage-inactive,
@@ -1950,8 +1979,8 @@ export default function CustomerProfilePage() {
 
 function ShellMessage({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-slate-50 text-gray-900">
-      <div className="max-w-5xl mx-auto px-4 py-10 text-sm text-gray-600">
+    <main className="apex-agent-shell">
+      <div className="apex-agent-container max-w-5xl text-sm text-blue-100">
         {children}
       </div>
     </main>

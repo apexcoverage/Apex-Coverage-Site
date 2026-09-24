@@ -102,7 +102,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-8 text-sm text-slate-600">
+      <main className="apex-agent-shell px-4 py-8 text-sm text-blue-100">
         Loading quote...
       </main>
     );
@@ -110,7 +110,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
 
   if (!quote) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-8">
+      <main className="apex-agent-shell px-4 py-8">
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error || "Quote not found."}
         </div>
@@ -119,15 +119,15 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <main className="apex-agent-shell">
+      <div className="apex-agent-container">
+        <header className="apex-agent-hero apex-agent-hero-compact mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <Link href="/agent/quotes" className="text-sm font-semibold text-[#cc0000]">
+            <Link href="/agent/quotes" className="text-sm font-bold text-blue-200 hover:text-white">
               Back to Quote Dashboard
             </Link>
-            <h1 className="mt-2 text-3xl font-bold">{quote.quoteId}</h1>
-            <p className="mt-1 text-sm text-slate-600">
+            <h1 className="apex-agent-title mt-3">{quote.quoteId}</h1>
+            <p className="apex-agent-subtitle mt-2 text-sm">
               {quoteTypeLabel(quote.quoteType)} - created by {quote.employee.name} on{" "}
               {new Date(quote.createdAt).toLocaleString()}
             </p>
@@ -135,7 +135,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
           <div className="flex flex-wrap gap-2">
             <Link
               href={editHref(quote)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+              className="apex-agent-button-secondary px-3 py-2 text-sm"
             >
               Edit Information
             </Link>
@@ -143,7 +143,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
               type="button"
               disabled={!!busy}
               onClick={regenerate}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100 disabled:opacity-60"
+              className="apex-agent-button-secondary px-3 py-2 text-sm disabled:opacity-60"
             >
               {busy === "REGENERATE" ? "Regenerating..." : "Regenerate Quote"}
             </button>
@@ -151,7 +151,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
               type="button"
               disabled={!!busy}
               onClick={() => updateStatus("SAVED")}
-              className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+              className="apex-agent-button-secondary px-3 py-2 text-sm disabled:opacity-60"
             >
               {busy === "SAVED" ? "Saving..." : "Save Quote"}
             </button>
@@ -159,7 +159,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
               type="button"
               disabled={!!busy}
               onClick={() => updateStatus("APPROVED")}
-              className="rounded-lg bg-[#cc0000] px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              className="apex-agent-button-primary px-3 py-2 text-sm disabled:opacity-60"
             >
               {busy === "APPROVED" ? "Approving..." : "Approve Quote"}
             </button>
@@ -261,18 +261,18 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
 
 function SummaryBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <div className="apex-agent-stat">
+      <div className="text-xs font-semibold uppercase tracking-wide text-blue-100/70">
         {label}
       </div>
-      <div className="mt-1 font-semibold">{value || "-"}</div>
+      <div className="mt-1 font-semibold text-white">{value || "-"}</div>
     </div>
   );
 }
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="apex-agent-card-light p-5">
       <h2 className="mb-4 text-lg font-semibold">{title}</h2>
       {children}
     </section>

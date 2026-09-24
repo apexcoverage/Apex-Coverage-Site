@@ -34,12 +34,12 @@ export default function QuoteLogin() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-900">
-      <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold text-[#cc0000]">
+    <main className="apex-agent-shell grid min-h-screen place-items-center px-4 py-12">
+      <div className="apex-agent-card-light mx-auto w-full max-w-md p-6">
+        <p className="apex-agent-eyebrow">
           Apex Coverage Internal
         </p>
-        <h1 className="mt-1 text-2xl font-bold">Employee Sign In</h1>
+        <h1 className="mt-2 text-3xl font-black text-slate-950">Employee Sign In</h1>
         <p className="mt-2 text-sm text-slate-600">
           Sign in to create and review internal quote estimates.
         </p>
@@ -48,7 +48,7 @@ export default function QuoteLogin() {
           <label className="block text-sm">
             <span className="font-medium text-slate-700">Employee email</span>
             <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="apex-agent-input mt-1 px-3 py-2"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -60,7 +60,7 @@ export default function QuoteLogin() {
           <label className="block text-sm">
             <span className="font-medium text-slate-700">Password</span>
             <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="apex-agent-input mt-1 px-3 py-2"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -78,7 +78,7 @@ export default function QuoteLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            className="apex-agent-button-primary w-full px-4 py-2 text-sm disabled:opacity-60"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>

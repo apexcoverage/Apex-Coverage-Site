@@ -209,37 +209,37 @@ export default function CustomersPage() {
   }, [customers, search, agentFilter, coverageFilter]);
 
   return (
-    <main className="min-h-screen bg-slate-50 text-gray-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="apex-agent-shell">
+      <div className="apex-agent-container">
+        <header className="apex-agent-hero mb-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-[#cc0000]">
+            <p className="apex-agent-eyebrow">
               Apex Customer Center
             </p>
-            <h1 className="mt-1 text-3xl font-bold">Customer Coverage</h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <h1 className="apex-agent-title mt-2">Customer Coverage</h1>
+            <p className="apex-agent-subtitle mt-3 text-sm">
               Customers are grouped by contact info so agents can see build
               coverage, auto coverage, or both in one row.
             </p>
           </div>
 
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1 text-xs font-medium shadow-sm">
+            <div className="apex-agent-nav">
               <Link
                 href="/agent"
-                className="px-3 py-1.5 rounded-full text-slate-700 hover:bg-slate-100"
+                className="apex-agent-nav-link"
               >
                 Pipeline
               </Link>
               <Link
                 href="/agent/customers"
-                className="px-3 py-1.5 rounded-full bg-slate-900 text-white shadow-sm"
+                className="apex-agent-nav-link apex-agent-nav-link-active"
               >
                 Customers
               </Link>
               <Link
                 href="/agent/quotes"
-                className="px-3 py-1.5 rounded-full text-slate-700 hover:bg-slate-100"
+                className="apex-agent-nav-link"
               >
                 Quote Tool
               </Link>
@@ -247,29 +247,29 @@ export default function CustomersPage() {
 
             <button
               onClick={loadCustomers}
-              className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
+              className="apex-agent-button-secondary px-4 py-2 text-sm"
             >
               Refresh
             </button>
           </div>
         </header>
 
-        <section className="mb-6 grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
-          <div className="flex flex-col text-xs text-gray-600">
+        <section className="apex-agent-card mb-6 grid gap-3 p-4 md:grid-cols-[1fr_auto_auto] md:items-end">
+          <div className="flex flex-col text-xs">
             <span className="mb-1">Search</span>
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search name, email, phone, ZIP, vehicle, coverage..."
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+              className="apex-agent-input px-3 py-2 text-sm"
             />
           </div>
 
-          <div className="flex flex-col text-xs text-gray-600">
+          <div className="flex flex-col text-xs">
             <span className="mb-1">Coverage</span>
             <select
-              className="min-w-[170px] rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs shadow-sm"
+              className="apex-agent-input min-w-[170px] px-2 py-2 text-xs"
               value={coverageFilter}
               onChange={(event) => setCoverageFilter(event.target.value)}
             >
@@ -280,10 +280,10 @@ export default function CustomersPage() {
             </select>
           </div>
 
-          <div className="flex flex-col text-xs text-gray-600">
+          <div className="flex flex-col text-xs">
             <span className="mb-1">Agent</span>
             <select
-              className="min-w-[150px] rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs shadow-sm"
+              className="apex-agent-input min-w-[150px] px-2 py-2 text-xs"
               value={agentFilter}
               onChange={(event) => setAgentFilter(event.target.value)}
             >
@@ -304,15 +304,15 @@ export default function CustomersPage() {
         )}
 
         {loading ? (
-          <div className="text-sm text-gray-600">Loading customers...</div>
+          <div className="apex-agent-soft-text text-sm">Loading customers...</div>
         ) : visibleCustomers.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
+          <div className="apex-agent-card p-6 text-sm text-blue-100">
             No customers match your current filters.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="apex-agent-table overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 text-left">
+              <thead className="bg-slate-100 text-left">
                 <tr>
                   <th className="px-3 py-2 font-semibold">Customer</th>
                   <th className="px-3 py-2 font-semibold">Coverage</th>
@@ -334,7 +334,7 @@ export default function CustomersPage() {
                   return (
                     <tr
                       key={record.key}
-                      className="border-t border-gray-100 align-top hover:bg-gray-50"
+                      className="border-t border-slate-100 align-top hover:bg-blue-50/70"
                     >
                       <td className="px-3 py-3">
                         <div className="font-medium">{record.name || "-"}</div>
@@ -372,7 +372,7 @@ export default function CustomersPage() {
                       <td className="px-3 py-3 text-right">
                         <Link
                           href={profileHref(record)}
-                          className="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-100"
+                          className="inline-flex items-center rounded-lg border border-blue-200 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
                         >
                           View Profile
                         </Link>
@@ -392,9 +392,9 @@ export default function CustomersPage() {
 function CoverageBadge({ label }: { label: string }) {
   const classes =
     label === "Both"
-      ? "bg-slate-900 text-white"
+      ? "bg-blue-600 text-white shadow-sm"
       : label === "Build Coverage"
-        ? "bg-red-50 text-[#cc0000] ring-1 ring-red-100"
+        ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100"
         : "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
 
   return (

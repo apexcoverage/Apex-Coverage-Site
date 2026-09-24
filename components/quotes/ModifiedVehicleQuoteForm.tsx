@@ -157,23 +157,23 @@ export default function ModifiedVehicleQuoteForm() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <form onSubmit={submit} className="mx-auto max-w-6xl px-4 py-8">
-        <header className="mb-6">
-          <Link href="/agent/quotes" className="text-sm font-semibold text-[#cc0000]">
+    <main className="apex-agent-shell">
+      <form onSubmit={submit} className="apex-agent-container max-w-6xl">
+        <header className="apex-agent-hero apex-agent-hero-compact mb-6">
+          <Link href="/agent/quotes" className="text-sm font-bold text-blue-200 hover:text-white">
             Back to Quote Dashboard
           </Link>
-          <h1 className="mt-2 text-3xl font-bold">
+          <h1 className="apex-agent-title mt-3">
             New Modified Vehicle Protection Quote
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="apex-agent-subtitle mt-2 text-sm">
             Capture build, risk, documentation, and coverage details separately from auto coverage.
           </p>
         </header>
 
         <ErrorPanel error={error} missing={missing} warnings={warnings} />
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="apex-agent-card-light p-5">
           <SectionTitle title="Customer / Driver" />
           <div className="grid gap-4 md:grid-cols-3">
             <TextField label="Customer Name" value={input.customerName} onChange={(value) => updateRoot("customerName", value)} />
@@ -189,7 +189,7 @@ export default function ModifiedVehicleQuoteForm() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="apex-agent-card-light mt-5 p-5">
           <SectionTitle title="Vehicle" />
           <div className="grid gap-4 md:grid-cols-4">
             <TextField label="Year*" type="number" value={input.vehicle.year} onChange={(value) => updateVehicle("year", value)} />
@@ -202,7 +202,7 @@ export default function ModifiedVehicleQuoteForm() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="apex-agent-card-light mt-5 p-5">
           <SectionTitle title="Modifications / Parts" />
           <div className="grid gap-4 md:grid-cols-3">
             <TextField label="Parts Value*" type="number" value={input.modifications.partsValue} onChange={(value) => updateModification("partsValue", value)} />
@@ -219,7 +219,7 @@ export default function ModifiedVehicleQuoteForm() {
             <span className="font-medium text-slate-700">Parts List</span>
             <textarea
               rows={5}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="apex-agent-input mt-1 px-3 py-2"
               value={input.modifications.partsList}
               onChange={(event) => updateModification("partsList", event.target.value)}
               placeholder="Coilovers, wheels, intake, exhaust, tune..."
@@ -227,7 +227,7 @@ export default function ModifiedVehicleQuoteForm() {
           </label>
         </section>
 
-        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="apex-agent-card-light mt-5 p-5">
           <SectionTitle title="Coverage Selection" />
           <div className="grid gap-4 md:grid-cols-3">
             <SelectField label="Deductible*" value={input.coverage.deductible} options={["", ...DEDUCTIBLE_OPTIONS]} onChange={(value) => updateCoverage("deductible", value)} />
@@ -245,7 +245,7 @@ export default function ModifiedVehicleQuoteForm() {
           )}
         </section>
 
-        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="apex-agent-card-light mt-5 p-5">
           <SectionTitle title="Underwriting Questions" />
           <div className="grid gap-4 md:grid-cols-3">
             <SelectField label="VIN Available?" value={input.underwriting.vinAvailable} options={["", "Yes", "No"]} onChange={(value) => updateUnderwriting("vinAvailable", value)} />
@@ -261,7 +261,7 @@ export default function ModifiedVehicleQuoteForm() {
             <span className="font-medium text-slate-700">Other / Notes</span>
             <textarea
               rows={4}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="apex-agent-input mt-1 px-3 py-2"
               value={input.notes}
               onChange={(event) => updateRoot("notes", event.target.value)}
             />
@@ -269,13 +269,13 @@ export default function ModifiedVehicleQuoteForm() {
         </section>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Link href="/agent/quotes" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-sm font-semibold hover:bg-slate-100">
+          <Link href="/agent/quotes" className="apex-agent-button-secondary px-4 py-2 text-center text-sm">
             Cancel
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            className="apex-agent-button-primary px-5 py-2 text-sm disabled:opacity-60"
           >
             {loading ? "Generating..." : "Generate Quote"}
           </button>
@@ -306,7 +306,7 @@ function TextField({
     <label className="block text-sm">
       <span className="font-medium text-slate-700">{label}</span>
       <input
-        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        className="apex-agent-input mt-1 px-3 py-2"
         type={type}
         value={value}
         placeholder={placeholder}
@@ -331,7 +331,7 @@ function SelectField({
     <label className="block text-sm">
       <span className="font-medium text-slate-700">{label}</span>
       <select
-        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+        className="apex-agent-input mt-1 px-3 py-2"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -363,7 +363,7 @@ function Checklist({
         {options.map((option) => (
           <label
             key={option}
-            className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
+            className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-blue-50"
           >
             <input
               type="checkbox"

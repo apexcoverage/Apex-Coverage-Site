@@ -123,8 +123,8 @@ export default function AutoQuoteForm() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <form onSubmit={submit} className="mx-auto max-w-6xl px-4 py-8">
+    <main className="apex-agent-shell">
+      <form onSubmit={submit} className="apex-agent-container max-w-6xl">
         <PageHeader
           title="New Auto Coverage Quote"
           description="Collect only the fields supported by the current Apex auto quote workflow."
@@ -132,7 +132,7 @@ export default function AutoQuoteForm() {
 
         <ErrorPanel error={error} missing={missing} warnings={warnings} />
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="apex-agent-card-light p-5">
           <SectionTitle title="Customer and Driver" />
           <div className="grid gap-4 md:grid-cols-3">
             <TextField label="Customer Name" value={input.customerName} onChange={(value) => updateField("customerName", value)} />
@@ -154,12 +154,12 @@ export default function AutoQuoteForm() {
           )}
         </section>
 
-        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="apex-agent-card-light mt-5 p-5">
           <div className="flex items-center justify-between gap-3">
             <SectionTitle title="Vehicle and Coverage" />
-            <button
-              type="button"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold hover:bg-slate-100"
+              <button
+                type="button"
+                className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               onClick={() =>
                 setInput((prev) => ({
                   ...prev,
@@ -173,7 +173,7 @@ export default function AutoQuoteForm() {
 
           <div className="space-y-5">
             {input.vehicles.map((vehicle, index) => (
-              <div key={index} className="rounded-lg border border-slate-200 p-4">
+              <div key={index} className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="font-semibold">Vehicle {index + 1}</h3>
                   {input.vehicles.length > 1 && (
@@ -209,7 +209,7 @@ export default function AutoQuoteForm() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="apex-agent-card-light mt-5 p-5">
           <SectionTitle title="Usage, Discounts, and Notes" />
           <div className="grid gap-4 md:grid-cols-3">
             <TextField label="Annual Mileage" type="number" value={input.annualMileage} onChange={(value) => updateField("annualMileage", value)} />
@@ -227,7 +227,7 @@ export default function AutoQuoteForm() {
             <span className="font-medium text-slate-700">Other / Notes</span>
             <textarea
               rows={4}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="apex-agent-input mt-1 px-3 py-2"
               value={input.notes}
               onChange={(event) => updateField("notes", event.target.value)}
             />
@@ -235,13 +235,13 @@ export default function AutoQuoteForm() {
         </section>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Link href="/agent/quotes" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-sm font-semibold hover:bg-slate-100">
+          <Link href="/agent/quotes" className="apex-agent-button-secondary px-4 py-2 text-center text-sm">
             Cancel
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            className="apex-agent-button-primary px-5 py-2 text-sm disabled:opacity-60"
           >
             {loading ? "Generating..." : "Generate Quote"}
           </button>
@@ -253,12 +253,12 @@ export default function AutoQuoteForm() {
 
 function PageHeader({ title, description }: { title: string; description: string }) {
   return (
-    <header className="mb-6">
-      <Link href="/agent/quotes" className="text-sm font-semibold text-[#cc0000]">
+    <header className="apex-agent-hero apex-agent-hero-compact mb-6">
+      <Link href="/agent/quotes" className="text-sm font-bold text-blue-200 hover:text-white">
         Back to Quote Dashboard
       </Link>
-      <h1 className="mt-2 text-3xl font-bold">{title}</h1>
-      <p className="mt-1 text-sm text-slate-600">{description}</p>
+      <h1 className="apex-agent-title mt-3">{title}</h1>
+      <p className="apex-agent-subtitle mt-2 text-sm">{description}</p>
     </header>
   );
 }
@@ -284,7 +284,7 @@ function TextField({
     <label className="block text-sm">
       <span className="font-medium text-slate-700">{label}</span>
       <input
-        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        className="apex-agent-input mt-1 px-3 py-2"
         type={type}
         value={value}
         placeholder={placeholder}
@@ -309,7 +309,7 @@ function SelectField({
     <label className="block text-sm">
       <span className="font-medium text-slate-700">{label}</span>
       <select
-        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+        className="apex-agent-input mt-1 px-3 py-2"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -341,7 +341,7 @@ function Checklist({
         {options.map((option) => (
           <label
             key={option}
-            className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
+            className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-blue-50"
           >
             <input
               type="checkbox"
