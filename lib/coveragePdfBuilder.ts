@@ -227,18 +227,22 @@ export function buildCoveragePdfBuffer(input: CoverageDocumentData): Buffer {
   const lines = extractCoverageLinesFromDocx(input);
   const pageStreams = buildPageStreams(lines);
   const objects = ["", "<< /Type /Catalog /Pages 2 0 R >>", ""];
+  const addObject = (value: string) => {
+    objects.push(value);
+    return objects.length - 1;
+  };
 
-  const regularFontRef = objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-  const boldFontRef = objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
+  const regularFontRef = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  const boldFontRef = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
   const pageRefs: string[] = [];
 
   for (const streamLines of pageStreams) {
     const stream = streamLines.join("\n");
-    const contentRef = objects.push(
+    const contentRef = addObject(
       `<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}\nendstream`
     );
-    const pageRef = objects.push(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${regularFontRef} 0 R /F2 ${boldFontRef} 0 R >> >> /Contents ${contentRef} 0 R >>`
+    const pageRef = addObject(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /ProcSet [/PDF /Text] /Font << /F1 ${regularFontRef} 0 R /F2 ${boldFontRef} 0 R >> >> /Contents ${contentRef} 0 R >>`
     );
     pageRefs.push(`${pageRef} 0 R`);
   }
