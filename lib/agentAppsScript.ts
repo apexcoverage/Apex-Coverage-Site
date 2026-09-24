@@ -111,6 +111,7 @@ export async function agentSendCoveragePdf(payload: {
   documentType: "auto" | "build";
   filename: string;
   pdfBase64: string;
+  summary?: Record<string, string>;
 }) {
   return postAgentAction("sendcoveragepdf", payload);
 }
