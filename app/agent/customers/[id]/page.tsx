@@ -468,6 +468,7 @@ export default function CustomerProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [billingActionLoading, setBillingActionLoading] = useState(false);
+  const [syncPaymentsLoading, setSyncPaymentsLoading] = useState(false);
 
   const [editingContact, setEditingContact] = useState(false);
   const [editingAuto, setEditingAuto] = useState(false);
@@ -1038,6 +1039,47 @@ export default function CustomerProfilePage() {
     }
   }
 
+  async function syncStripePayments() {
+    const auto = profile?.auto;
+    if (!auto) return;
+
+    if (!auto.stripeCustomerId && !auto.stripeSubscriptionId) {
+      alert("This customer does not have a Stripe customer or subscription ID saved.");
+      return;
+    }
+
+    try {
+      setSyncPaymentsLoading(true);
+      const res = await fetch("/api/stripe/sync-payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: auto.id,
+          stripeCustomerId: auto.stripeCustomerId,
+          stripeSubscriptionId: auto.stripeSubscriptionId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || "Unable to sync Stripe payments.");
+      }
+
+      await loadProfile();
+      await loadPaymentHistory(auto.id);
+      alert(
+        `Stripe sync complete. Added ${data.added || 0} missing payment${
+          data.added === 1 ? "" : "s"
+        }.`
+      );
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "There was a problem syncing Stripe payments.");
+    } finally {
+      setSyncPaymentsLoading(false);
+    }
+  }
+
   async function generateAutoCoveragePacket() {
     const auto = profile?.auto;
     if (!auto) return;
@@ -1542,6 +1584,9 @@ export default function CustomerProfilePage() {
                   </button>
                   <button className="btn-outline" onClick={chargeCustomerNow} disabled={billingActionLoading}>
                     Charge Customer Now
+                  </button>
+                  <button className="btn-outline" onClick={syncStripePayments} disabled={syncPaymentsLoading}>
+                    {syncPaymentsLoading ? "Syncing..." : "Sync Stripe Payments"}
                   </button>
                   <button className="btn-outline" onClick={cancelSubscription} disabled={billingActionLoading}>
                     Cancel Subscription
