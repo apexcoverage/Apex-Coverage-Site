@@ -9,28 +9,28 @@ export const metadata = {
 
 const steps = [
   {
-    title: "1. Start with the vehicle",
-    body: "Apex reviews the year, make, model, VIN, mileage, ZIP code, title status, annual mileage, and how the vehicle is used. A daily-driven car, weekend build, and rebuilt-title project should not be priced the same.",
+    title: "Start with the vehicle",
+    body: "Apex reviews the year, make, model, VIN, mileage, ZIP code, title status, annual mileage, and how the vehicle is used.",
   },
   {
-    title: "2. Document the build",
-    body: "Customers provide the parts list, receipts, photos, mileage at installation, and installer details. Undocumented parts may be excluded from eligibility.",
+    title: "Document the build",
+    body: "Customers provide parts lists, receipts, photos, mileage at installation, and installer details. Better documentation creates a cleaner review.",
   },
   {
-    title: "3. Review the risk",
-    body: "Apex looks at vehicle value, part value, driving history, claim history, modification level, annual mileage, title status, and deductible preference before preparing options.",
+    title: "Review the risk",
+    body: "Apex looks at vehicle value, part value, driving history, claim history, modification level, annual mileage, title status, and deductible preference.",
   },
   {
-    title: "4. Choose the right fit",
-    body: "Eligible customers are matched with a tier and deductible structure that fits the build. The goal is not a one-size-fits-all offer. It is a build-based review.",
+    title: "Choose the right fit",
+    body: "Eligible customers are matched with a tier and deductible structure that fits the build and the documentation available.",
   },
   {
-    title: "5. Upload documents with an agent",
-    body: "During a live call, an Apex agent can send a document upload link so customers can send receipts, photos, invoices, and records while the coverage discussion is happening.",
+    title: "Upload documents with an agent",
+    body: "During a live call, an Apex agent can send a document upload link so customers can upload records while the conversation is happening.",
   },
   {
-    title: "6. Keep records current",
-    body: "As new parts are added, customers should keep receipts, photos, installer invoices, and mileage records updated so the approved build profile stays accurate.",
+    title: "Keep records current",
+    body: "As new parts are added, customers should keep receipts, photos, installer invoices, and mileage records updated.",
   },
 ];
 
@@ -49,34 +49,36 @@ const checklist = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="min-h-screen bg-white text-gray-900">
-      <section className="relative overflow-hidden border-b">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ backgroundImage: "linear-gradient(135deg, rgba(204,0,0,.10), transparent)" }}
+    <main className="min-h-screen bg-[#f4f8ff] text-slate-950">
+      <section className="relative isolate overflow-hidden bg-[#031326] text-white">
+        <img
+          src="/brand/apex-build-review-garage.png"
+          alt="Modified vehicle documentation in a modern garage"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="relative max-w-7xl mx-auto px-4 py-16">
-          <span className="text-sm tracking-wide text-[#cc0000] font-semibold">
-            HOW IT WORKS
-          </span>
-          <h1 className="mt-2 text-4xl md:text-5xl font-bold max-w-3xl">
-            A cleaner process for reviewing modified street cars.
-          </h1>
-          <p className="mt-4 text-gray-600 max-w-3xl">
-            Apex Modified Vehicle Protection is built around documentation and
-            risk review. A clean, well-documented build should be treated
-            differently than an undocumented or poorly installed one.
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#020914] via-[#031326]/88 to-[#031326]/55" />
+        <div className="mx-auto max-w-7xl px-4 py-16 lg:py-20">
+          <p className="text-xs font-black uppercase tracking-[0.34em] text-blue-300">
+            How it works
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <h1 className="mt-4 max-w-4xl text-5xl font-black leading-[0.98] tracking-tight md:text-7xl">
+            A cleaner process for modified street cars.
+          </h1>
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-blue-50/90">
+            Apex Modified Vehicle Protection is built around documentation and
+            risk review. Two cars with the same year, make, and model can have
+            completely different profiles once the parts and use are reviewed.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/build-review"
-              className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition"
+              className="rounded-lg bg-blue-600 px-6 py-4 text-center text-sm font-black text-white hover:bg-blue-500"
             >
               Protect My Build
             </Link>
             <Link
               href="/tiers"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-gray-50 transition"
+              className="rounded-lg border border-white/25 bg-white/10 px-6 py-4 text-center text-sm font-black text-white backdrop-blur hover:bg-white/15"
             >
               Compare Tiers
             </Link>
@@ -84,36 +86,49 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {steps.map((step) => (
-            <div key={step.title} className="border rounded-2xl p-6 bg-white shadow-sm">
-              <h2 className="text-xl font-semibold">{step.title}</h2>
-              <p className="mt-3 text-sm text-gray-600">{step.body}</p>
+      <section className="mx-auto max-w-7xl px-4 py-16">
+        <div className="grid gap-5 lg:grid-cols-3">
+          {steps.map((step, index) => (
+            <div
+              key={step.title}
+              className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,.08)]"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-lg font-black text-white">
+                {index + 1}
+              </div>
+              <h2 className="mt-5 text-xl font-black">{step.title}</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{step.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="bg-gray-50 border-y">
-        <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-start">
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-2 md:items-start">
           <div>
-            <h2 className="text-3xl font-bold">Before you start, gather these</h2>
-            <p className="mt-3 text-gray-600">
-              The more complete the documentation, the cleaner the review.
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-600">
+              Bring this to the call
+            </p>
+            <h2 className="mt-3 text-3xl font-black md:text-5xl">
+              The stronger the records, the faster the review.
+            </h2>
+            <p className="mt-4 text-slate-600">
               Missing information does not always mean a customer is rejected,
               but it can affect eligibility, pricing, deductible, and exclusions.
             </p>
             <Link
               href="/document-upload"
-              className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-white transition"
+              className="mt-6 inline-flex rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-black hover:bg-slate-50"
             >
               Upload Documents With an Agent
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4 text-sm">
+          <div className="grid gap-3 sm:grid-cols-2">
             {checklist.map((item) => (
-              <div key={item} className="bg-white border rounded-xl p-4">
+              <div
+                key={item}
+                className="rounded-2xl border border-slate-200 bg-[#f4f8ff] px-4 py-4 text-sm font-bold text-slate-700"
+              >
                 {item}
               </div>
             ))}
@@ -121,45 +136,20 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-2 gap-10">
-          <div className="border rounded-2xl p-6">
-            <h2 className="text-2xl font-bold">What may be excluded</h2>
-            <ul className="mt-4 space-y-2 text-sm text-gray-700">
-              <li>- Undocumented parts</li>
-              <li>- Pre-existing issues</li>
-              <li>- Failures caused by neglect, abuse, racing, drifting, or improper installation</li>
-              <li>- Unsupported or incompatible parts</li>
-              <li>- Build changes that were not reported or approved</li>
-            </ul>
-          </div>
-          <div className="border rounded-2xl p-6 bg-[#cc0000]/5">
-            <h2 className="text-2xl font-bold">Why the process matters</h2>
-            <p className="mt-4 text-sm text-gray-700">
-              Modified vehicles are not generic. Two cars with the same year,
-              make, and model can have completely different risk profiles based
-              on parts, labor quality, mileage, use, storage, and claim history.
-              Apex reviews the actual build so pricing and eligibility can
-              reflect the actual vehicle.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-black text-white">
-        <div className="max-w-7xl mx-auto px-4 py-14 grid md:grid-cols-2 gap-8">
+      <section className="bg-[#04152a] text-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 md:grid-cols-2">
           <div>
-            <h2 className="text-3xl font-bold">Important coverage clarity</h2>
-            <p className="mt-3 text-gray-300">
+            <h2 className="text-3xl font-black">Important coverage clarity</h2>
+            <p className="mt-4 leading-7 text-blue-50/75">
               Apex Modified Vehicle Protection is not a blanket promise that
-              every part, vehicle, incident, or repair will be covered. Protection
-              depends on review, approval, documentation, final terms, deductibles,
-              exclusions, and the customer keeping the build profile current.
+              every part, vehicle, incident, or repair will be covered.
+              Protection depends on review, approval, documentation, final
+              terms, deductibles, exclusions, and keeping the build profile current.
             </p>
           </div>
-          <div className="border border-white/15 rounded-2xl p-6">
-            <h3 className="font-semibold">Helpful links</h3>
-            <div className="mt-4 flex flex-wrap gap-3">
+          <div className="rounded-3xl border border-white/15 bg-white/[0.06] p-6">
+            <h3 className="font-black">Helpful links</h3>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">
               <Link href="/legal" className="underline hover:text-white">
                 Legal Clarity
               </Link>

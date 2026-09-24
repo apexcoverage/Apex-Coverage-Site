@@ -47,20 +47,22 @@ export default function StatusPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-gray-900">
-      <section className="relative overflow-hidden border-b">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ backgroundImage: "linear-gradient(135deg, rgba(204,0,0,.10), transparent)" }}
+    <main className="min-h-screen bg-[#f4f8ff] text-slate-950">
+      <section className="relative isolate overflow-hidden bg-[#031326] text-white">
+        <img
+          src="/brand/apex-hero-road.png"
+          alt="Blue modified vehicle on a mountain road"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="relative max-w-7xl mx-auto px-4 py-16">
-          <span className="text-sm tracking-wide text-[#cc0000] font-semibold">
-            REQUEST STATUS
-          </span>
-          <h1 className="mt-2 text-4xl md:text-5xl font-bold max-w-3xl">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#020914] via-[#031326]/88 to-[#031326]/45" />
+        <div className="relative mx-auto max-w-7xl px-4 py-16">
+          <p className="text-xs font-black uppercase tracking-[0.34em] text-blue-300">
+            Request status
+          </p>
+          <h1 className="mt-4 max-w-3xl text-5xl font-black leading-[0.98] tracking-tight md:text-7xl">
             Check your Apex Coverage status.
           </h1>
-          <p className="mt-4 text-gray-600 max-w-3xl">
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-blue-50/90">
             Enter the email or phone number used for your build review or auto
             coverage request. If we find a match, we will show the latest status
             available from Apex.
@@ -68,25 +70,28 @@ export default function StatusPage() {
         </div>
       </section>
 
-      <section className="max-w-3xl mx-auto px-4 py-12">
-        <form onSubmit={checkStatus} className="border rounded-2xl p-6 shadow-sm bg-white">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <label className="text-sm">
+      <section className="mx-auto max-w-3xl px-4 py-12">
+        <form
+          onSubmit={checkStatus}
+          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,.12)]"
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-bold">
               Email
               <input
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white"
                 placeholder="jane@example.com"
               />
             </label>
-            <label className="text-sm">
+            <label className="text-sm font-bold">
               Phone
               <input
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2"
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white"
                 placeholder="844-398-2739"
               />
             </label>
@@ -94,25 +99,25 @@ export default function StatusPage() {
 
           <button
             disabled={loading}
-            className="mt-5 w-full bg-[#cc0000] hover:bg-red-700 text-white font-semibold py-2.5 rounded-md disabled:opacity-50"
+            className="mt-5 w-full rounded-xl bg-blue-600 py-3.5 font-black text-white shadow-lg shadow-blue-600/25 hover:bg-blue-500 disabled:opacity-50"
           >
             {loading ? "Checking..." : "Check Status"}
           </button>
 
-          <p className="mt-3 text-xs text-gray-500">
+          <p className="mt-3 text-xs text-slate-500">
             Status lookup is informational only. For urgent updates, call Apex at
             844-398-2739.
           </p>
         </form>
 
         {error && (
-          <div className="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {searched && rows.length === 0 && (
-          <div className="mt-6 rounded-2xl border bg-gray-50 p-6 text-sm text-gray-700">
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-700 shadow-sm">
             We could not find a matching request. Check that the email or phone
             matches what you submitted, or contact Apex for help.
           </div>
@@ -121,19 +126,24 @@ export default function StatusPage() {
         {rows.length > 0 && (
           <div className="mt-6 space-y-4">
             {rows.map((row, index) => (
-              <div key={`${row.type}-${index}`} className="rounded-2xl border p-5">
+              <div
+                key={`${row.type}-${index}`}
+                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <div className="text-sm font-semibold text-[#cc0000]">{row.type}</div>
-                    <h2 className="mt-1 text-xl font-bold">{row.vehicle}</h2>
+                    <div className="text-sm font-black uppercase tracking-[0.2em] text-blue-600">
+                      {row.type}
+                    </div>
+                    <h2 className="mt-1 text-xl font-black">{row.vehicle}</h2>
                   </div>
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">
+                  <span className="rounded-full bg-[#eef6ff] px-3 py-1 text-sm font-black text-blue-700">
                     {row.status}
                   </span>
                 </div>
-                <p className="mt-3 text-sm text-gray-600">{row.nextStep}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{row.nextStep}</p>
                 {row.received && (
-                  <p className="mt-2 text-xs text-gray-500">Received: {row.received}</p>
+                  <p className="mt-2 text-xs text-slate-500">Received: {row.received}</p>
                 )}
               </div>
             ))}

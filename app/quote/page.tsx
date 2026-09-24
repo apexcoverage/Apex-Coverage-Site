@@ -1,3 +1,4 @@
+import Link from "next/link";
 import React from "react";
 import QuoteForm from "@/components/QuoteForm";
 
@@ -6,43 +7,56 @@ export const metadata = {
   description: "Request an auto coverage review from Apex Coverage.",
 };
 
+const benefits = [
+  "No obligation",
+  "Clear guidance before you buy",
+  "Real human follow-up",
+  "Build review available if your vehicle is modified",
+];
+
 export default function QuotePage() {
   return (
-    <main className="min-h-screen bg-white text-gray-900">
-      <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(135deg, rgba(204,0,0,.08), transparent, rgba(204,0,0,.08))",
-          }}
+    <main className="min-h-screen bg-[#f4f8ff] text-slate-950">
+      <section className="relative isolate overflow-hidden bg-[#031326] text-white">
+        <img
+          src="/brand/apex-city-build.png"
+          alt="Modified vehicle overlooking a city"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-start">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#020914] via-[#031326]/88 to-[#031326]/50" />
+
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-2 md:items-start lg:py-20">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Standard auto coverage review.
+            <p className="text-xs font-black uppercase tracking-[0.34em] text-blue-300">
+              Auto coverage review
+            </p>
+            <h1 className="mt-4 text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
+              Coverage for the way you actually drive.
             </h1>
-            <p className="mt-4 text-gray-600 max-w-prose">
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-blue-50/90">
               Fill out a few details and an Apex agent will follow up with
               available coverage options. If your vehicle is modified, we can
               also help you start a build review.
             </p>
-            <ul className="mt-6 space-y-2 text-sm text-gray-600">
-              <li>- No obligation</li>
-              <li>- Clear pricing before you buy</li>
-              <li>- We will not sell your information</li>
-              <li>- Help from real humans</li>
-            </ul>
-            <a
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {benefits.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+            <Link
               href="/build-review"
-              className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-gray-50 transition"
+              className="mt-8 inline-flex rounded-lg border border-white/25 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur hover:bg-white/15"
             >
               Looking for Modified Vehicle Protection?
-            </a>
+            </Link>
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
             <QuoteForm />
           </div>
         </div>

@@ -14,120 +14,107 @@ export const metadata = {
   },
 };
 
+const values = [
+  { t: "Clarity over jargon", d: "Plain-English coverage guidance before you buy." },
+  { t: "Build-first review", d: "Your parts, records, mileage, title, and use all matter." },
+  { t: "Human support", d: "Agents who can walk through the build with you." },
+  { t: "Privacy by default", d: "Your data is respected. We do not sell your information." },
+];
+
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-white text-gray-900">
-      <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(120deg, rgba(204,0,0,.08), transparent, rgba(204,0,0,.12))",
-          }}
+    <main className="min-h-screen bg-[#f4f8ff] text-slate-950">
+      <section className="relative isolate overflow-hidden bg-[#031326] text-white">
+        <img
+          src="/brand/apex-city-build.png"
+          alt="Modified vehicle with city skyline"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="max-w-7xl mx-auto px-4 py-16 md:py-20">
-          <span className="text-sm tracking-wide text-[#cc0000] font-semibold">
-            ABOUT APEX COVERAGE
-          </span>
-          <h1 className="mt-2 text-4xl md:text-5xl font-bold leading-tight">
-            Coverage for people who actually love what they drive.
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#020914] via-[#031326]/88 to-[#031326]/55" />
+        <div className="mx-auto max-w-7xl px-4 py-16 lg:py-20">
+          <p className="text-xs font-black uppercase tracking-[0.34em] text-blue-300">
+            About Apex Coverage
+          </p>
+          <h1 className="mt-4 max-w-4xl text-5xl font-black leading-[0.98] tracking-tight md:text-7xl">
+            Coverage for people who love what they drive.
           </h1>
-          <p className="mt-4 max-w-3xl text-gray-600">
-            We started Apex Coverage to give enthusiast drivers a better way to
-            document, review, and protect modified vehicles. No runaround. No
-            mystery process. Just human guidance built around the vehicle you
-            actually own and the build you actually care about.
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-blue-50/90">
+            Apex Coverage gives enthusiast drivers a better way to document,
+            review, and protect modified vehicles. No mystery process. No
+            generic runaround. Just human guidance built around the vehicle and
+            the build.
           </p>
         </div>
       </section>
 
-      <section className="border-t bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-14 grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
-            <h2 className="text-2xl font-bold">Our mission</h2>
-            <p className="mt-3 text-gray-600">
-              Make modified vehicle protection clearer, more human, and more
-              practical for drivers who put real time and money into their cars.
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[.8fr_1.2fr]">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-600">
+              Our mission
+            </p>
+            <h2 className="mt-3 text-3xl font-black md:text-5xl">
+              Make coverage clearer for real drivers.
+            </h2>
+            <p className="mt-4 text-slate-600">
+              We are building a smoother, more human process for drivers who
+              put real time and money into their cars.
             </p>
           </div>
-          <div className="md:col-span-2 grid sm:grid-cols-2 gap-4">
-            {[
-              { t: "Clarity over jargon", d: "Plain-English coverage guidance before you buy." },
-              { t: "Build-first review", d: "Your parts, records, mileage, title, and use all matter." },
-              { t: "Human support", d: "Agents who can walk through the build with you." },
-              { t: "Privacy by default", d: "Your data is respected. We do not sell your information." },
-            ].map((value) => (
-              <div key={value.t} className="border rounded-xl p-5 bg-white">
-                <div className="font-semibold">{value.t}</div>
-                <div className="text-sm text-gray-600 mt-1">{value.d}</div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {values.map((value) => (
+              <div
+                key={value.t}
+                className="rounded-3xl border border-slate-200 bg-[#f4f8ff] p-5"
+              >
+                <div className="font-black">{value.t}</div>
+                <div className="mt-2 text-sm leading-6 text-slate-600">{value.d}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-2 gap-10 items-start">
-          <div>
-            <h2 className="text-2xl font-bold">Our story</h2>
-            <p className="mt-3 text-gray-600">
-              Apex Coverage began with a simple idea: people deserve a smoother
-              way to protect vehicles they care about. Standard coverage
-              conversations often miss what makes a modified car valuable, so
-              Apex built a review process around the actual build.
-            </p>
-            <p className="mt-3 text-gray-600">
-              Today, we serve people who drive, not just commute, with build
-              reviews, standard auto coverage reviews, claims support, and help
-              keeping records current.
-            </p>
-          </div>
-          <div className="bg-gray-50 border rounded-2xl p-6">
-            <h3 className="font-semibold">What we are building</h3>
-            <ul className="mt-3 space-y-3 text-sm text-gray-700">
-              <li>- A build-first review process</li>
-              <li>- Agent-assisted document upload during coverage calls</li>
-              <li>- Status lookup for build and auto coverage requests</li>
-              <li>- Human claims and customer support</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10">
-          <div>
-            <h2 className="text-2xl font-bold">How to reach us</h2>
-            <p className="mt-3 text-gray-600">
-              We are here to help with build reviews, coverage questions,
-              documents, claims, and next steps.
-            </p>
-          </div>
-          <div className="border rounded-2xl p-6 bg-white">
-            <div className="text-sm text-gray-600">
-              <div><b>Phone:</b> 844-398-2739</div>
-              <div className="mt-1"><b>Email:</b> support@driveapexcoverage.com</div>
-              <div className="mt-1"><b>Address:</b> Richmond, VA</div>
+      <section className="mx-auto max-w-7xl px-4 py-16">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,.12)]">
+          <div className="grid md:grid-cols-2">
+            <img
+              src="/brand/apex-build-review-garage.png"
+              alt="Build records and modified vehicle in a garage"
+              className="h-full min-h-[340px] w-full object-cover"
+            />
+            <div className="p-6 md:p-10">
+              <h2 className="text-3xl font-black">What we are building</h2>
+              <p className="mt-4 leading-7 text-slate-600">
+                Apex began with a simple idea: people deserve a smoother way to
+                protect vehicles they care about. Standard coverage conversations
+                often miss what makes a modified car valuable, so Apex built a
+                review process around the actual build.
+              </p>
+              <div className="mt-6 grid gap-3 text-sm font-bold text-slate-700">
+                <div className="rounded-2xl bg-[#eef6ff] px-4 py-3">Build-first review process</div>
+                <div className="rounded-2xl bg-[#eef6ff] px-4 py-3">Agent-assisted document upload</div>
+                <div className="rounded-2xl bg-[#eef6ff] px-4 py-3">Status lookup for customer requests</div>
+                <div className="rounded-2xl bg-[#eef6ff] px-4 py-3">Human claims and customer support</div>
+              </div>
             </div>
-            <Link
-              href="/build-review"
-              className="mt-5 inline-flex items-center gap-2 bg-[#cc0000] text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-red-700"
-            >
-              Protect My Build
-            </Link>
           </div>
         </div>
       </section>
 
-      <section className="relative">
-        <div className="absolute inset-0 bg-[#cc0000]/5 -z-10" />
-        <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-between gap-4">
-          <h3 className="text-2xl font-bold">Ready to get covered?</h3>
+      <section className="bg-[#04152a] text-white">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-14 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-3xl font-black">How to reach us</h2>
+            <p className="mt-3 text-blue-50/75">
+              Phone: 844-398-2739 | Email: support@driveapexcoverage.com | Richmond, VA
+            </p>
+          </div>
           <Link
-            href="/build-review"
-            className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700"
+            href="/protect-more-than-stock"
+            className="rounded-lg bg-blue-600 px-6 py-4 text-center text-sm font-black text-white hover:bg-blue-500"
           >
-            Protect My Build
+            Get My Quote
           </Link>
         </div>
       </section>

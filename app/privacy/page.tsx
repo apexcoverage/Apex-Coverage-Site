@@ -193,7 +193,7 @@ export default function PrivacyPage() {
           <h2 className="text-xl font-bold text-gray-900">Questions</h2>
           <p className="mt-2">
             Contact Apex at{" "}
-            <a className="font-semibold text-[#cc0000]" href="mailto:support@driveapexcoverage.com">
+            <a className="font-semibold text-[#cc0000]" href="mailto:admin@driveapexcoverage.com">
               admin@driveapexcoverage.com
             </a>{" "}
             or review the{" "}

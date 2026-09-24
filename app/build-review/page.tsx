@@ -8,129 +8,78 @@ export const metadata = {
     "Request an Apex Modified Vehicle Protection review for eligible aftermarket parts, modifications, and street-driven builds.",
 };
 
-const benefits = [
-  {
-    title: "Protect more than stock",
-    body:
-      "Your wheels, suspension, turbo kit, audio, body work, interior, tune, and other upgrades may represent thousands of dollars beyond factory equipment.",
-  },
-  {
-    title: "Built for real enthusiasts",
-    body:
-      "Apex reviews the actual vehicle, how it is used, what was added, what it is worth, and what documentation is available.",
-  },
-  {
-    title: "DIY builds can be reviewed",
-    body:
-      "Shop labor is helpful, but it is not the only path. Receipts, photos, part details, maintenance records, and clear documentation can all support the review.",
-  },
+const valueProps = [
+  "DIY and shop-built vehicles can be reviewed",
+  "Clean, rebuilt, salvage, mild, and serious builds can apply",
+  "Apex reviews parts value, documentation, mileage, use, and risk",
 ];
 
-const process = [
-  "Tell us about the vehicle and the parts you want reviewed.",
-  "Choose the tier, deductible, and coverage goals you want Apex to consider.",
-  "An agent reviews eligibility, documentation, risk, and possible pricing.",
-  "If the build qualifies, Apex walks you through the offer before anything starts.",
+const costCards = [
+  {
+    title: "The review is free",
+    body:
+      "Start with the vehicle and parts. If the build qualifies, Apex shows available options before anything starts.",
+  },
+  {
+    title: "Pricing depends on the build",
+    body:
+      "Vehicle, ZIP code, title status, mileage, parts value, deductible, use, driving history, and documentation all matter.",
+  },
+  {
+    title: "All vehicles can be submitted",
+    body:
+      "Apex can review daily drivers, weekend builds, show cars, higher-value builds, and vehicles with DIY-installed parts.",
+  },
 ];
 
 const reviewFactors = [
-  "Approximate value of parts",
-  "Vehicle year, make, model, VIN, mileage, and title status",
-  "How the vehicle is used and stored",
-  "Receipts, photos, install details, and maintenance records",
-  "Driving history, claim history, deductible preference, and location",
+  "Parts list and approximate value",
+  "Receipts, photos, invoices, and install notes",
+  "Current mileage and annual mileage",
+  "Title status and vehicle use",
+  "Driving history and claim history",
+  "Preferred deductible and tier interest",
 ];
 
 export default function BuildReviewPage() {
   return (
-    <main className="min-h-screen bg-white text-gray-900">
-      <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(135deg, rgba(204,0,0,.10), transparent, rgba(204,0,0,.08))",
-          }}
+    <main className="min-h-screen bg-[#f4f8ff] text-slate-950">
+      <section className="relative isolate overflow-hidden bg-[#031326] text-white">
+        <img
+          src="/brand/apex-build-review-garage.png"
+          alt="Modified vehicle in a modern garage with build documentation"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="relative max-w-7xl mx-auto px-4 py-16 grid lg:grid-cols-[1.05fr_.95fr] gap-10 items-start">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#020914] via-[#031326]/90 to-[#031326]/55" />
+
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 lg:grid-cols-[.95fr_1.05fr] lg:items-start lg:py-20">
           <div>
-            <span className="text-sm tracking-wide text-[#cc0000] font-semibold">
-              APEX MODIFIED VEHICLE PROTECTION
-            </span>
-            <h1 className="mt-2 text-4xl md:text-5xl font-bold leading-tight">
-              You built more than a car. Protect more than the factory equipment.
+            <p className="text-xs font-black uppercase tracking-[0.34em] text-blue-300">
+              Apex Modified Vehicle Protection
+            </p>
+            <h1 className="mt-4 text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
+              You built more than a car.
             </h1>
-            <p className="mt-5 text-lg text-gray-700 max-w-2xl">
-              Apex Coverage helps street-driven enthusiasts protect eligible
-              aftermarket parts that standard auto coverage may not fully value.
-              Start with a free build review so an Apex agent can understand the
-              vehicle, the parts, the documentation, and the right protection fit.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-blue-50/90">
+              Protect more than the factory equipment. Apex reviews eligible
+              aftermarket parts, documentation, vehicle use, and risk so an
+              agent can help you find a realistic path forward.
             </p>
 
-            <div className="mt-8 grid sm:grid-cols-3 gap-3">
-              {benefits.map((item) => (
-                <div key={item.title} className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                  <h2 className="font-semibold">{item.title}</h2>
-                  <p className="mt-2 text-sm text-gray-600">{item.body}</p>
+            <div className="mt-8 grid gap-3">
+              {valueProps.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur"
+                >
+                  {item}
                 </div>
               ))}
             </div>
 
-            <div className="mt-8 grid md:grid-cols-2 gap-5">
-              <div className="rounded-2xl border bg-white p-5 shadow-sm">
-                <h2 className="text-xl font-bold">What does it cost?</h2>
-                <p className="mt-3 text-sm text-gray-700">
-                  The build review is free. If your vehicle qualifies, your
-                  monthly cost is based on the vehicle, parts value, deductible,
-                  location, use, driving history, claim history, and available
-                  documentation. Lower part values and higher deductibles
-                  generally cost less; higher-value or higher-risk builds cost
-                  more. You will see the price before choosing to move forward.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border bg-white p-5 shadow-sm">
-                <h2 className="text-xl font-bold">Can my vehicle qualify?</h2>
-                <p className="mt-3 text-sm text-gray-700">
-                  Any vehicle can be submitted for review. Clean title, rebuilt
-                  title, mild build, heavy build, shop-built, DIY, daily driver,
-                  weekend car, and show-focused vehicles can all be considered.
-                  Final eligibility depends on the review and available program
-                  rules.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
-              <h2 className="text-xl font-bold">How the build review works</h2>
-              <ol className="mt-4 space-y-3 text-sm text-gray-700">
-                {process.map((item, index) => (
-                  <li key={item} className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#cc0000] text-xs font-bold text-white">
-                      {index + 1}
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div className="mt-8 rounded-2xl border bg-white p-5 shadow-sm">
-              <h2 className="text-xl font-bold">What Apex looks at</h2>
-              <div className="mt-4 grid sm:grid-cols-2 gap-2 text-sm text-gray-700">
-                {reviewFactors.map((item) => (
-                  <div key={item} className="rounded-lg bg-gray-50 px-3 py-2">
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <p className="mt-6 text-xs text-gray-500 max-w-2xl">
-              Submitting a request does not bind coverage or guarantee approval.
-              Covered parts, exclusions, deductible, pricing, and final terms are
-              determined after review. Want the shorter ad form instead?{" "}
-              <Link className="font-semibold text-[#cc0000] underline" href="/protect-more-than-stock">
+            <p className="mt-6 text-sm text-blue-50/75">
+              Looking for the shorter ad form instead?{" "}
+              <Link className="font-black text-blue-300 underline" href="/protect-more-than-stock">
                 Start here
               </Link>
               .
@@ -138,8 +87,53 @@ export default function BuildReviewPage() {
           </div>
 
           <div className="relative lg:sticky lg:top-28">
-            <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
             <BuildReviewForm />
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-14">
+          <div className="grid gap-5 md:grid-cols-3">
+            {costCards.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,.08)]"
+              >
+                <h2 className="text-xl font-black">{item.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  {item.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#04152a] text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-300">
+              What Apex looks at
+            </p>
+            <h2 className="mt-3 text-3xl font-black md:text-5xl">
+              Better documents create a cleaner review.
+            </h2>
+            <p className="mt-5 text-blue-50/75">
+              Missing paperwork does not always end the conversation, but good
+              documentation helps Apex understand the build faster and more
+              accurately.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {reviewFactors.map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl border border-blue-400/20 bg-white/[0.06] px-4 py-4 text-sm font-bold backdrop-blur"
+              >
+                {item}
+              </div>
+            ))}
           </div>
         </div>
       </section>

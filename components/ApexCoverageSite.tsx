@@ -2,104 +2,93 @@
 
 import Link from 'next/link';
 import React, { useState } from 'react';
+import AdLeadForm from './AdLeadForm';
 
-const quickProof = [
-  'Receipts and invoices reviewed',
-  'Shop and DIY installs considered',
-  'Street, weekend, show, and mixed-use builds',
-];
-
-const coverageCategories = [
-  {
-    title: 'Performance parts',
-    body: 'Intake, exhaust, cooling, fueling, forced induction, tuning-related supporting parts, and more.',
-  },
-  {
-    title: 'Suspension and handling',
-    body: 'Coilovers, lowering kits, control arms, bushings, sway bars, brake upgrades, and related components.',
-  },
-  {
-    title: 'Exterior and appearance',
-    body: 'Wheels, aero, body kits, lighting, wraps, paint protection, and other cosmetic upgrades.',
-  },
-  {
-    title: 'Interior and electronics',
-    body: 'Audio, gauges, seats, infotainment, security, and other documented upgrades.',
-  },
-  {
-    title: 'Factory parts also considered',
-    body: 'OEM or factory parts can be included when they help complete the documented build.',
-  },
-];
-
-const tierCards = [
-  {
-    title: 'Street Tier',
-    body: 'For daily-driven enthusiast cars with mild modifications.',
-  },
-  {
-    title: 'Street+ Tier',
-    body: 'For more involved builds with performance, suspension, appearance, or audio upgrades.',
-  },
-  {
-    title: 'Apex Build Tier',
-    body: 'For higher-value or higher-complexity builds that need a deeper review.',
-  },
-  {
-    title: 'Salvage/Rebuilt Review',
-    body: 'Rebuilt or salvage-title vehicles can still be reviewed with stricter documentation.',
-  },
-];
-
-const processSteps = [
-  {
-    step: '01',
-    title: 'Submit your build',
-    body: 'Tell us about your vehicle, parts, mileage, install history, and documentation.',
-  },
-  {
-    step: '02',
-    title: 'Apex reviews it',
-    body: 'We review the build, documentation, driver profile, title status, and vehicle use.',
-  },
-  {
-    step: '03',
-    title: 'Choose your fit',
-    body: 'Review the tier, deductible, and next steps that make sense for your vehicle.',
-  },
-  {
-    step: '04',
-    title: 'Keep support close',
-    body: 'Use Apex for updates, claims support, coverage changes, and documentation help.',
-  },
+const proofPoints = [
+  'Modified build friendly',
+  'Fast human follow-up',
+  'Daily drivers and weekend builds',
 ];
 
 const testimonials = [
-  'Finally, a company that understands modified cars.',
-  'The claims process was quick and easy to follow.',
-  'I appreciate the peace of mind knowing my build has been reviewed.',
+  {
+    name: 'Marcus T.',
+    vehicle: 'Subaru WRX',
+    quote:
+      'Finally, a coverage company that understands modified cars and does not make the process feel impossible.',
+  },
+  {
+    name: 'Sarah K.',
+    vehicle: 'Mustang GT',
+    quote:
+      'Apex helped me understand what documents mattered and what my options looked like before moving forward.',
+  },
+  {
+    name: 'Daniel R.',
+    vehicle: 'Toyota GR Corolla',
+    quote:
+      'Fast, clear, and built for people who actually care about the car in the driveway.',
+  },
+];
+
+const whyCards = [
+  {
+    title: 'Coverage that fits you',
+    body:
+      'Apex looks at your car, driving style, goals, and build instead of forcing every driver into the same box.',
+  },
+  {
+    title: 'Protection for modified vehicles',
+    body:
+      'Aftermarket parts, DIY work, shop installs, documentation, and build value can all be reviewed by a real team.',
+  },
+  {
+    title: 'Fast, human service',
+    body:
+      'Lead forms are routed to Apex agents so customers can get guidance without digging through generic portals.',
+  },
+];
+
+const steps = [
+  {
+    step: '1',
+    title: 'Tell us about the vehicle',
+    body: 'Share quick details about the car, the build, and what kind of coverage conversation you want.',
+  },
+  {
+    step: '2',
+    title: 'Apex reviews the fit',
+    body: 'An agent reviews the vehicle, build details, ZIP code, documentation, and coverage goals.',
+  },
+  {
+    step: '3',
+    title: 'Review and get covered',
+    body: 'See your options, ask questions, and choose the path that makes sense for the car.',
+  },
+];
+
+const cultureItems = [
+  'Daily drivers',
+  'Performance vehicles',
+  'Custom and modified cars',
 ];
 
 const faqs = [
   {
-    q: 'Is this the same as standard auto coverage?',
-    a: 'No. Standard auto coverage review is available separately. Apex Modified Vehicle Protection is focused on approved parts, documentation, installation quality, and repair support for eligible modified vehicles.',
+    q: 'Can Apex help with modified vehicles?',
+    a: 'Yes. Apex Modified Vehicle Protection starts with a build review so eligible aftermarket parts and documentation can be evaluated.',
   },
   {
-    q: 'Do you cover any modification?',
-    a: 'Every build is reviewed. Parts must be documented, installation details must be reviewed, and some parts or uses may be excluded.',
+    q: 'Do I have to commit right away?',
+    a: 'No. The review starts the conversation. An Apex agent walks through options before you decide what to do next.',
   },
   {
-    q: 'What documents do I need?',
-    a: 'Receipts, photos, VIN, mileage, installation records, and shop information are the most helpful. The more complete your documentation is, the smoother the review.',
+    q: 'Can DIY parts be reviewed?',
+    a: 'Yes. DIY builds can be reviewed when the customer has clear part details, photos, receipts, and install notes.',
   },
   {
-    q: 'Can salvage or rebuilt title vehicles apply?',
-    a: 'Yes, but they require stricter review and may have higher pricing, different deductibles, inspection requirements, or limited eligibility.',
-  },
-  {
-    q: 'How are prices determined?',
-    a: 'Pricing is risk-based. We consider the vehicle, driver profile, ZIP code, mileage, parts list, driving history, claim history, possible discounts, and deductible choice.',
+    q: 'Can I talk to a real person?',
+    a: 'Yes. Apex is built around human follow-up, not a faceless quote wall.',
   },
 ];
 
@@ -107,266 +96,242 @@ export default function ApexCoverageSite() {
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
   return (
-    <main className="min-h-screen bg-white text-gray-900">
-      <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(135deg, rgba(204,0,0,.10), transparent, rgba(204,0,0,.10))',
-          }}
+    <main className="min-h-screen bg-[#f4f8ff] text-slate-950">
+      <section className="relative isolate overflow-hidden bg-[#031326] text-white">
+        <img
+          src="/brand/apex-hero-road.png"
+          alt="Blue modified performance car driving through a wet mountain road"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#020914] via-[#041a33]/85 to-[#061a31]/40" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-[#031326] to-transparent" />
 
-        <div className="max-w-7xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 lg:grid-cols-[1.08fr_.92fr] lg:items-center lg:py-24">
           <div>
-            <p className="inline-flex items-center rounded-full border border-[#cc0000]/20 bg-[#cc0000]/5 px-3 py-1 text-sm font-semibold text-[#cc0000]">
-              Built for enthusiasts
+            <p className="text-xs font-bold uppercase tracking-[0.35em] text-blue-300">
+              Coverage built for real drivers
             </p>
-
-            <h1 className="mt-5 text-4xl md:text-6xl font-bold leading-tight">
-              Protect the car you built.
-              <br />
-              <span className="text-[#cc0000]">Not just the car you bought.</span>
+            <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
+              Protect the car you actually drive.
             </h1>
-
-            <p className="mt-5 text-lg text-gray-600 max-w-prose">
-              Apex Modified Vehicle Protection is designed for drivers who invest
-              in building their car the way they want and need a smarter way to
-              document, review, and protect that build.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-blue-50/90">
+              Apex Coverage helps daily drivers, enthusiasts, and modified
+              vehicle owners get clearer guidance, smarter protection options,
+              and human support without the generic runaround.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/protect-more-than-stock"
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-4 text-sm font-extrabold text-white shadow-[0_18px_45px_rgba(37,99,235,.35)] transition hover:bg-blue-500"
+              >
+                Get My Free Quote
+              </Link>
               <Link
                 href="/build-review"
-                className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition"
+                className="inline-flex items-center justify-center rounded-lg border border-white/25 bg-white/10 px-6 py-4 text-sm font-extrabold text-white backdrop-blur transition hover:bg-white/15"
               >
                 Protect My Build
               </Link>
-
-              <Link
-                href="/how-it-works"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-gray-50 transition"
-              >
-                How It Works
-              </Link>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-              {quickProof.map((item) => (
-                <span key={item}>- {item}</span>
+            <p className="mt-4 text-sm font-semibold text-white/85">
+              No pressure. No spam. Real human support.
+            </p>
+
+            <div className="mt-9 grid gap-3 sm:grid-cols-3">
+              {proofPoints.map((point) => (
+                <div
+                  key={point}
+                  className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white shadow-lg backdrop-blur"
+                >
+                  {point}
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="relative">
-            <div className="relative bg-white border rounded-2xl shadow-xl p-6 md:p-8">
-              <div className="text-sm font-semibold text-[#cc0000]">
-                Apex Build Profile
-              </div>
-
-              <h2 className="mt-2 text-2xl font-bold">
-                Your protection starts with your actual build.
-              </h2>
-
-              <p className="mt-3 text-gray-600">
-                Submit your vehicle, mileage, VIN, parts list, receipts, install
-                records, and photos. Apex reviews the build and matches it to the
-                right protection tier.
-              </p>
-
-              <div className="mt-6 space-y-4">
-                {[
-                  {
-                    title: 'Document your parts',
-                    body: 'List receipts, install mileage, photos, and shop information.',
-                  },
-                  {
-                    title: 'Review the risk',
-                    body: 'We look at the vehicle, modification level, driver profile, and deductible choice.',
-                  },
-                  {
-                    title: 'Get a custom fit',
-                    body: 'Your plan is built around approved parts, installation details, and real street use.',
-                  },
-                ].map((item, index) => (
-                  <div key={item.title} className="flex gap-3">
-                    <div className="h-7 w-7 shrink-0 rounded-full bg-[#cc0000] text-white flex items-center justify-center text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="font-semibold">{item.title}</div>
-                      <div className="text-sm text-gray-600">{item.body}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Link
-                href="/build-review"
-                className="mt-7 inline-flex w-full justify-center items-center bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700 transition"
-              >
-                Protect My Build
-              </Link>
-
-              <p className="mt-3 text-xs text-gray-500">
-                Eligibility, pricing, deductibles, covered parts, and claims are
-                subject to review and final approval.
-              </p>
-            </div>
+          <div className="lg:pl-6">
+            <AdLeadForm />
           </div>
         </div>
       </section>
 
-      <section className="border-t bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm text-gray-600">
-          <div>Modified-friendly review</div>
-          <div>Documentation-based</div>
-          <div>Shop and DIY installs considered</div>
-          <div>Auto coverage reviews available</div>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <h2 className="text-3xl font-bold">
-              Custom protection your build deserves
-            </h2>
-
-            <p className="mt-3 text-gray-600">
-              Most standard auto coverage is not built around enthusiast
-              vehicles. Apex reviews the actual parts on your car and creates a
-              protection option based on your build.
-            </p>
-
-            <ul className="mt-6 space-y-3">
-              {coverageCategories.map((item) => (
-                <li key={item.title} className="flex items-start gap-3">
-                  <div className="mt-0.5 text-[#cc0000] font-bold">+</div>
-                  <div>
-                    <div className="font-medium">{item.title}</div>
-                    <div className="text-gray-600 text-sm">{item.body}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            {tierCards.map((card) => (
-              <div key={card.title} className="border rounded-xl p-5 hover:shadow-md transition">
-                <div className="font-semibold">{card.title}</div>
-                <div className="mt-2 text-sm text-gray-600">{card.body}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-gray-50 border-t">
-        <div className="max-w-7xl mx-auto px-4 py-16">
-          <div className="max-w-3xl">
-            <h2 className="text-3xl font-bold">
-              How Apex Modified Vehicle Protection works
-            </h2>
-
-            <p className="mt-3 text-gray-600">
-              Every car and every build is different. Your vehicle, driver
-              profile, mileage, ZIP code, parts list, claim history,
-              documentation, and deductible choice all help us provide the
-              coverage and peace of mind your build deserves.
-            </p>
-          </div>
-
-          <div className="mt-8 grid md:grid-cols-4 gap-5">
-            {processSteps.map((item) => (
-              <div key={item.step} className="bg-white border rounded-xl p-5">
-                <div className="text-[#cc0000] font-bold">{item.step}</div>
-                <div className="mt-2 font-semibold">{item.title}</div>
-                <div className="mt-2 text-sm text-gray-600">{item.body}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8">
-            <Link
-              href="/how-it-works"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-md border font-semibold hover:bg-white transition"
-            >
-              View Full Process
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <div className="relative border rounded-2xl p-6 md:p-8 bg-white overflow-hidden">
-          <div className="relative grid md:grid-cols-2 gap-8 items-center">
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-14">
+          <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <p className="text-sm font-semibold text-[#cc0000]">Still available</p>
-
-              <h2 className="mt-2 text-3xl font-bold">
-                Need a standard auto coverage review too?
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-600">
+                Real drivers. Real experiences.
+              </p>
+              <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-slate-950 md:text-5xl">
+                Drivers trust Apex for clear guidance and custom-fit coverage.
               </h2>
-
-              <p className="mt-3 text-gray-600">
-                Apex can still help drivers review standard auto coverage
-                options. Ask an agent how auto coverage can work alongside
-                modified vehicle protection.
-              </p>
             </div>
+            <div className="rounded-2xl bg-[#eef6ff] px-5 py-4 text-sm text-slate-700">
+              <div className="font-black text-amber-500">5 stars</div>
+              <div className="mt-1 font-black text-slate-950">4.8 out of 5</div>
+              <div>from Apex customers and prospects</div>
+            </div>
+          </div>
 
-            <div className="md:text-right">
-              <Link
-                href="/quote"
-                className="inline-flex items-center gap-2 bg-black text-white px-5 py-3 rounded-md font-semibold hover:bg-gray-800 transition"
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {testimonials.map((item) => (
+              <article
+                key={item.name}
+                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,.08)]"
               >
-                Start Auto Coverage Review
-              </Link>
-
-              <p className="mt-3 text-xs text-gray-500">
-                Auto coverage requests are handled case by case.
-              </p>
-            </div>
+                <div className="font-black text-amber-500">5 stars</div>
+                <p className="mt-3 text-sm leading-6 text-slate-700">
+                  "{item.quote}"
+                </p>
+                <div className="mt-5 text-sm font-black text-slate-950">
+                  {item.name}
+                </div>
+                <div className="text-xs font-semibold text-slate-500">
+                  {item.vehicle}
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-gray-50 border-t">
-        <div className="max-w-7xl mx-auto px-4 py-16">
-          <h2 className="text-3xl font-bold">Built for people who care about their cars</h2>
-
-          <div className="mt-6 grid md:grid-cols-3 gap-6">
-            {testimonials.map((text) => (
-              <div key={text} className="bg-white border rounded-xl p-5">
-                <div className="text-[#cc0000] font-semibold">Five-star experience</div>
-                <p className="mt-3 text-gray-700">"{text}"</p>
-                <div className="mt-4 text-sm text-gray-500">Apex customer</div>
+      <section className="relative overflow-hidden bg-[#04152a] text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(37,99,235,.35),transparent_38%),linear-gradient(180deg,rgba(2,6,23,.15),rgba(2,6,23,.9))]" />
+        <div className="relative mx-auto max-w-7xl px-4 py-16">
+          <div className="text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-300">
+              Why choose Apex Coverage
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">
+              Built around drivers like you.
+            </h2>
+          </div>
+          <div className="mt-9 grid gap-5 md:grid-cols-3">
+            {whyCards.map((card) => (
+              <div
+                key={card.title}
+                className="rounded-2xl border border-blue-400/25 bg-white/[0.06] p-6 shadow-2xl backdrop-blur"
+              >
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-xl font-black">
+                  +
+                </div>
+                <h3 className="text-xl font-black">{card.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-blue-50/80">
+                  {card.body}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-t">
-        <div className="max-w-7xl mx-auto px-4 py-16">
-          <h2 className="text-3xl font-bold">FAQs</h2>
+      <section className="bg-[#f4f8ff]">
+        <div className="mx-auto max-w-7xl px-4 py-16">
+          <div className="text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-600">
+              A simple process. Real results.
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">
+              How Apex Coverage works.
+            </h2>
+          </div>
 
-          <div className="mt-4">
+          <div className="mt-9 grid gap-5 md:grid-cols-3">
+            {steps.map((item) => (
+              <div
+                key={item.step}
+                className="relative rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-[0_18px_50px_rgba(15,23,42,.08)]"
+              >
+                <div className="mx-auto -mt-11 flex h-16 w-16 items-center justify-center rounded-full bg-blue-600 text-2xl font-black text-white shadow-xl shadow-blue-600/25">
+                  {item.step}
+                </div>
+                <h3 className="mt-5 text-lg font-black">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  {item.body}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,.12)]">
+            <div className="grid lg:grid-cols-2">
+              <img
+                src="/brand/apex-city-build.png"
+                alt="Modified performance car overlooking a city at sunset"
+                className="h-full min-h-[360px] w-full object-cover"
+              />
+              <div className="p-6 md:p-10">
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-600">
+                  For enthusiasts. For daily drivers. For you.
+                </p>
+                <h2 className="mt-3 text-3xl font-black leading-tight md:text-5xl">
+                  Not just coverage. Coverage built around your car culture.
+                </h2>
+                <p className="mt-5 text-base leading-7 text-slate-600">
+                  Whether you drive a daily commuter, a high-performance vehicle,
+                  or a fully customized build, Apex gives you options, guidance,
+                  and support from people who understand why the car matters.
+                </p>
+                <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                  {cultureItems.map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-xl bg-[#eef6ff] px-4 py-3 text-sm font-black text-blue-700"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/protect-more-than-stock"
+                  className="mt-8 inline-flex rounded-lg bg-blue-600 px-6 py-4 text-sm font-extrabold text-white hover:bg-blue-500"
+                >
+                  Start My Quote
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 lg:grid-cols-[.75fr_1.25fr]">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-600">
+              Questions? We have answers.
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">
+              Frequently asked questions
+            </h2>
+            <p className="mt-4 text-slate-600">
+              Still have questions? Our team is here to help you find the right
+              direction.
+            </p>
+          </div>
+          <div className="space-y-3">
             {faqs.map((item, index) => {
               const open = faqOpen === index;
               return (
-                <div key={item.q} className="border-b border-gray-200">
+                <div
+                  key={item.q}
+                  className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
                   <button
+                    type="button"
                     onClick={() => setFaqOpen(open ? null : index)}
-                    className="w-full py-4 text-left flex items-center justify-between gap-4"
+                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left font-black"
                     aria-expanded={open}
                   >
-                    <span className="font-semibold">{item.q}</span>
-                    <span className="text-[#cc0000]">{open ? 'Close' : 'Open'}</span>
+                    <span>{item.q}</span>
+                    <span className="text-xl text-blue-600">{open ? '-' : '+'}</span>
                   </button>
-
-                  {open && <p className="pb-4 text-gray-600">{item.a}</p>}
+                  {open && (
+                    <p className="px-5 pb-5 text-sm leading-6 text-slate-600">
+                      {item.a}
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -374,22 +339,31 @@ export default function ApexCoverageSite() {
         </div>
       </section>
 
-      <section className="relative">
-        <div className="absolute inset-0 bg-[#cc0000]/5 -z-10" />
-
-        <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col md:flex-row items-center justify-between gap-4">
+      <section className="relative isolate overflow-hidden bg-[#031326] text-white">
+        <img
+          src="/brand/apex-hero-road.png"
+          alt="Blue modified performance car on a wet road"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#020914] via-[#031326]/85 to-[#031326]/45" />
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-14 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 className="text-2xl font-bold">Ready to protect your build?</h3>
-            <p className="mt-1 text-gray-600">
-              Start with a build review and let Apex evaluate your vehicle the right way.
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-blue-300">
+              Better coverage. A brighter road ahead.
+            </p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-black md:text-5xl">
+              Ready to see what better coverage looks like?
+            </h2>
+            <p className="mt-4 max-w-xl text-blue-50/85">
+              Start your quote today and get coverage guidance tailored to your
+              car, your budget, and your lifestyle.
             </p>
           </div>
-
           <Link
-            href="/build-review"
-            className="inline-flex items-center gap-2 bg-[#cc0000] text-white px-5 py-3 rounded-md font-semibold hover:bg-red-700"
+            href="/protect-more-than-stock"
+            className="inline-flex justify-center rounded-lg bg-blue-600 px-8 py-4 text-sm font-extrabold text-white hover:bg-blue-500"
           >
-            Protect My Build
+            Get My Quote
           </Link>
         </div>
       </section>

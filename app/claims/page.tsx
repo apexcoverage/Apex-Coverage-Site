@@ -6,41 +6,53 @@ export const metadata = {
   description: "Report a claim to Apex Coverage.",
 };
 
+const support = [
+  "Quick intake",
+  "Human help when you need it",
+  "Support for build and auto coverage customers",
+];
+
 export default function ClaimsPage() {
   return (
-    <main className="min-h-screen bg-white text-gray-900">
-      <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(135deg, rgba(204,0,0,.08), transparent, rgba(204,0,0,.08))",
-          }}
+    <main className="min-h-screen bg-[#f4f8ff] text-slate-950">
+      <section className="relative isolate overflow-hidden bg-[#031326] text-white">
+        <img
+          src="/brand/apex-build-review-garage.png"
+          alt="Modified vehicle in a modern garage"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-2 gap-10 items-start">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#020914] via-[#031326]/88 to-[#031326]/55" />
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-2 md:items-start lg:py-20">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              File a claim
+            <p className="text-xs font-black uppercase tracking-[0.34em] text-blue-300">
+              Claims support
+            </p>
+            <h1 className="mt-4 text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
+              File a claim with Apex.
             </h1>
-            <p className="mt-4 text-gray-600 max-w-prose">
-              Tell us what happened. We will guide you through next steps and
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-blue-50/90">
+              Tell us what happened. Apex will guide you through next steps and
               help coordinate the resolution.
             </p>
-            <ul className="mt-6 space-y-2 text-sm text-gray-600">
-              <li>- Quick intake</li>
-              <li>- Human help when you need it</li>
-              <li>- Support for build and auto coverage customers</li>
-            </ul>
-            <div className="mt-6 text-sm text-gray-600">
+            <div className="mt-8 grid gap-3">
+              {support.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4 text-sm text-blue-50/90 backdrop-blur">
               <b>Emergency?</b> Call{" "}
-              <a className="underline" href="tel:+18443982739">
+              <a className="font-black underline" href="tel:+18443982739">
                 844-398-2739
               </a>.
             </div>
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-4 bg-[#cc0000]/10 blur-2xl rounded-3xl" aria-hidden />
             <ClaimForm />
           </div>
         </div>

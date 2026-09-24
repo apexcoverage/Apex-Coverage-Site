@@ -71,18 +71,18 @@ export default function BuildReviewForm() {
 
   if (formStatus === 'success') {
     return (
-      <div className="relative bg-white border rounded-2xl shadow-xl p-6 text-center">
-        <div className="mx-auto h-12 w-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-sm font-bold">
+      <div className="relative rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-2xl">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-sm font-black text-emerald-700">
           OK
         </div>
-        <h3 className="mt-4 text-2xl font-semibold text-green-700">Build Review Submitted</h3>
-        <p className="mt-2 text-gray-700">
+        <h3 className="mt-4 text-2xl font-black text-emerald-800">Build Review Submitted</h3>
+        <p className="mt-2 text-emerald-900">
           Thanks. Apex will review the vehicle, documented parts, deductible preference,
           coverage goals, and risk details before following up.
         </p>
         <button
           onClick={() => setFormStatus('idle')}
-          className="mt-6 bg-[#cc0000] text-white px-6 py-2 rounded-md font-semibold hover:bg-red-700"
+          className="mt-6 rounded-lg bg-blue-600 px-6 py-3 font-black text-white hover:bg-blue-500"
         >
           Start Another Build Review
         </button>
@@ -91,28 +91,28 @@ export default function BuildReviewForm() {
   }
 
   return (
-    <div className="relative bg-white border rounded-2xl shadow-xl p-6">
+    <div className="relative rounded-3xl border border-slate-200 bg-white p-6 text-slate-950 shadow-[0_28px_80px_rgba(2,6,23,.18)]">
       <div className="flex items-center justify-between gap-2 mb-5">
         {steps.map((label, index) => (
           <div key={label} className="flex-1">
             <div
-              className={`h-2 rounded-full ${index <= step ? 'bg-[#cc0000]' : 'bg-gray-200'}`}
+              className={`h-2 rounded-full ${index <= step ? 'bg-blue-600' : 'bg-slate-200'}`}
               aria-hidden
             />
-            <div className={`mt-1 text-[11px] ${index === step ? 'font-semibold text-[#cc0000]' : 'text-gray-500'}`}>
+            <div className={`mt-1 text-[11px] ${index === step ? 'font-black text-blue-600' : 'text-slate-500'}`}>
               {label}
             </div>
           </div>
         ))}
       </div>
 
-      <h3 className="text-xl font-semibold mb-1">Start your build review</h3>
-      <p className="text-sm text-gray-600 mb-4">
+      <h3 className="mb-1 text-2xl font-black">Start your build review</h3>
+      <p className="mb-4 text-sm leading-6 text-slate-600">
         Step {step + 1} of {steps.length}: share the details Apex needs to review your build.
       </p>
 
       {formStatus === 'error' && (
-        <div className="mb-3 rounded-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           We could not submit your build review. Please try again in a moment or email{' '}
           <a className="underline" href="mailto:support@driveapexcoverage.com">
             support@driveapexcoverage.com
@@ -351,13 +351,13 @@ export default function BuildReviewForm() {
             <button
               type="button"
               onClick={goNext}
-              className="ml-auto bg-[#cc0000] hover:bg-red-700 text-white font-semibold px-5 py-2 rounded-md"
+              className="ml-auto rounded-lg bg-blue-600 px-5 py-2 font-black text-white hover:bg-blue-500"
             >
               Next
             </button>
           ) : (
             <button
-              className="ml-auto bg-[#cc0000] hover:bg-red-700 text-white font-semibold px-5 py-2 rounded-md disabled:opacity-50"
+              className="ml-auto rounded-lg bg-blue-600 px-5 py-2 font-black text-white hover:bg-blue-500 disabled:opacity-50"
               disabled={formStatus === 'submitting'}
             >
               {formStatus === 'submitting' ? 'Submitting...' : 'Submit my build review'}

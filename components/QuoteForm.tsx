@@ -38,17 +38,17 @@ export default function QuoteForm() {
 
   if (formStatus === 'success') {
     return (
-      <div className="relative bg-white border rounded-2xl shadow-xl p-6 text-center">
-        <h3 className="text-2xl font-semibold text-green-700 mb-2">
+      <div className="relative rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-2xl">
+        <h3 className="mb-2 text-2xl font-black text-emerald-800">
           Coverage Review Submitted
         </h3>
-        <p className="text-gray-700 mb-6">
+        <p className="mb-6 text-emerald-900">
           Thanks for reaching out. An Apex Coverage agent will contact you soon
           to review your options.
         </p>
         <button
           onClick={() => setFormStatus('idle')}
-          className="bg-red-600 text-white px-6 py-2 rounded-md font-semibold hover:bg-red-700"
+          className="rounded-lg bg-blue-600 px-6 py-3 font-black text-white hover:bg-blue-500"
         >
           Start Another Review
         </button>
@@ -57,14 +57,14 @@ export default function QuoteForm() {
   }
 
   return (
-    <div className="relative bg-white border rounded-2xl shadow-xl p-6">
-      <h3 className="text-xl font-semibold mb-1">Start an auto coverage review</h3>
-      <p className="text-sm text-gray-600 mb-4">
+    <div className="relative rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_28px_80px_rgba(2,6,23,.18)]">
+      <h3 className="mb-1 text-2xl font-black">Start an auto coverage review</h3>
+      <p className="mb-4 text-sm leading-6 text-slate-600">
         Takes less than 60 seconds. An Apex agent will follow up.
       </p>
 
       {formStatus === 'error' && (
-        <div className="mb-3 rounded-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           We could not submit your coverage request. Please try again in a moment or email{' '}
           <a className="underline" href="mailto:support@driveapexcoverage.com">
             support@driveapexcoverage.com
@@ -75,38 +75,38 @@ export default function QuoteForm() {
       <form onSubmit={onSubmitQuote} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="sm:col-span-2">
           <label className="text-sm">Full name</label>
-          <input name="name" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Jane Driver" />
+          <input name="name" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="Jane Driver" />
         </div>
         <div>
           <label className="text-sm">Email</label>
-          <input type="email" name="email" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="jane@example.com" />
+          <input type="email" name="email" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="jane@example.com" />
         </div>
         <div>
           <label className="text-sm">Phone</label>
-          <input name="phone" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="844-398-2739" />
+          <input name="phone" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="844-398-2739" />
         </div>
         <div>
           <label className="text-sm">ZIP</label>
-          <input name="zip" pattern="\d{5}" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="23219" />
+          <input name="zip" pattern="\d{5}" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="23219" />
         </div>
         <div>
           <label className="text-sm">Date of birth</label>
-          <input type="date" name="dob" required className="w-full mt-1 border rounded-md px-3 py-2" />
+          <input type="date" name="dob" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" />
         </div>
         <div>
           <label className="text-sm">Vehicle year</label>
-          <input name="year" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="2022" />
+          <input name="year" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="2022" />
         </div>
         <div>
           <label className="text-sm">Make</label>
-          <input name="make" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Toyota" />
+          <input name="make" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="Toyota" />
         </div>
         <div>
           <label className="text-sm">Model</label>
-          <input name="model" required className="w-full mt-1 border rounded-md px-3 py-2" placeholder="Camry" />
+          <input name="model" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="Camry" />
         </div>
         <div className="sm:col-span-2">
-          <label className="inline-flex items-start gap-2 text-xs text-gray-600">
+          <label className="inline-flex items-start gap-2 text-xs leading-5 text-slate-600">
             <input
               type="checkbox"
               checked={consent}
@@ -118,13 +118,13 @@ export default function QuoteForm() {
         </div>
         <div className="sm:col-span-2">
           <button
-            className="w-full bg-[#cc0000] hover:bg-red-700 text-white font-semibold py-2.5 rounded-md disabled:opacity-50"
+            className="w-full rounded-xl bg-blue-600 py-3.5 font-black text-white shadow-lg shadow-blue-600/25 hover:bg-blue-500 disabled:opacity-50"
             disabled={formStatus === 'submitting'}
           >
             {formStatus === 'submitting' ? 'Submitting...' : 'Request Coverage Review'}
           </button>
         </div>
-        <p className="sm:col-span-2 text-[11px] text-gray-500">
+        <p className="sm:col-span-2 text-[11px] text-slate-500">
           This is a request for review only. Final pricing and eligibility depend
           on approval and available options.
         </p>
