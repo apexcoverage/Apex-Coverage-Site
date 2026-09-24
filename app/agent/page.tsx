@@ -727,6 +727,12 @@ export default function AgentDashboardPage() {
               >
                 Customers
               </Link>
+              <Link
+                href="/agent/quotes"
+                className="px-3 py-1.5 rounded-full text-slate-700 hover:bg-slate-100"
+              >
+                Quote Tool
+              </Link>
             </div>
 
             <button
