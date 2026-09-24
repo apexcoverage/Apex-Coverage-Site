@@ -16,6 +16,43 @@ function isEmail(value: unknown) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
+function clean(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function formatVehicle(input: CoverageDocumentData) {
+  if (input.type === "auto") {
+    if (Array.isArray(input.vehicles)) {
+      return input.vehicles.map((vehicle) => clean(vehicle)).filter(Boolean).join("; ");
+    }
+    return clean(input.vehicles);
+  }
+
+  return [input.year, input.make, input.model].map(clean).filter(Boolean).join(" ");
+}
+
+function buildEmailSummary(input: CoverageDocumentData) {
+  const effectiveDate = clean(input.effectiveDate || input.policyPeriodStart || "");
+
+  if (input.type === "auto") {
+    return {
+      policyNumber: clean(input.policyNumber) || "Pending confirmation",
+      effectiveDate: effectiveDate || "Pending confirmation",
+      vehicles: formatVehicle(input) || "Vehicle schedule on file",
+      coverage: clean(input.coverage) || "Auto coverage",
+      deductibles: clean(input.deductibles) || "See attached policy documents",
+    };
+  }
+
+  return {
+    policyNumber: clean(input.planNumber) || "Pending confirmation",
+    effectiveDate: effectiveDate || "Pending confirmation",
+    vehicles: formatVehicle(input) || "Vehicle profile on file",
+    coverage: "Modified Vehicle Protection",
+    deductibles: clean(input.deductible) || "See attached protection packet",
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => null)) as CoverageDocumentData | null;
@@ -37,6 +74,7 @@ export async function POST(req: Request) {
       documentType: body.type,
       filename,
       pdfBase64: pdfBuffer.toString("base64"),
+      summary: buildEmailSummary(body),
     });
 
     return NextResponse.json({
