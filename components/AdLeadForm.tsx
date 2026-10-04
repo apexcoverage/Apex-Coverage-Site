@@ -3,6 +3,39 @@
 import React, { useState } from 'react';
 import ConsentDisclosure from './ConsentDisclosure';
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+const defaultGoogleAdsId = "AW-18491289640";
+const googleAdsId =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ||
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_AD_LEAD_SEND_TO?.split("/")[0] ||
+  defaultGoogleAdsId;
+const adLeadConversionLabel =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_AD_LEAD_CONVERSION_LABEL;
+const adLeadConversionSendTo =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_AD_LEAD_SEND_TO ||
+  (googleAdsId && adLeadConversionLabel
+    ? `${googleAdsId}/${adLeadConversionLabel}`
+    : "");
+
+function trackAdLandingLeadSubmit() {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.gtag !== 'function' ||
+    !adLeadConversionSendTo
+  ) {
+    return;
+  }
+
+  window.gtag('event', 'conversion', {
+    send_to: adLeadConversionSendTo,
+  });
+}
+
 export default function AdLeadForm() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [error, setError] = useState('');
@@ -27,6 +60,7 @@ export default function AdLeadForm() {
         throw new Error(data?.error || 'Submission failed.');
       }
 
+      trackAdLandingLeadSubmit();
       setStatus('success');
       form.reset();
     } catch (err: any) {
