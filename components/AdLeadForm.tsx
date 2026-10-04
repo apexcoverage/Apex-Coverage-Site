@@ -10,6 +10,8 @@ declare global {
 }
 
 const defaultGoogleAdsId = "AW-18491289640";
+const defaultAdLeadConversionSendTo =
+  "AW-18491289640/GZzFCJq50Y4dEKjgqvFE";
 const googleAdsId =
   process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ||
   process.env.NEXT_PUBLIC_GOOGLE_ADS_AD_LEAD_SEND_TO?.split("/")[0] ||
@@ -20,7 +22,7 @@ const adLeadConversionSendTo =
   process.env.NEXT_PUBLIC_GOOGLE_ADS_AD_LEAD_SEND_TO ||
   (googleAdsId && adLeadConversionLabel
     ? `${googleAdsId}/${adLeadConversionLabel}`
-    : "");
+    : defaultAdLeadConversionSendTo);
 
 function trackAdLandingLeadSubmit() {
   if (
@@ -33,6 +35,8 @@ function trackAdLandingLeadSubmit() {
 
   window.gtag('event', 'conversion', {
     send_to: adLeadConversionSendTo,
+    value: 1.0,
+    currency: 'USD',
   });
 }
 
