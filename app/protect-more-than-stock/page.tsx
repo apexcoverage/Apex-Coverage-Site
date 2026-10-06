@@ -5,13 +5,13 @@ import AdLeadForm from "@/components/AdLeadForm";
 export const metadata = {
   title: "Protect More Than Stock | Apex Coverage",
   description:
-    "Apex Coverage helps drivers protect eligible aftermarket parts, DIY builds, and modified vehicles with a simple build-focused review.",
+    "Apex Coverage helps drivers review modified vehicle protection, standard auto coverage, and options for eligible aftermarket parts.",
 };
 
 const heroPoints = [
-  "Aftermarket parts can be reviewed for protection",
-  "DIY and shop-built vehicles can both be considered",
-  "Plans can start as low as $15/month",
+  "Eligible aftermarket parts can be reviewed",
+  "DIY and shop-built vehicles are welcome",
+  "Modified vehicle protection can start as low as $15/month",
 ];
 
 const buildTiers = [
@@ -19,21 +19,21 @@ const buildTiers = [
     name: "Street Tier",
     label: "Mild street builds",
     body:
-      "For daily-driven cars with documented upgrades that make the vehicle feel like yours without turning it into a full build project.",
+      "For daily-driven vehicles with documented upgrades that make the car feel like yours without turning it into a full build project.",
     examples: ["Wheels and tires", "Mild suspension", "Intake and exhaust", "Lighting or appearance upgrades"],
   },
   {
     name: "Street+ Tier",
     label: "Deeper enthusiast builds",
     body:
-      "For cars with more meaningful performance, appearance, audio, or drivability upgrades that deserve a closer review.",
+      "For vehicles with more meaningful performance, appearance, audio, or drivability upgrades that deserve a closer review.",
     examples: ["Coilovers", "Brake upgrades", "ECU tune", "Larger audio systems"],
   },
   {
     name: "Apex Build Tier",
     label: "Higher-value custom builds",
     body:
-      "For higher-value, higher-complexity, or heavily modified vehicles where the build itself needs a more detailed look.",
+      "For higher-value or more complex builds where the parts list, documentation, and vehicle details need a more complete review.",
     examples: ["Forced induction", "Engine or transmission upgrades", "Widebody work", "Complex multi-system builds"],
   },
 ];
@@ -59,27 +59,33 @@ const processSteps = [
     step: "1",
     title: "Tell us about your build",
     body:
-      "Start with the basics: your vehicle, ZIP code, contact info, and a rough idea of the parts value.",
+      "Share the basics: vehicle, ZIP code, best contact info, and a rough idea of the parts value.",
   },
   {
     step: "2",
     title: "Apex reviews the modifications",
     body:
-      "A real agent looks at the build, asks for the right documentation, and explains what can be considered.",
+      "A real agent reviews the vehicle, asks for the right documentation, and explains what can be considered.",
   },
   {
     step: "3",
-    title: "Get protection built around your car",
+    title: "Review your next step",
     body:
-      "You review the path forward, ask questions, and decide whether the protection makes sense for the vehicle.",
+      "You get clear guidance, ask questions, and decide whether Apex is the right fit for the vehicle.",
   },
 ];
 
 const trustItems = [
-  "Human follow-up from an Apex agent",
-  "Clear documentation guidance",
+  "A real Apex agent follows up",
+  "You get clear documentation guidance",
   "DIY and shop-built vehicles can be reviewed",
-  "Traditional auto coverage is available as a separate option",
+  "You can ask questions before moving forward",
+];
+
+const autoCoverageItems = [
+  "Liability-only and full coverage conversations",
+  "Daily drivers, commuters, and family vehicles",
+  "A single place to ask about standard auto coverage, modified vehicle protection, or both",
 ];
 
 export default function ProtectMoreThanStockPage() {
@@ -103,10 +109,10 @@ export default function ProtectMoreThanStockPage() {
               You built more than a car. Protect more than stock.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-blue-50/90">
-              Apex Coverage protects eligible aftermarket parts that traditional
-              auto coverage may not fully value. Built for daily drivers,
-              weekend cars, DIY builds, and enthusiast vehicles that deserve a
-              closer look.
+              Apex helps protect eligible aftermarket parts that traditional
+              auto coverage may not fully recognize. Whether you drive a daily,
+              weekend car, DIY build, or full custom project, our team helps you
+              understand what can be reviewed and what happens next.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -147,14 +153,13 @@ export default function ProtectMoreThanStockPage() {
                   Built different. Covered different.
                 </p>
                 <h2 className="mt-3 text-3xl font-black md:text-5xl">
-                  Your build should feel recognizable on the page.
+                  Finally, coverage language that sounds like your car.
                 </h2>
               </div>
               <p className="text-base leading-7 text-blue-50/80">
-                Apex does not treat every modified car like the same generic
-                sedan. These are the real Apex tier starting points already used
-                on the site. Final fit depends on the vehicle, documentation,
-                parts value, deductible, and review.
+                Apex uses real build-focused starting points: Street Tier,
+                Street+ Tier, and Apex Build Tier. Final fit depends on the
+                vehicle, documentation, parts value, deductible, and review.
               </p>
             </div>
 
@@ -195,13 +200,13 @@ export default function ProtectMoreThanStockPage() {
               What happens when something breaks?
             </p>
             <h2 className="mt-3 text-3xl font-black leading-tight md:text-5xl">
-              Protection is easier to trust when you can picture the claim.
+              Your upgrades should not disappear when it matters.
             </h2>
             <p className="mt-5 text-base leading-7 text-slate-600">
               Say a Mustang has a documented supercharger package, supporting
               fuel upgrades, and related parts worth about $9,000. With Apex,
-              those approved modifications can be reviewed as part of the build
-              profile instead of being treated like invisible extras.
+              eligible approved modifications can be part of the review instead
+              of being treated like invisible extras.
             </p>
             <p className="mt-4 text-sm leading-6 text-slate-500">
               Coverage, eligibility, valuation, deductibles, exclusions, and
@@ -244,9 +249,10 @@ export default function ProtectMoreThanStockPage() {
               Plans can start as low as $15/month.
             </h2>
             <p className="mt-5 text-base leading-7 text-blue-50/82">
-              Final pricing depends on the actual build. Think of the starting
-              point as a low-friction way to begin the conversation, then Apex
-              reviews the vehicle and parts before giving guidance.
+              Final pricing depends on the actual vehicle and build. The quick
+              form helps Apex understand what you drive, what you have added,
+              and which path makes the most sense before you spend time on a
+              full review.
             </p>
             <div className="mt-7 grid gap-3">
               {pricingFactors.map((factor) => (
@@ -262,10 +268,10 @@ export default function ProtectMoreThanStockPage() {
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,.08)] md:p-8">
             <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-600">
-              Trust before the form
+              What happens next
             </p>
             <h2 className="mt-3 text-3xl font-black md:text-5xl">
-              You should know what happens after you submit.
+              You are not dropped into a generic quote machine.
             </h2>
             <div className="mt-7 grid gap-4">
               {trustItems.map((item) => (
@@ -280,8 +286,54 @@ export default function ProtectMoreThanStockPage() {
             <p className="mt-6 text-sm leading-6 text-slate-600">
               Apex may ask for photos, receipts, VIN, mileage, installed parts
               details, and other documentation before anything can be finalized.
-              The goal is to make the review clear instead of making you guess.
+              The goal is to make the next step clear instead of making you
+              guess what matters.
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#031326] text-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-300">
+              Standard auto coverage
+            </p>
+            <h2 className="mt-3 text-3xl font-black leading-tight md:text-5xl">
+              Just looking for regular auto coverage? You are in the right place too.
+            </h2>
+            <p className="mt-5 text-base leading-7 text-blue-50/82">
+              Some drivers come to Apex for modified vehicle protection. Others
+              just want help reviewing standard auto coverage for a daily
+              driver, commuter, or family vehicle. If that is you, choose
+              "Standard auto coverage review" in the form or go straight to the
+              auto quote page.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <a
+                href="#start-quote"
+                className="inline-flex justify-center rounded-lg bg-blue-600 px-6 py-4 text-sm font-black text-white hover:bg-blue-500"
+              >
+                Use the Quick Form
+              </a>
+              <Link
+                href="/quote"
+                className="inline-flex justify-center rounded-lg border border-white/25 bg-white/10 px-6 py-4 text-sm font-black text-white backdrop-blur hover:bg-white/15"
+              >
+                Get an Auto Coverage Quote
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {autoCoverageItems.map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl border border-blue-300/20 bg-white/[0.08] px-5 py-5 text-sm font-black text-blue-50"
+              >
+                {item}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -330,7 +382,7 @@ export default function ProtectMoreThanStockPage() {
               Start the conversation
             </p>
             <h2 className="mt-3 text-4xl font-black leading-tight md:text-6xl">
-              Tell us what you drive. Apex will tell you what comes next.
+              Tell us what you drive. We will help with the next step.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-blue-50/85">
               Use the quick form if you want an Apex agent to reach out. Keep it
