@@ -6,6 +6,7 @@ import ConsentDisclosure from './ConsentDisclosure';
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
+    gtag_report_conversion?: (url?: string) => boolean;
   }
 }
 
@@ -25,11 +26,16 @@ const adLeadConversionSendTo =
     : defaultAdLeadConversionSendTo);
 
 function trackAdLandingLeadSubmit() {
-  if (
-    typeof window === 'undefined' ||
-    typeof window.gtag !== 'function' ||
-    !adLeadConversionSendTo
-  ) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (typeof window.gtag_report_conversion === 'function') {
+    window.gtag_report_conversion();
+    return;
+  }
+
+  if (typeof window.gtag !== 'function' || !adLeadConversionSendTo) {
     return;
   }
 
