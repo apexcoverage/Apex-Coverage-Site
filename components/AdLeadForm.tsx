@@ -76,7 +76,7 @@ export default function AdLeadForm() {
   if (status === 'success') {
     return (
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900 shadow-2xl">
-        <h2 className="text-2xl font-black">Apex received your info.</h2>
+        <h2 className="text-2xl font-black">Apex received your request.</h2>
         <p className="mt-2 text-sm leading-6">
           An Apex agent will reach out, confirm what you are interested in, and
           explain the next step for your vehicle.
@@ -98,10 +98,10 @@ export default function AdLeadForm() {
         Takes about 60 seconds
       </p>
       <h2 className="mt-2 text-2xl font-black leading-tight">
-        Start your Apex quote conversation.
+        Get your Apex quote started.
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-600">
-        No long application. Tell us what you drive, what you are interested in,
+        No long application. Tell us what you drive, what you want help with,
         and how to reach you.
       </p>
 
@@ -135,15 +135,19 @@ export default function AdLeadForm() {
           <input name="model" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="Supra" />
         </label>
         <label className="text-sm sm:col-span-2">
-          Approximate value of parts
+          Approximate value of aftermarket parts
           <select name="partsValue" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white">
             <option value="">Select one</option>
+            <option value="not-sure-auto-only">Not sure / standard auto coverage only</option>
             <option value="under-2500">Under $2,500</option>
             <option value="2500-5000">$2,500-$5,000</option>
             <option value="5000-10000">$5,000-$10,000</option>
             <option value="10000-25000">$10,000-$25,000</option>
             <option value="25000-plus">$25,000+</option>
           </select>
+          <span className="mt-1 block text-xs leading-5 text-slate-500">
+            If you only need standard auto coverage, choose the first option.
+          </span>
         </label>
         <label className="text-sm sm:col-span-2">
           What do you want to talk about?
