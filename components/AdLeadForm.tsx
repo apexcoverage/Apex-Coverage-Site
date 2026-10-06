@@ -76,10 +76,10 @@ export default function AdLeadForm() {
   if (status === 'success') {
     return (
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900 shadow-2xl">
-        <h2 className="text-2xl font-black">You are on the list.</h2>
+        <h2 className="text-2xl font-black">Apex received your info.</h2>
         <p className="mt-2 text-sm leading-6">
-          Apex received your information. An agent will reach out to learn more
-          about the build and the protection you want.
+          An Apex agent will reach out, confirm what you are interested in, and
+          explain the next step for your vehicle.
         </p>
         <button
           type="button"
@@ -98,11 +98,11 @@ export default function AdLeadForm() {
         Takes about 60 seconds
       </p>
       <h2 className="mt-2 text-2xl font-black leading-tight">
-        Get your personalized Apex quote.
+        Start your Apex quote conversation.
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-600">
-        No long application. Tell us what you drive, what you added, and how to
-        reach you.
+        No long application. Tell us what you drive, what you are interested in,
+        and how to reach you.
       </p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -112,7 +112,7 @@ export default function AdLeadForm() {
         </label>
         <label className="text-sm">
           Phone
-          <input name="phone" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="844-398-2739" />
+          <input name="phone" required className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none focus:border-blue-500 focus:bg-white" placeholder="(555) 555-5555" />
         </label>
         <label className="text-sm">
           Email
@@ -174,7 +174,7 @@ export default function AdLeadForm() {
         {status === 'submitting' ? 'Sending...' : 'Start My Quote'}
       </button>
       <p className="mt-3 text-center text-[11px] font-semibold text-slate-500">
-        Your information is secure and never shared for marketing.
+        After you submit, a real Apex agent reviews the request and follows up.
       </p>
     </form>
   );
