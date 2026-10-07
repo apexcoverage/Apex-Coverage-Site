@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { readJsonResponse } from "@/lib/quotes/apiClient";
 import {
   ANNUAL_MILEAGE_OPTIONS,
   EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT,
@@ -93,7 +94,7 @@ export default function ModifiedVehicleQuoteForm() {
       const res = await fetch(`/api/internal/quotes/${fromQuote}`, {
         cache: "no-store",
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (data.ok && data.quote?.quoteType === "MODIFIED_VEHICLE_PROTECTION") {
         setInput(normalizeLoadedInput(data.quote.input));
       }
@@ -195,7 +196,7 @@ export default function ModifiedVehicleQuoteForm() {
           input,
         }),
       });
-      const data: ApiQuoteResponse = await res.json();
+      const data: ApiQuoteResponse = await readJsonResponse(res);
 
       if (!data.ok) {
         setMissing(data.missingInformation || []);

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { readJsonResponse } from "@/lib/quotes/apiClient";
 import {
   AUTO_DEDUCTIBLE_OPTIONS,
   AUTO_DISCOUNT_OPTIONS,
@@ -68,7 +69,7 @@ export default function AutoQuoteForm() {
       const res = await fetch(`/api/internal/quotes/${fromQuote}`, {
         cache: "no-store",
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (data.ok && data.quote?.quoteType === "AUTO_INSURANCE") {
         setInput(normalizeLoadedInput(data.quote.input));
       }
@@ -140,7 +141,7 @@ export default function AutoQuoteForm() {
           input,
         }),
       });
-      const data: ApiQuoteResponse = await res.json();
+      const data: ApiQuoteResponse = await readJsonResponse(res);
 
       if (!data.ok) {
         setMissing(data.missingInformation || []);

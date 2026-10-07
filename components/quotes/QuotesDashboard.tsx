@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { readJsonResponse } from "@/lib/quotes/apiClient";
 import type { EmployeeUser, SavedQuoteRecord } from "@/lib/quotes/types";
 
 function quoteTypeLabel(type: string) {
@@ -40,7 +41,7 @@ export default function QuotesDashboard({
         router.push("/agent/quotes/login");
         return;
       }
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!data.ok) throw new Error(data.error || "Could not load quotes.");
       setQuotes(data.quotes || []);
     } catch (err: any) {

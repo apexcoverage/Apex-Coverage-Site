@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { readJsonResponse } from "@/lib/quotes/apiClient";
 import type { QuoteStatus, SavedQuoteRecord } from "@/lib/quotes/types";
 
 function quoteTypeLabel(type: string) {
@@ -36,7 +37,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
         router.push("/agent/quotes/login");
         return;
       }
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!data.ok) throw new Error(data.error || "Could not load quote.");
       setQuote(data.quote);
     } catch (err: any) {
@@ -60,7 +61,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!data.ok) throw new Error(data.error || "Could not update quote.");
       setQuote(data.quote);
     } catch (err: any) {
@@ -83,7 +84,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
           input: quote.input,
         }),
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!data.ok) throw new Error(data.error || "Could not regenerate quote.");
       router.push(`/agent/quotes/${data.quote.quoteId}`);
     } catch (err: any) {

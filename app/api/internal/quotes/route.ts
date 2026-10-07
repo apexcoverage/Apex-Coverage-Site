@@ -26,8 +26,20 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const search = request.nextUrl.searchParams.get("search") || "";
-  return NextResponse.json({ ok: true, quotes: listQuotes(search) });
+  try {
+    const search = request.nextUrl.searchParams.get("search") || "";
+    return NextResponse.json({ ok: true, quotes: listQuotes(search) });
+  } catch (err: any) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          err?.message ||
+          "Quote history could not be loaded. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {

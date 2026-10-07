@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { randomUUID } from "crypto";
 import type {
@@ -43,7 +44,11 @@ let db: DatabaseSync | null | undefined;
 
 function getDataDir() {
   const configured = process.env.APEX_QUOTE_DB_PATH;
-  const dbPath = configured || path.join(process.cwd(), ".data", "apex-quotes.sqlite");
+  const dbPath =
+    configured ||
+    (process.env.VERCEL || process.env.NODE_ENV === "production"
+      ? path.join(os.tmpdir(), "apex-quotes.sqlite")
+      : path.join(process.cwd(), ".data", "apex-quotes.sqlite"));
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   return dbPath;
 }
@@ -133,7 +138,12 @@ function readJsonStore() {
   const file = jsonStorePath();
   if (!fs.existsSync(file)) return [] as SavedQuoteRecord[];
   const raw = fs.readFileSync(file, "utf8");
-  return raw ? (JSON.parse(raw) as SavedQuoteRecord[]) : [];
+  if (!raw.trim()) return [] as SavedQuoteRecord[];
+  try {
+    return JSON.parse(raw) as SavedQuoteRecord[];
+  } catch {
+    return [] as SavedQuoteRecord[];
+  }
 }
 
 function writeJsonStore(records: SavedQuoteRecord[]) {
