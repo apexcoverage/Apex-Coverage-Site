@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmployeeSessionFromRequest } from "@/lib/internalAuth";
-import { generateQuoteWithOpenAI } from "@/lib/quotes/openaiQuoteService";
-import {
-  calculateAutoInsuranceQuote,
-  calculateModifiedVehicleProtectionQuote,
-} from "@/lib/quotes/pricing";
+import { generateQuoteFromMatrix } from "@/lib/quotes/pricing";
 import {
   createSavedQuote,
   listQuotes,
 } from "@/lib/quotes/quoteStore";
 import type {
-  AutoInsuranceQuoteInput,
-  ModifiedVehicleProtectionQuoteInput,
-  QuotePricingContext,
   QuoteType,
 } from "@/lib/quotes/types";
 import { validateQuoteInput } from "@/lib/quotes/validation";
@@ -22,23 +15,6 @@ export const dynamic = "force-dynamic";
 
 function isQuoteType(value: unknown): value is QuoteType {
   return value === "AUTO_INSURANCE" || value === "MODIFIED_VEHICLE_PROTECTION";
-}
-
-function mergePricingContext(
-  validationContext: QuotePricingContext,
-  serviceContext: QuotePricingContext
-): QuotePricingContext {
-  return {
-    deterministicPricingAvailable:
-      validationContext.deterministicPricingAvailable ||
-      serviceContext.deterministicPricingAvailable,
-    totalDeclaredBuildValue:
-      validationContext.totalDeclaredBuildValue ??
-      serviceContext.totalDeclaredBuildValue ??
-      null,
-    notes: [...validationContext.notes, ...serviceContext.notes],
-    warnings: [...validationContext.warnings, ...serviceContext.warnings],
-  };
 }
 
 export async function GET(request: NextRequest) {
@@ -87,41 +63,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const servicePricingContext =
-    quoteType === "AUTO_INSURANCE"
-      ? calculateAutoInsuranceQuote(
-          validation.normalizedInput as AutoInsuranceQuoteInput
-        )
-      : calculateModifiedVehicleProtectionQuote(
-          validation.normalizedInput as ModifiedVehicleProtectionQuoteInput
-        );
-
-  const pricingContext = mergePricingContext(
-    validation.pricingContext,
-    servicePricingContext
-  );
-
   try {
-    const result = await generateQuoteWithOpenAI({
+    const generated = generateQuoteFromMatrix(
       quoteType,
-      input: validation.normalizedInput,
-      pricingContext,
-    });
-
-    const status =
-      result.status === "estimate" && result.warnings.length === 0
-        ? "GENERATED"
-        : "NEEDS_REVIEW";
+      validation.normalizedInput
+    );
 
     const quote = createSavedQuote({
       quoteType,
       employee: session.user,
       input: validation.normalizedInput,
       result: {
-        ...result,
-        warnings: [...pricingContext.warnings, ...result.warnings],
+        ...generated.result,
+        warnings: [
+          ...validation.pricingContext.warnings,
+          ...generated.pricingContext.warnings,
+          ...generated.result.warnings,
+        ],
       },
-      status,
+      status: generated.status,
     });
 
     return NextResponse.json({ ok: true, quote });
@@ -131,7 +91,7 @@ export async function POST(request: NextRequest) {
         ok: false,
         error:
           err?.message ||
-          "Quote generation failed. Please try again or review the input.",
+          "Matrix quote generation failed. Please try again or review the input.",
       },
       { status: 503 }
     );
