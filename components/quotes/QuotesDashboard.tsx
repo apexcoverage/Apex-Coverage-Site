@@ -79,7 +79,7 @@ export default function QuotesDashboard({
             </p>
             <h1 className="apex-agent-title mt-2">Internal Quoting</h1>
             <p className="apex-agent-subtitle mt-3 text-sm">
-              Create guarded quote estimates, review AI output, and save quote history.
+              Create matrix-backed quote estimates, review factors, and save quote history.
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -118,7 +118,7 @@ export default function QuotesDashboard({
           >
             <div className="text-lg font-bold text-white">New Auto Coverage Quote</div>
             <p className="mt-2 text-sm text-blue-100/80">
-              Driver, vehicle, coverage, incidents, mileage, and discount workflow.
+              AUTO_V1.0 pricing for driver, vehicle, incidents, mileage, deductibles, and discounts.
             </p>
           </Link>
           <Link
@@ -129,7 +129,7 @@ export default function QuotesDashboard({
               New Modified Vehicle Protection Quote
             </div>
             <p className="mt-2 text-sm text-blue-100/80">
-              Build value, install type, tune status, deductible, tier, and documents.
+              MVP_V1.0 component pricing for declared parts, usage, tier, and manual-review triggers.
             </p>
           </Link>
         </section>

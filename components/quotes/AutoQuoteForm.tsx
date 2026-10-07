@@ -4,11 +4,14 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AUTO_DEDUCTIBLE_OPTIONS,
   AUTO_DISCOUNT_OPTIONS,
+  EMPTY_AUTO_INCIDENT,
   EMPTY_AUTO_QUOTE_INPUT,
   EMPTY_AUTO_VEHICLE,
 } from "@/lib/quotes/options";
 import type {
+  AutoDrivingIncidentInput,
   AutoInsuranceQuoteInput,
   AutoQuoteVehicleInput,
   SavedQuoteRecord,
@@ -26,7 +29,25 @@ function cloneDefaultInput(): AutoInsuranceQuoteInput {
   return {
     ...EMPTY_AUTO_QUOTE_INPUT,
     vehicles: [{ ...EMPTY_AUTO_VEHICLE }],
+    incidents: [],
     discounts: [],
+  };
+}
+
+function normalizeLoadedInput(raw: AutoInsuranceQuoteInput): AutoInsuranceQuoteInput {
+  return {
+    ...cloneDefaultInput(),
+    ...raw,
+    incidents: Array.isArray(raw.incidents) ? raw.incidents : [],
+    vehicles:
+      Array.isArray(raw.vehicles) && raw.vehicles.length > 0
+        ? raw.vehicles.map((vehicle) => ({
+            ...EMPTY_AUTO_VEHICLE,
+            ...vehicle,
+            liabilityLimits: vehicle.liabilityLimits || "Standard limits",
+          }))
+        : [{ ...EMPTY_AUTO_VEHICLE }],
+    discounts: Array.isArray(raw.discounts) ? raw.discounts : [],
   };
 }
 
@@ -49,7 +70,7 @@ export default function AutoQuoteForm() {
       });
       const data = await res.json();
       if (data.ok && data.quote?.quoteType === "AUTO_INSURANCE") {
-        setInput(data.quote.input);
+        setInput(normalizeLoadedInput(data.quote.input));
       }
     }
 
@@ -78,6 +99,19 @@ export default function AutoQuoteForm() {
         }
         return next;
       }),
+    }));
+  }
+
+  function updateIncident(
+    index: number,
+    field: keyof AutoDrivingIncidentInput,
+    value: string
+  ) {
+    setInput((prev) => ({
+      ...prev,
+      incidents: prev.incidents.map((incident, incidentIndex) =>
+        incidentIndex === index ? { ...incident, [field]: value } : incident
+      ),
     }));
   }
 
@@ -127,7 +161,7 @@ export default function AutoQuoteForm() {
       <form onSubmit={submit} className="apex-agent-container max-w-6xl">
         <PageHeader
           title="New Auto Coverage Quote"
-          description="Collect only the fields supported by the current Apex auto quote workflow."
+          description="Use the AUTO_V1.0 matrix for liability, full coverage, mileage, incident, deductible, and discount pricing."
         />
 
         <ErrorPanel error={error} missing={missing} warnings={warnings} />
@@ -146,10 +180,67 @@ export default function AutoQuoteForm() {
           </div>
 
           {input.drivingRecordStatus === "Accident(s)/Ticket(s)" && (
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              <TextField label="Incident Type*" value={input.incidentType} onChange={(value) => updateField("incidentType", value)} />
-              <TextField label="How Long Ago?*" value={input.incidentTiming} placeholder="Example: 3 years ago" onChange={(value) => updateField("incidentTiming", value)} />
-              <TextField label="Incident Details" value={input.incidentDetails} onChange={(value) => updateField("incidentDetails", value)} />
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="font-semibold">Driving Incidents</h3>
+                <button
+                  type="button"
+                  className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                  onClick={() =>
+                    setInput((prev) => ({
+                      ...prev,
+                      incidents: [...prev.incidents, { ...EMPTY_AUTO_INCIDENT }],
+                    }))
+                  }
+                >
+                  Add Incident
+                </button>
+              </div>
+
+              {input.incidents.length === 0 && (
+                <p className="text-sm text-slate-600">
+                  Add each accident, ticket, DUI, or major violation so the matrix can rate it and flag manual review when needed.
+                </p>
+              )}
+
+              <div className="space-y-4">
+                {input.incidents.map((incident, index) => (
+                  <div key={index} className="rounded-lg border border-slate-200 bg-white p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h4 className="font-semibold">Incident {index + 1}</h4>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-red-700"
+                        onClick={() =>
+                          setInput((prev) => ({
+                            ...prev,
+                            incidents: prev.incidents.filter((_, i) => i !== index),
+                          }))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-5">
+                      <SelectField
+                        label="Incident Type*"
+                        value={incident.incidentType}
+                        options={["", "Minor speeding ticket", "Major speeding/reckless violation", "Accident", "DUI / serious major violation", "Other"]}
+                        onChange={(value) => updateIncident(index, "incidentType", value)}
+                      />
+                      <SelectField
+                        label="Fault"
+                        value={incident.atFault}
+                        options={["", "At-fault", "Not-at-fault", "N/A"]}
+                        onChange={(value) => updateIncident(index, "atFault", value)}
+                      />
+                      <TextField label="How Long Ago?*" value={incident.timing} placeholder="Example: 3 years ago" onChange={(value) => updateIncident(index, "timing", value)} />
+                      <TextField label="Count" type="number" value={incident.count} onChange={(value) => updateIncident(index, "count", value)} />
+                      <TextField label="Details" value={incident.details} onChange={(value) => updateIncident(index, "details", value)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </section>
@@ -197,10 +288,11 @@ export default function AutoQuoteForm() {
                   <TextField label="Model*" value={vehicle.model} onChange={(value) => updateVehicle(index, "model", value)} />
                   <TextField label="Trim / Engine" value={vehicle.trimEngine} onChange={(value) => updateVehicle(index, "trimEngine", value)} />
                   <SelectField label="Coverage Type*" value={vehicle.coverageType} options={["", "Liability Only", "Full Coverage"]} onChange={(value) => updateVehicle(index, "coverageType", value)} />
+                  <SelectField label="Liability Limits*" value={vehicle.liabilityLimits} options={["", "Standard limits", "State minimum", "Higher limits - matrix pending"]} onChange={(value) => updateVehicle(index, "liabilityLimits", value)} />
                   {vehicle.coverageType === "Full Coverage" && (
                     <>
-                      <TextField label="Comp Deductible*" type="number" value={vehicle.comprehensiveDeductible} onChange={(value) => updateVehicle(index, "comprehensiveDeductible", value)} />
-                      <TextField label="Collision Deductible*" type="number" value={vehicle.collisionDeductible} onChange={(value) => updateVehicle(index, "collisionDeductible", value)} />
+                      <SelectField label="Comp Deductible*" value={vehicle.comprehensiveDeductible} options={["", ...AUTO_DEDUCTIBLE_OPTIONS]} onChange={(value) => updateVehicle(index, "comprehensiveDeductible", value)} />
+                      <SelectField label="Collision Deductible*" value={vehicle.collisionDeductible} options={["", ...AUTO_DEDUCTIBLE_OPTIONS]} onChange={(value) => updateVehicle(index, "collisionDeductible", value)} />
                     </>
                   )}
                 </div>
@@ -212,7 +304,7 @@ export default function AutoQuoteForm() {
         <section className="apex-agent-card-light mt-5 p-5">
           <SectionTitle title="Usage, Discounts, and Notes" />
           <div className="grid gap-4 md:grid-cols-3">
-            <TextField label="Annual Mileage" type="number" value={input.annualMileage} onChange={(value) => updateField("annualMileage", value)} />
+            <TextField label="Annual Mileage*" type="number" value={input.annualMileage} onChange={(value) => updateField("annualMileage", value)} />
             <SelectField label="Garaged Overnight" value={input.garagedOvernight} options={["", "Yes", "No"]} onChange={(value) => updateField("garagedOvernight", value)} />
           </div>
 

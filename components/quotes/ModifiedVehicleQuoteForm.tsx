@@ -5,12 +5,16 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ANNUAL_MILEAGE_OPTIONS,
-  DEDUCTIBLE_OPTIONS,
   EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT,
+  EMPTY_MVP_COMPONENT,
   MODIFIED_TIER_OPTIONS,
   MODIFIED_VEHICLE_DISCOUNT_OPTIONS,
+  MVP_COMPONENT_CATEGORY_OPTIONS,
+  MVP_DEDUCTIBLE_OPTIONS,
+  MVP_USAGE_OPTIONS,
 } from "@/lib/quotes/options";
 import type {
+  ModifiedVehicleComponentInput,
   ModifiedVehicleProtectionQuoteInput,
   SavedQuoteRecord,
 } from "@/lib/quotes/types";
@@ -27,12 +31,47 @@ function cloneDefaultInput(): ModifiedVehicleProtectionQuoteInput {
   return {
     ...EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT,
     vehicle: { ...EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT.vehicle },
-    modifications: { ...EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT.modifications },
+    modifications: {
+      ...EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT.modifications,
+      components: [{ ...EMPTY_MVP_COMPONENT }],
+    },
     coverage: {
       ...EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT.coverage,
       discounts: [],
     },
     underwriting: { ...EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT.underwriting },
+  };
+}
+
+function normalizeLoadedInput(
+  raw: ModifiedVehicleProtectionQuoteInput
+): ModifiedVehicleProtectionQuoteInput {
+  const defaults = cloneDefaultInput();
+  return {
+    ...defaults,
+    ...raw,
+    vehicle: { ...defaults.vehicle, ...raw.vehicle },
+    modifications: {
+      ...defaults.modifications,
+      ...raw.modifications,
+      components:
+        Array.isArray(raw.modifications?.components) &&
+        raw.modifications.components.length > 0
+          ? raw.modifications.components.map((component) => ({
+              ...EMPTY_MVP_COMPONENT,
+              ...component,
+              trackExposed: component.trackExposed || "No",
+            }))
+          : [{ ...EMPTY_MVP_COMPONENT }],
+    },
+    coverage: {
+      ...defaults.coverage,
+      ...raw.coverage,
+      discounts: Array.isArray(raw.coverage?.discounts)
+        ? raw.coverage.discounts
+        : [],
+    },
+    underwriting: { ...defaults.underwriting, ...raw.underwriting },
   };
 }
 
@@ -56,7 +95,7 @@ export default function ModifiedVehicleQuoteForm() {
       });
       const data = await res.json();
       if (data.ok && data.quote?.quoteType === "MODIFIED_VEHICLE_PROTECTION") {
-        setInput(data.quote.input);
+        setInput(normalizeLoadedInput(data.quote.input));
       }
     }
 
@@ -89,6 +128,22 @@ export default function ModifiedVehicleQuoteForm() {
     setInput((prev) => ({
       ...prev,
       modifications: { ...prev.modifications, [field]: value },
+    }));
+  }
+
+  function updateComponent(
+    index: number,
+    field: keyof ModifiedVehicleComponentInput,
+    value: string
+  ) {
+    setInput((prev) => ({
+      ...prev,
+      modifications: {
+        ...prev.modifications,
+        components: prev.modifications.components.map((component, componentIndex) =>
+          componentIndex === index ? { ...component, [field]: value } : component
+        ),
+      },
     }));
   }
 
@@ -167,7 +222,7 @@ export default function ModifiedVehicleQuoteForm() {
             New Modified Vehicle Protection Quote
           </h1>
           <p className="apex-agent-subtitle mt-2 text-sm">
-            Capture build, risk, documentation, and coverage details separately from auto coverage.
+            Price declared covered components with the MVP_V1.0 matrix. MVP does not insure the base vehicle.
           </p>
         </header>
 
@@ -203,12 +258,67 @@ export default function ModifiedVehicleQuoteForm() {
         </section>
 
         <section className="apex-agent-card-light mt-5 p-5">
-          <SectionTitle title="Modifications / Parts" />
+          <SectionTitle title="Covered Components" />
+          <p className="mb-4 text-sm leading-6 text-slate-600">
+            Add each aftermarket component the customer wants considered for MVP. Each row is priced separately by category, declared value, and usage.
+          </p>
+          <div className="space-y-4">
+            {input.modifications.components.map((component, index) => (
+              <div key={index} className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="font-semibold">Component {index + 1}</h3>
+                  {input.modifications.components.length > 1 && (
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-red-700"
+                      onClick={() =>
+                        setInput((prev) => ({
+                          ...prev,
+                          modifications: {
+                            ...prev.modifications,
+                            components: prev.modifications.components.filter((_, i) => i !== index),
+                          },
+                        }))
+                      }
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <TextField label="Component Name*" value={component.name} placeholder="Example: Garrett turbo kit" onChange={(value) => updateComponent(index, "name", value)} />
+                  <SelectField label="Category*" value={component.category} options={["", ...MVP_COMPONENT_CATEGORY_OPTIONS]} onChange={(value) => updateComponent(index, "category", value)} />
+                  <TextField label="Declared Value*" type="number" value={component.declaredValue} onChange={(value) => updateComponent(index, "declaredValue", value)} />
+                  <SelectField label="Track Exposed?" value={component.trackExposed} options={["No", "Yes"]} onChange={(value) => updateComponent(index, "trackExposed", value)} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className="mt-4 rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+            onClick={() =>
+              setInput((prev) => ({
+                ...prev,
+                modifications: {
+                  ...prev.modifications,
+                  components: [...prev.modifications.components, { ...EMPTY_MVP_COMPONENT }],
+                },
+              }))
+            }
+          >
+            Add Covered Component
+          </button>
+        </section>
+
+        <section className="apex-agent-card-light mt-5 p-5">
+          <SectionTitle title="Build Context" />
           <div className="grid gap-4 md:grid-cols-3">
-            <TextField label="Parts Value*" type="number" value={input.modifications.partsValue} onChange={(value) => updateModification("partsValue", value)} />
-            <TextField label="Labor Value" type="number" value={input.modifications.laborValue} onChange={(value) => updateModification("laborValue", value)} />
+            <TextField label="Total Parts Value Reference" type="number" value={input.modifications.partsValue} onChange={(value) => updateModification("partsValue", value)} />
+            <TextField label="Labor Value Reference" type="number" value={input.modifications.laborValue} onChange={(value) => updateModification("laborValue", value)} />
             {input.modifications.laborValue && (
-              <SelectField label="Include Labor in Covered Value?*" value={input.modifications.includeLaborInCoveredValue} options={["", "Yes", "No", "Unknown"]} onChange={(value) => updateModification("includeLaborInCoveredValue", value)} />
+              <SelectField label="Include Labor in Covered Value?" value={input.modifications.includeLaborInCoveredValue} options={["", "Yes", "No", "Unknown"]} onChange={(value) => updateModification("includeLaborInCoveredValue", value)} />
             )}
             <SelectField label="Install Type*" value={input.modifications.installType} options={["", "Professional shop", "DIY", "Mixed professional and DIY", "Unknown"]} onChange={(value) => updateModification("installType", value)} />
             <SelectField label="Tune Required*" value={input.modifications.tuneRequired} options={["", "Yes", "No"]} onChange={(value) => updateModification("tuneRequired", value)} />
@@ -230,7 +340,8 @@ export default function ModifiedVehicleQuoteForm() {
         <section className="apex-agent-card-light mt-5 p-5">
           <SectionTitle title="Coverage Selection" />
           <div className="grid gap-4 md:grid-cols-3">
-            <SelectField label="Deductible*" value={input.coverage.deductible} options={["", ...DEDUCTIBLE_OPTIONS]} onChange={(value) => updateCoverage("deductible", value)} />
+            <SelectField label="Deductible*" value={input.coverage.deductible} options={["", ...MVP_DEDUCTIBLE_OPTIONS]} onChange={(value) => updateCoverage("deductible", value)} />
+            <SelectField label="Vehicle Usage*" value={input.coverage.vehicleUsage} options={["", ...MVP_USAGE_OPTIONS]} onChange={(value) => updateCoverage("vehicleUsage", value)} />
             <SelectField label="Requested Tier" value={input.coverage.requestedTier} options={MODIFIED_TIER_OPTIONS} onChange={(value) => updateCoverage("requestedTier", value)} />
             <SelectField label="Apply Discounts Now?*" value={input.coverage.applyDiscounts} options={["", "Yes", "No"]} onChange={(value) => updateCoverage("applyDiscounts", value)} />
           </div>
@@ -255,6 +366,10 @@ export default function ModifiedVehicleQuoteForm() {
             <SelectField label="Shop Invoices Available?" value={input.underwriting.shopInvoicesAvailable} options={["", "Yes", "No", "N/A"]} onChange={(value) => updateUnderwriting("shopInvoicesAvailable", value)} />
             <SelectField label="Rebuilt/Salvage Documentation?" value={input.underwriting.rebuiltSalvageDocumentationAvailable} options={["", "Yes", "No", "N/A"]} onChange={(value) => updateUnderwriting("rebuiltSalvageDocumentationAvailable", value)} />
             <SelectField label="Racing/Track/Drift Use?" value={input.underwriting.racingTrackDriftUse} options={["", "Yes", "No"]} onChange={(value) => updateUnderwriting("racingTrackDriftUse", value)} />
+            {input.underwriting.racingTrackDriftUse === "Yes" && (
+              <TextField label="Track Events Per Year*" type="number" value={input.underwriting.trackEventsPerYear} onChange={(value) => updateUnderwriting("trackEventsPerYear", value)} />
+            )}
+            <SelectField label="Competitive Racing?" value={input.underwriting.competitiveRacing} options={["", "Yes", "No"]} onChange={(value) => updateUnderwriting("competitiveRacing", value)} />
           </div>
 
           <label className="mt-4 block text-sm">

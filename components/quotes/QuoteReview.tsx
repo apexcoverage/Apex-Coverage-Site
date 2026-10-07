@@ -176,7 +176,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
           <SummaryBox label="Status" value={quote.status.replace(/_/g, " ")} />
           <SummaryBox label="Customer" value={quote.customer.name} />
           <SummaryBox label="Vehicle" value={vehicleSummary || "-"} />
-          <SummaryBox label="Quote Type" value={quoteTypeLabel(quote.quoteType)} />
+          <SummaryBox label="Matrix" value={quote.result.rate_version || quote.result.rating_details?.rate_version || quoteTypeLabel(quote.quoteType)} />
         </section>
 
         <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
@@ -210,6 +210,39 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
               </div>
               <BulletList title="Pricing Notes" items={quote.result.pricing.pricing_notes} />
             </Panel>
+
+            {quote.result.rating_details && (
+              <Panel title="Matrix Rating Details">
+                <div className="grid gap-3 md:grid-cols-3">
+                  {quote.result.rating_details.factors.map((item) => (
+                    <KeyValue key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
+                  ))}
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {quote.result.rating_details.line_items.map((item) => (
+                    <div key={`${item.label}-${item.value}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <h3 className="font-semibold text-slate-900">{item.label}</h3>
+                        <span className="text-sm font-bold text-blue-700">{item.value}</span>
+                      </div>
+                      <div className="mt-3 grid gap-2 md:grid-cols-2">
+                        {item.details.map((detail) => (
+                          <KeyValue key={`${item.label}-${detail.label}-${detail.value}`} label={detail.label} value={detail.value} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <TwoColumnLists
+                  leftTitle="Manual Review Reasons"
+                  leftItems={quote.result.rating_details.manual_review_reasons}
+                  rightTitle="Audit Notes"
+                  rightItems={quote.result.rating_details.audit_notes}
+                />
+              </Panel>
+            )}
 
             <Panel title="Underwriting">
               <div className="grid gap-3 md:grid-cols-2">
