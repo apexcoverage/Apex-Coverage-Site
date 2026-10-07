@@ -1,23 +1,19 @@
 import type {
   AutoInsuranceQuoteInput,
+  AutoDrivingIncidentInput,
   AutoQuoteVehicleInput,
+  ModifiedVehicleComponentInput,
   ModifiedVehicleProtectionQuoteInput,
 } from "./types";
 
 export const AUTO_DISCOUNT_OPTIONS = [
   "Military",
-  "Claims-Free",
   "Safe Driver",
   "Multi-Car",
-  "Garaged Overnight",
-  "Low Mileage",
   "Anti-Theft / Security System",
-  "Safety Equipment",
   "Paperless Billing",
   "Automatic Payment",
-  "Multi-Policy / Bundle",
   "Paid in Full",
-  "Defensive Driving",
   "Telematics / Safe Driving Program",
 ];
 
@@ -31,13 +27,35 @@ export const MODIFIED_VEHICLE_DISCOUNT_OPTIONS = [
   "Professional installation",
 ];
 
-export const DEDUCTIBLE_OPTIONS = ["250", "500", "1000", "1500", "2500"];
+export const AUTO_DEDUCTIBLE_OPTIONS = ["250", "500", "1000", "2000"];
+
+export const MVP_DEDUCTIBLE_OPTIONS = ["500", "1000", "1500", "2500"];
 
 export const MODIFIED_TIER_OPTIONS = [
   "Let system recommend",
-  "Street Tier",
-  "Street+ Tier",
-  "Apex Build Tier",
+  "Street",
+  "Street Plus",
+  "Apex",
+];
+
+export const MVP_COMPONENT_CATEGORY_OPTIONS = [
+  "Wheels",
+  "Basic exhaust",
+  "Suspension",
+  "Brakes",
+  "Conventional aero/body parts",
+  "Carbon fiber components",
+  "Forced induction",
+  "Transmission/drivetrain",
+  "Built engine/forged internals",
+  "Custom/unclassifiable fabrication",
+];
+
+export const MVP_USAGE_OPTIONS = [
+  "Show / <=2,000 miles annually",
+  "Weekend / recreational",
+  "Regular street use",
+  "Daily use",
 ];
 
 export const ANNUAL_MILEAGE_OPTIONS = [
@@ -54,8 +72,17 @@ export const EMPTY_AUTO_VEHICLE: AutoQuoteVehicleInput = {
   model: "",
   trimEngine: "",
   coverageType: "",
+  liabilityLimits: "Standard limits",
   comprehensiveDeductible: "",
   collisionDeductible: "",
+};
+
+export const EMPTY_AUTO_INCIDENT: AutoDrivingIncidentInput = {
+  incidentType: "",
+  atFault: "",
+  timing: "",
+  count: "1",
+  details: "",
 };
 
 export const EMPTY_AUTO_QUOTE_INPUT: AutoInsuranceQuoteInput = {
@@ -70,11 +97,19 @@ export const EMPTY_AUTO_QUOTE_INPUT: AutoInsuranceQuoteInput = {
   incidentType: "",
   incidentTiming: "",
   incidentDetails: "",
+  incidents: [],
   vehicles: [{ ...EMPTY_AUTO_VEHICLE }],
   annualMileage: "",
   garagedOvernight: "",
   discounts: [],
   notes: "",
+};
+
+export const EMPTY_MVP_COMPONENT: ModifiedVehicleComponentInput = {
+  name: "",
+  category: "",
+  declaredValue: "",
+  trackExposed: "No",
 };
 
 export const EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT: ModifiedVehicleProtectionQuoteInput = {
@@ -106,9 +141,11 @@ export const EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT: ModifiedVehicleProtectionQuoteI
     tuneRequired: "",
     safetyRelatedModsPresent: "",
     performanceModsPresent: "",
+    components: [{ ...EMPTY_MVP_COMPONENT }],
   },
   coverage: {
     deductible: "",
+    vehicleUsage: "",
     requestedTier: "Let system recommend",
     applyDiscounts: "",
     discounts: [],
@@ -121,6 +158,8 @@ export const EMPTY_MODIFIED_VEHICLE_QUOTE_INPUT: ModifiedVehicleProtectionQuoteI
     shopInvoicesAvailable: "",
     rebuiltSalvageDocumentationAvailable: "",
     racingTrackDriftUse: "",
+    trackEventsPerYear: "",
+    competitiveRacing: "",
   },
   notes: "",
 };

@@ -21,8 +21,17 @@ export type AutoQuoteVehicleInput = {
   model: string;
   trimEngine: string;
   coverageType: string;
+  liabilityLimits: string;
   comprehensiveDeductible: string;
   collisionDeductible: string;
+};
+
+export type AutoDrivingIncidentInput = {
+  incidentType: string;
+  atFault: string;
+  timing: string;
+  count: string;
+  details: string;
 };
 
 export type AutoInsuranceQuoteInput = {
@@ -37,11 +46,19 @@ export type AutoInsuranceQuoteInput = {
   incidentType: string;
   incidentTiming: string;
   incidentDetails: string;
+  incidents: AutoDrivingIncidentInput[];
   vehicles: AutoQuoteVehicleInput[];
   annualMileage: string;
   garagedOvernight: string;
   discounts: string[];
   notes: string;
+};
+
+export type ModifiedVehicleComponentInput = {
+  name: string;
+  category: string;
+  declaredValue: string;
+  trackExposed: string;
 };
 
 export type ModifiedVehicleProtectionQuoteInput = {
@@ -73,9 +90,11 @@ export type ModifiedVehicleProtectionQuoteInput = {
     tuneRequired: string;
     safetyRelatedModsPresent: string;
     performanceModsPresent: string;
+    components: ModifiedVehicleComponentInput[];
   };
   coverage: {
     deductible: string;
+    vehicleUsage: string;
     requestedTier: string;
     applyDiscounts: string;
     discounts: string[];
@@ -88,6 +107,8 @@ export type ModifiedVehicleProtectionQuoteInput = {
     shopInvoicesAvailable: string;
     rebuiltSalvageDocumentationAvailable: string;
     racingTrackDriftUse: string;
+    trackEventsPerYear: string;
+    competitiveRacing: string;
   };
   notes: string;
 };
@@ -103,9 +124,21 @@ export type QuotePricingContext = {
   warnings: string[];
 };
 
+export type QuoteRatingDetail = {
+  label: string;
+  value: string;
+};
+
+export type QuoteRatingLineItem = {
+  label: string;
+  value: string;
+  details: QuoteRatingDetail[];
+};
+
 export type StructuredQuoteResult = {
   quote_type: QuoteType;
   status: "estimate" | "needs_review" | "missing_information" | "error";
+  rate_version?: string;
   customer: {
     name: string;
     zip: string;
@@ -145,6 +178,13 @@ export type StructuredQuoteResult = {
   missing_information: string[];
   employee_notes: string;
   customer_quote_text: string;
+  rating_details?: {
+    rate_version: string;
+    factors: QuoteRatingDetail[];
+    line_items: QuoteRatingLineItem[];
+    manual_review_reasons: string[];
+    audit_notes: string[];
+  };
 };
 
 export type SavedQuoteRecord = {

@@ -1,5 +1,7 @@
 import type {
+  AutoDrivingIncidentInput,
   AutoInsuranceQuoteInput,
+  ModifiedVehicleComponentInput,
   ModifiedVehicleProtectionQuoteInput,
   QuoteInput,
   QuotePricingContext,
@@ -44,6 +46,7 @@ function normalizeAutoInput(input: Partial<AutoInsuranceQuoteInput>) {
   const vehicles = Array.isArray(input.vehicles) && input.vehicles.length > 0
     ? input.vehicles
     : [];
+  const incidents = Array.isArray(input.incidents) ? input.incidents : [];
 
   return {
     customerName: clean(input.customerName),
@@ -57,12 +60,20 @@ function normalizeAutoInput(input: Partial<AutoInsuranceQuoteInput>) {
     incidentType: clean(input.incidentType),
     incidentTiming: clean(input.incidentTiming),
     incidentDetails: clean(input.incidentDetails),
+    incidents: incidents.map((incident) => ({
+      incidentType: clean(incident?.incidentType),
+      atFault: clean(incident?.atFault),
+      timing: clean(incident?.timing),
+      count: clean(incident?.count) || "1",
+      details: clean(incident?.details),
+    })),
     vehicles: vehicles.map((vehicle) => ({
       year: clean(vehicle?.year),
       make: clean(vehicle?.make),
       model: clean(vehicle?.model),
       trimEngine: clean(vehicle?.trimEngine),
       coverageType: clean(vehicle?.coverageType),
+      liabilityLimits: clean(vehicle?.liabilityLimits) || "Standard limits",
       comprehensiveDeductible: clean(vehicle?.comprehensiveDeductible),
       collisionDeductible: clean(vehicle?.collisionDeductible),
     })),
@@ -76,6 +87,10 @@ function normalizeAutoInput(input: Partial<AutoInsuranceQuoteInput>) {
 function normalizeModifiedVehicleInput(
   input: Partial<ModifiedVehicleProtectionQuoteInput>
 ) {
+  const components = Array.isArray(input.modifications?.components)
+    ? input.modifications?.components || []
+    : [];
+
   return {
     customerName: clean(input.customerName),
     customerEmail: clean(input.customerEmail),
@@ -111,9 +126,16 @@ function normalizeModifiedVehicleInput(
       performanceModsPresent: clean(
         input.modifications?.performanceModsPresent
       ),
+      components: components.map((component) => ({
+        name: clean(component?.name),
+        category: clean(component?.category),
+        declaredValue: clean(component?.declaredValue),
+        trackExposed: clean(component?.trackExposed) || "No",
+      })),
     },
     coverage: {
       deductible: clean(input.coverage?.deductible),
+      vehicleUsage: clean(input.coverage?.vehicleUsage),
       requestedTier: clean(input.coverage?.requestedTier) || "Let system recommend",
       applyDiscounts: clean(input.coverage?.applyDiscounts),
       discounts: asList(input.coverage?.discounts),
@@ -130,6 +152,8 @@ function normalizeModifiedVehicleInput(
         input.underwriting?.rebuiltSalvageDocumentationAvailable
       ),
       racingTrackDriftUse: clean(input.underwriting?.racingTrackDriftUse),
+      trackEventsPerYear: clean(input.underwriting?.trackEventsPerYear),
+      competitiveRacing: clean(input.underwriting?.competitiveRacing),
     },
     notes: clean(input.notes),
   } satisfies ModifiedVehicleProtectionQuoteInput;
@@ -152,13 +176,19 @@ function buildAutoPricingContext(input: AutoInsuranceQuoteInput) {
         `${label}: liability-only coverage ignores comprehensive and collision deductibles.`
       );
     }
+    if (vehicle.coverageType === "Full Coverage" && vehicle.liabilityLimits === "Standard limits") {
+      warnings.push(
+        `${label}: liability-limit pricing is using the V1 standard-limits placeholder.`
+      );
+    }
   });
 
   return {
-    deterministicPricingAvailable: false,
+    deterministicPricingAvailable: true,
     notes: [
-      "Auto coverage pricing is currently an AI-assisted planning estimate because no Apex rate table or carrier rating engine was supplied.",
-      "Carrier-issued premiums should be connected later through calculateAutoInsuranceQuote().",
+      "Auto coverage pricing uses the Apex AUTO_V1.0 matrix.",
+      "ZIP and vehicle-specific tables are not finalized yet, so V1 uses Average ZIP and 1.00 vehicle factors.",
+      "Liability-limit pricing is not finalized yet; standard limits are treated as the baseline.",
     ],
     warnings,
   } satisfies QuotePricingContext;
@@ -167,7 +197,10 @@ function buildAutoPricingContext(input: AutoInsuranceQuoteInput) {
 function buildModifiedVehiclePricingContext(
   input: ModifiedVehicleProtectionQuoteInput
 ) {
-  const partsValue = parseCurrency(input.modifications.partsValue);
+  const componentValue = input.modifications.components.reduce((sum, component) => {
+    return sum + (parseCurrency(component.declaredValue) || 0);
+  }, 0);
+  const partsValue = parseCurrency(input.modifications.partsValue) ?? componentValue;
   const laborValue = parseCurrency(input.modifications.laborValue);
   const includeLabor = input.modifications.includeLaborInCoveredValue === "Yes";
   const totalDeclaredBuildValue =
@@ -184,12 +217,12 @@ function buildModifiedVehiclePricingContext(
   }
 
   return {
-    deterministicPricingAvailable: false,
+    deterministicPricingAvailable: true,
     totalDeclaredBuildValue,
     notes: [
-      "Modified Vehicle Protection pricing is currently judgment-based from the supplied Apex workflow, not a formal rate table.",
-      "The app deterministically calculates total declared build value when parts and covered labor are supplied.",
-      "Formal pricing can later be connected through calculateModifiedVehicleProtectionQuote().",
+      "Modified Vehicle Protection pricing uses the Apex MVP_V1.0 component matrix.",
+      "Components are priced individually so a high-risk part does not increase the rate for unrelated low-risk parts.",
+      "MVP deductible rate adjustments are not finalized; V1 displays the selected deductible but does not rate-adjust it.",
     ],
     warnings,
   } satisfies QuotePricingContext;
@@ -205,10 +238,18 @@ function validateAuto(input: Partial<AutoInsuranceQuoteInput>) {
   }
   addMissing(missing, normalizedInput.gender, "Gender");
   addMissing(missing, normalizedInput.drivingRecordStatus, "Driving record");
+  addMissing(missing, normalizedInput.annualMileage, "Annual mileage");
 
   if (normalizedInput.drivingRecordStatus === "Accident(s)/Ticket(s)") {
-    addMissing(missing, normalizedInput.incidentType, "Incident type");
-    addMissing(missing, normalizedInput.incidentTiming, "How long ago the incident occurred");
+    if (normalizedInput.incidents.length === 0) {
+      addMissing(missing, normalizedInput.incidentType, "Incident type");
+      addMissing(missing, normalizedInput.incidentTiming, "How long ago the incident occurred");
+    }
+    normalizedInput.incidents.forEach((incident, index) => {
+      const prefix = normalizedInput.incidents.length > 1 ? `Incident ${index + 1} ` : "";
+      addMissing(missing, incident.incidentType, `${prefix}type`);
+      addMissing(missing, incident.timing, `${prefix}timing`);
+    });
   }
 
   if (normalizedInput.vehicles.length === 0) {
@@ -221,6 +262,7 @@ function validateAuto(input: Partial<AutoInsuranceQuoteInput>) {
     addMissing(missing, vehicle.make, `${prefix}make`);
     addMissing(missing, vehicle.model, `${prefix}model`);
     addMissing(missing, vehicle.coverageType, `${prefix}coverage type`);
+    addMissing(missing, vehicle.liabilityLimits, `${prefix}liability limits`);
 
     if (vehicle.coverageType === "Full Coverage") {
       addMissing(missing, vehicle.comprehensiveDeductible, `${prefix}comprehensive deductible`);
@@ -259,11 +301,31 @@ function validateModifiedVehicle(
   addMissing(missing, normalizedInput.vehicle.vehicleMileage, "Vehicle mileage");
   addMissing(missing, normalizedInput.vehicle.titleStatus, "Title status");
   addMissing(missing, normalizedInput.vehicle.garageKept, "Garage-kept status");
-  addMissing(missing, normalizedInput.modifications.partsValue, "Parts/build value");
   addMissing(missing, normalizedInput.modifications.installType, "Install type");
   addMissing(missing, normalizedInput.modifications.tuneRequired, "Tune required");
   addMissing(missing, normalizedInput.coverage.deductible, "Deductible");
+  addMissing(missing, normalizedInput.coverage.vehicleUsage, "Vehicle usage");
   addMissing(missing, normalizedInput.coverage.applyDiscounts, "Apply discounts now?");
+  addMissing(missing, normalizedInput.underwriting.racingTrackDriftUse, "Track, drift, autocross, or timed-event use?");
+  addMissing(missing, normalizedInput.underwriting.competitiveRacing, "Competitive racing?");
+
+  const components = normalizedInput.modifications.components.filter(
+    (component) => component.name || component.category || component.declaredValue
+  );
+  if (components.length === 0) {
+    missing.push("At least one covered component");
+  }
+
+  components.forEach((component, index) => {
+    const prefix = components.length > 1 ? `Component ${index + 1} ` : "Component ";
+    addMissing(missing, component.name, `${prefix}name`);
+    addMissing(missing, component.category, `${prefix}category`);
+    addMissing(missing, component.declaredValue, `${prefix}declared value`);
+  });
+
+  if (normalizedInput.underwriting.racingTrackDriftUse === "Yes") {
+    addMissing(missing, normalizedInput.underwriting.trackEventsPerYear, "Approximate track events per year");
+  }
 
   if (
     normalizedInput.modifications.laborValue &&
@@ -307,11 +369,11 @@ export function validateStructuredQuoteResult(
   expectedQuoteType: QuoteType
 ): StructuredQuoteResult {
   if (!isObject(value)) {
-    throw new Error("OpenAI response was not a structured object.");
+    throw new Error("Quote result was not a structured object.");
   }
 
   if (value.quote_type !== expectedQuoteType) {
-    throw new Error("OpenAI response used the wrong quote type.");
+    throw new Error("Quote result used the wrong quote type.");
   }
 
   const requiredObjects = [
@@ -323,18 +385,18 @@ export function validateStructuredQuoteResult(
   ];
   requiredObjects.forEach((key) => {
     if (!isObject(value[key])) {
-      throw new Error(`OpenAI response is missing ${key}.`);
+      throw new Error(`Quote result is missing ${key}.`);
     }
   });
 
   ["warnings", "missing_information"].forEach((key) => {
     if (!stringArray(value[key])) {
-      throw new Error(`OpenAI response has an invalid ${key} list.`);
+      throw new Error(`Quote result has an invalid ${key} list.`);
     }
   });
 
   if (typeof value.customer_quote_text !== "string") {
-    throw new Error("OpenAI response is missing customer quote text.");
+    throw new Error("Quote result is missing customer quote text.");
   }
 
   return value as StructuredQuoteResult;
