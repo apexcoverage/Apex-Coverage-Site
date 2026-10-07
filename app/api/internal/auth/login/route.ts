@@ -19,6 +19,17 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ ok: true, user });
-  setEmployeeSessionCookie(response, user);
+  try {
+    setEmployeeSessionCookie(response, user);
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Employee login is missing required server authentication settings.",
+      },
+      { status: 500 }
+    );
+  }
   return response;
 }
