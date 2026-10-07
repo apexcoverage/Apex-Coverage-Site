@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateModifiedVehicleProtectionQuote } from "../lib/quotes/pricing";
+import {
+  calculateAutoInsuranceQuote,
+  calculateModifiedVehicleProtectionQuote,
+} from "../lib/quotes/pricing";
 import { structuredQuoteResultJsonSchema } from "../lib/quotes/resultSchema";
 import type {
   AutoInsuranceQuoteInput,
@@ -26,6 +29,7 @@ function validAutoInput(): AutoInsuranceQuoteInput {
     incidentType: "",
     incidentTiming: "",
     incidentDetails: "",
+    incidents: [],
     vehicles: [
       {
         year: "2001",
@@ -33,11 +37,12 @@ function validAutoInput(): AutoInsuranceQuoteInput {
         model: "Explorer Sport",
         trimEngine: "",
         coverageType: "Liability Only",
+        liabilityLimits: "Standard limits",
         comprehensiveDeductible: "",
         collisionDeductible: "",
       },
     ],
-    annualMileage: "",
+    annualMileage: "12000",
     garagedOvernight: "",
     discounts: ["Military"],
     notes: "",
@@ -74,9 +79,24 @@ function validModifiedInput(): ModifiedVehicleProtectionQuoteInput {
       tuneRequired: "Yes",
       safetyRelatedModsPresent: "Yes",
       performanceModsPresent: "Yes",
+      components: [
+        {
+          name: "Coilovers",
+          category: "Suspension",
+          declaredValue: "2500",
+          trackExposed: "No",
+        },
+        {
+          name: "Wheels",
+          category: "Wheels",
+          declaredValue: "3000",
+          trackExposed: "No",
+        },
+      ],
     },
     coverage: {
-      deductible: "1000",
+      deductible: "500",
+      vehicleUsage: "Weekend / recreational",
       requestedTier: "Let system recommend",
       applyDiscounts: "No",
       discounts: [],
@@ -89,6 +109,8 @@ function validModifiedInput(): ModifiedVehicleProtectionQuoteInput {
       shopInvoicesAvailable: "Yes",
       rebuiltSalvageDocumentationAvailable: "N/A",
       racingTrackDriftUse: "No",
+      trackEventsPerYear: "",
+      competitiveRacing: "No",
     },
     notes: "",
   };
@@ -182,11 +204,23 @@ test("modified vehicle validation requires build-specific minimum fields", () =>
   assert.ok(result.missing.includes("Tune required"));
 });
 
-test("modified vehicle pricing placeholder calculates declared build value only", () => {
+test("auto matrix calculates a deterministic monthly premium", () => {
+  const result = calculateAutoInsuranceQuote(validAutoInput());
+
+  assert.equal(result.pricingContext.deterministicPricingAvailable, true);
+  assert.equal(result.result.rate_version, "AUTO_V1.0");
+  assert.equal(result.result.pricing.pricing_available, true);
+  assert.match(result.result.pricing.monthly_estimate, /^\$\d+\/month$/);
+});
+
+test("modified vehicle matrix prices component rows and applies the floor", () => {
   const result = calculateModifiedVehicleProtectionQuote(validModifiedInput());
 
-  assert.equal(result.deterministicPricingAvailable, false);
-  assert.equal(result.totalDeclaredBuildValue, 26972);
+  assert.equal(result.pricingContext.deterministicPricingAvailable, true);
+  assert.equal(result.pricingContext.totalDeclaredBuildValue, 5500);
+  assert.equal(result.result.rate_version, "MVP_V1.0");
+  assert.equal(result.result.coverage.tier, "Street Plus");
+  assert.match(result.result.pricing.monthly_estimate, /^\$\d+\/month$/);
 });
 
 test("structured quote validation prevents quote type bleed-over", () => {
