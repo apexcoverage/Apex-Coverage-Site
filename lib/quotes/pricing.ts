@@ -228,6 +228,13 @@ function deductibleFactor(value: string) {
   return AUTO_RATE_TABLE.deductibleFactors[key as keyof typeof AUTO_RATE_TABLE.deductibleFactors] ?? 1;
 }
 
+function liabilityLimitFactor(value: string) {
+  return (
+    AUTO_RATE_TABLE.liabilityLimitFactors[value || "State minimum"] ||
+    AUTO_RATE_TABLE.liabilityLimitFactors["State minimum"]
+  );
+}
+
 function autoDiscounts(discounts: string[]) {
   const discountLines: QuoteRatingDetail[] = [];
   let requested = 0;
@@ -251,11 +258,44 @@ function autoDiscounts(discounts: string[]) {
   };
 }
 
+function mvpDiscounts(input: ModifiedVehicleProtectionQuoteInput) {
+  const discountLines: QuoteRatingDetail[] = [];
+
+  if (input.coverage.applyDiscounts === "No") {
+    return {
+      requested: 0,
+      allowed: 0,
+      capped: false,
+      lines: [detail("Discounts", "Not applied for this quote")],
+    };
+  }
+
+  let requested = 0;
+  input.coverage.discounts.forEach((discount) => {
+    const amount = MVP_RATE_TABLE.discounts[discount] || 0;
+    if (amount > 0) {
+      requested += amount;
+      discountLines.push(detail(discount, percentLabel(amount)));
+    } else {
+      discountLines.push(detail(discount, "Not rated in MVP_V1.0"));
+    }
+  });
+
+  const allowed = Math.min(requested, MVP_RATE_TABLE.maxDiscount);
+  return {
+    requested,
+    allowed,
+    capped: requested > allowed,
+    lines: discountLines.length > 0 ? discountLines : [detail("Discounts", "None")],
+  };
+}
+
 function calculateVehiclePremium(args: {
   vehicle: AutoQuoteVehicleInput;
   sharedLiabilityBase: number;
 }) {
   const vehicleRisk = lookupVehicleRisk(args.vehicle);
+  const limitFactor = liabilityLimitFactor(args.vehicle.liabilityLimits);
   const fullCoverage = args.vehicle.coverageType === "Full Coverage";
   const compFactor = fullCoverage
     ? deductibleFactor(args.vehicle.comprehensiveDeductible)
@@ -263,7 +303,8 @@ function calculateVehiclePremium(args: {
   const collisionFactor = fullCoverage
     ? deductibleFactor(args.vehicle.collisionDeductible)
     : 0;
-  const rawLiabilityPremium = args.sharedLiabilityBase * vehicleRisk.liabilityFactor;
+  const rawLiabilityPremium =
+    args.sharedLiabilityBase * vehicleRisk.liabilityFactor * limitFactor;
   const liabilityPremium = Math.max(
     AUTO_RATE_TABLE.minimumLiabilityMonthly,
     rawLiabilityPremium
@@ -292,6 +333,7 @@ function calculateVehiclePremium(args: {
       details: [
         detail("Coverage", args.vehicle.coverageType),
         detail("Liability limits", args.vehicle.liabilityLimits || "State minimum"),
+        detail("Liability limit factor", factorLabel(limitFactor)),
         detail("Vehicle match", vehicleRisk.matchType),
         detail("Vehicle source", vehicleRisk.sourceVehicle),
         detail("Vehicle data years", vehicleRisk.yearRange),
@@ -378,7 +420,7 @@ export function calculateAutoInsuranceQuote(
     `Minimum liability floor: ${moneyWithCents(minimumLiabilityFloor)}/month.`,
     `ZIP factor: ${zipRisk.bucket} = ${factorLabel(zipFactor)} (${zipRisk.matchType} ZIP match).`,
     "Vehicle factors use sourced HLDI make/model loss data when a match is available, otherwise HLDI class-average fallback is flagged for review.",
-    "Liability defaults to state minimum. Higher liability-limit options are captured for the agent review, with the $25 liability floor enforced in the matrix.",
+    "Liability defaults to state minimum. Higher liability-limit options now increase the liability portion of the quote, with the $25 liability floor still enforced.",
   ];
 
   const result: StructuredQuoteResult = {
@@ -561,12 +603,17 @@ function mvpTier(args: {
 
 function requiredMvpDocuments(input: ModifiedVehicleProtectionQuoteInput) {
   const required = ["VIN", "Receipts/invoices for covered components", "Photos of installed parts", "Odometer photo"];
-  if (input.modifications.tuneRequired === "Yes") required.push("Tune documentation");
   if (["Professional shop", "Mixed professional and DIY"].includes(input.modifications.installType)) {
     required.push("Shop install documentation or invoices");
   }
+  if (["DIY", "Mixed professional and DIY"].includes(input.modifications.installType)) {
+    required.push("Clear install photos or proof of proper DIY installation");
+  }
   if (["Rebuilt", "Salvage"].includes(input.vehicle.titleStatus)) {
     required.push("Rebuilt/salvage title documentation");
+  }
+  if (input.modifications.safetyRelatedModsPresent === "Yes") {
+    required.push("Photos or documentation for safety-related modifications");
   }
   if (input.underwriting.racingTrackDriftUse !== "No") {
     required.push("Use disclosure and manager review for track/drift/autocross exposure");
@@ -623,6 +670,12 @@ export function calculateModifiedVehicleProtectionQuote(
   if (totalDeclaredValue > MVP_RATE_TABLE.manualReviewThresholds.totalDeclaredValue) {
     manualReviewReasons.push("Total declared aftermarket value over $15,000");
   }
+  if (["Rebuilt", "Salvage"].includes(input.vehicle.titleStatus)) {
+    manualReviewReasons.push(`${input.vehicle.titleStatus} title requires manager approval`);
+  }
+  if (input.modifications.safetyRelatedModsPresent === "Yes") {
+    manualReviewReasons.push("Safety-related modifications require manager approval");
+  }
 
   const trackEvents = numeric(input.underwriting.trackEventsPerYear);
   if (trackEvents > MVP_RATE_TABLE.manualReviewThresholds.trackEventsPerYear) {
@@ -664,9 +717,11 @@ export function calculateModifiedVehicleProtectionQuote(
   const deductible = input.coverage.deductible || "500";
   const deductibleFactor = mvpDeductibleFactor(deductible);
   const deductibleAdjustedPremium = rawPremium * deductibleFactor;
+  const discounts = mvpDiscounts(input);
+  const discountedPremium = deductibleAdjustedPremium * (1 - discounts.allowed);
   const finalMonthly = Math.max(
     MVP_RATE_TABLE.minimumMonthlyPremium,
-    deductibleAdjustedPremium
+    discountedPremium
   );
   if (finalMonthly > MVP_RATE_TABLE.manualReviewThresholds.monthlyPremium) {
     manualReviewReasons.push("Calculated MVP premium over $150/month");
@@ -680,8 +735,10 @@ export function calculateModifiedVehicleProtectionQuote(
     `Raw component premium: ${moneyWithCents(rawPremium)}/month.`,
     `Deductible adjustment: $${deductible} deductible = ${factorLabel(deductibleFactor)}.`,
     `Premium after deductible adjustment: ${moneyWithCents(deductibleAdjustedPremium)}/month.`,
+    `Allowed MVP discount: ${percentLabel(discounts.allowed)}${discounts.capped ? " after 25% cap" : ""}.`,
+    `Premium after discounts: ${moneyWithCents(discountedPremium)}/month.`,
     `Minimum MVP premium: ${moneyWithCents(MVP_RATE_TABLE.minimumMonthlyPremium)}/month.`,
-    deductibleAdjustedPremium < MVP_RATE_TABLE.minimumMonthlyPremium
+    discountedPremium < MVP_RATE_TABLE.minimumMonthlyPremium
       ? "Minimum premium adjustment applied."
       : "Minimum premium adjustment not needed.",
     "MVP protects declared aftermarket components selected for coverage; it does not insure the underlying/base vehicle.",
@@ -735,9 +792,12 @@ export function calculateModifiedVehicleProtectionQuote(
       review_flags: uniqueManualReviewReasons,
     },
     warnings:
-      status === "NEEDS_REVIEW"
-        ? ["Manual-review triggers cannot be overridden by agents."]
-        : [],
+      [
+        ...(discounts.capped ? ["MVP discount cap applied at 25%."] : []),
+        ...(status === "NEEDS_REVIEW"
+          ? ["Manual-review triggers cannot be overridden by agents."]
+          : []),
+      ],
     missing_information: [],
     employee_notes:
       "MVP_V1.0 prices covered components individually using declared value, component risk, and usage. Manager approval is required for any manual-review trigger.",
@@ -752,12 +812,22 @@ export function calculateModifiedVehicleProtectionQuote(
         detail("Deductible", `$${deductible}`),
         detail("Deductible factor", factorLabel(deductibleFactor)),
         detail("Deductible-adjusted premium", moneyWithCents(deductibleAdjustedPremium)),
+        detail("Requested discounts", percentLabel(discounts.requested)),
+        detail("Allowed discounts", percentLabel(discounts.allowed)),
+        detail("Discounted premium", moneyWithCents(discountedPremium)),
         detail("Final monthly premium", moneyWithCents(finalMonthly)),
         detail("Tier", tier),
         detail("Vehicle usage", input.coverage.vehicleUsage || "Not supplied"),
         detail("Track events/year", input.underwriting.trackEventsPerYear || "0"),
       ],
-      line_items: lineItems,
+      line_items: [
+        ...lineItems,
+        {
+          label: "Discounts",
+          value: percentLabel(discounts.allowed),
+          details: discounts.lines,
+        },
+      ],
       manual_review_reasons: uniqueManualReviewReasons,
       audit_notes: pricingNotes,
     },

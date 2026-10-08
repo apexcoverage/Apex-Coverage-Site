@@ -5,6 +5,15 @@ export const AUTO_RATE_TABLE = {
   version: AUTO_RATE_VERSION,
   liabilityBaseMonthly: 100,
   minimumLiabilityMonthly: 25,
+  liabilityLimitFactors: {
+    "State minimum": 1,
+    "50/100/50": 1.08,
+    "100/300/100": 1.15,
+    "250/500/100": 1.24,
+    "250/500/250": 1.3,
+    "500 CSL": 1.38,
+    "500/500/250": 1.42,
+  } as Record<string, number>,
   zipFactors: {
     "Very Low": 0.85,
     Low: 0.925,
@@ -82,6 +91,16 @@ export const MVP_RATE_TABLE = {
     "1500": 0.85,
     "2500": 0.75,
   },
+  discounts: {
+    "Garage-kept": 0.05,
+    "Anti-theft": 0.05,
+    Military: 0.1,
+    "Clean driving history": 0.05,
+    "No prior claims": 0.05,
+    "Low mileage": 0.05,
+    "Professional installation": 0.05,
+  } as Record<string, number>,
+  maxDiscount: 0.25,
   componentCategories: {
     Wheels: { risk: "Low", multiplier: 0.9 },
     "Basic exhaust": { risk: "Low", multiplier: 0.9 },

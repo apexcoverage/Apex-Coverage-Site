@@ -243,6 +243,29 @@ test("auto liability coverage has a 25 dollar monthly floor", () => {
   assert.equal(result.result.pricing.monthly_estimate, "$25/month");
 });
 
+test("auto liability limit options increase liability pricing", () => {
+  const stateMinimum = validAutoInput();
+  stateMinimum.discounts = [];
+  const higherLimit = validAutoInput();
+  higherLimit.discounts = [];
+  higherLimit.vehicles[0].liabilityLimits = "250/500/250";
+
+  const stateMinimumResult = calculateAutoInsuranceQuote(stateMinimum);
+  const higherLimitResult = calculateAutoInsuranceQuote(higherLimit);
+  const stateMinimumMonthly = Number(
+    stateMinimumResult.result.pricing.monthly_estimate.replace(/[^0-9]/g, "")
+  );
+  const higherLimitMonthly = Number(
+    higherLimitResult.result.pricing.monthly_estimate.replace(/[^0-9]/g, "")
+  );
+  const limitFactor = higherLimitResult.result.rating_details?.line_items
+    .flatMap((item) => item.details)
+    .find((detail) => detail.label === "Liability limit factor");
+
+  assert.equal(limitFactor?.value, "1.3x");
+  assert.ok(higherLimitMonthly > stateMinimumMonthly);
+});
+
 test("multiple-incident formula is order independent and flags heavy histories", () => {
   const first = validAutoInput();
   first.drivingRecordStatus = "Accident(s)/Ticket(s)";
@@ -358,6 +381,47 @@ test("modified vehicle matrix applies deductible factors before the floor", () =
   assert.ok(
     higherDeductible.result.pricing.pricing_notes.some((note) =>
       note.includes("Deductible adjustment")
+    )
+  );
+});
+
+test("modified vehicle discounts stack but cap at 25 percent", () => {
+  const input = validModifiedInput();
+  input.coverage.applyDiscounts = "Yes";
+  input.coverage.discounts = [
+    "Military",
+    "Garage-kept",
+    "Anti-theft",
+    "Clean driving history",
+    "No prior claims",
+    "Low mileage",
+  ];
+
+  const result = calculateModifiedVehicleProtectionQuote(input);
+  const allowedDiscount = result.result.rating_details?.factors.find(
+    (factor) => factor.label === "Allowed discounts"
+  );
+
+  assert.equal(allowedDiscount?.value, "25%");
+  assert.ok(result.result.warnings.includes("MVP discount cap applied at 25%."));
+});
+
+test("modified vehicle rebuilt titles and safety mods require manager approval", () => {
+  const input = validModifiedInput();
+  input.vehicle.titleStatus = "Rebuilt";
+  input.modifications.safetyRelatedModsPresent = "Yes";
+
+  const result = calculateModifiedVehicleProtectionQuote(input);
+
+  assert.equal(result.status, "NEEDS_REVIEW");
+  assert.ok(
+    result.result.underwriting.review_flags.some((flag) =>
+      flag.includes("Rebuilt title")
+    )
+  );
+  assert.ok(
+    result.result.underwriting.review_flags.some((flag) =>
+      flag.includes("Safety-related modifications")
     )
   );
 });
