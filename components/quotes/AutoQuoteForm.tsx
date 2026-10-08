@@ -7,6 +7,7 @@ import { readJsonResponse } from "@/lib/quotes/apiClient";
 import {
   AUTO_DEDUCTIBLE_OPTIONS,
   AUTO_DISCOUNT_OPTIONS,
+  AUTO_LIABILITY_LIMIT_OPTIONS,
   EMPTY_AUTO_INCIDENT,
   EMPTY_AUTO_QUOTE_INPUT,
   EMPTY_AUTO_VEHICLE,
@@ -45,7 +46,10 @@ function normalizeLoadedInput(raw: AutoInsuranceQuoteInput): AutoInsuranceQuoteI
         ? raw.vehicles.map((vehicle) => ({
             ...EMPTY_AUTO_VEHICLE,
             ...vehicle,
-            liabilityLimits: vehicle.liabilityLimits || "Standard limits",
+            liabilityLimits:
+              !vehicle.liabilityLimits || vehicle.liabilityLimits === "Standard limits"
+                ? "State minimum"
+                : vehicle.liabilityLimits,
           }))
         : [{ ...EMPTY_AUTO_VEHICLE }],
     discounts: Array.isArray(raw.discounts) ? raw.discounts : [],
@@ -289,7 +293,7 @@ export default function AutoQuoteForm() {
                   <TextField label="Model*" value={vehicle.model} onChange={(value) => updateVehicle(index, "model", value)} />
                   <TextField label="Trim / Engine" value={vehicle.trimEngine} onChange={(value) => updateVehicle(index, "trimEngine", value)} />
                   <SelectField label="Coverage Type*" value={vehicle.coverageType} options={["", "Liability Only", "Full Coverage"]} onChange={(value) => updateVehicle(index, "coverageType", value)} />
-                  <SelectField label="Liability Limits*" value={vehicle.liabilityLimits} options={["", "Standard limits", "State minimum", "Higher limits - matrix pending"]} onChange={(value) => updateVehicle(index, "liabilityLimits", value)} />
+                  <SelectField label="Liability Limits*" value={vehicle.liabilityLimits} options={["", ...AUTO_LIABILITY_LIMIT_OPTIONS]} onChange={(value) => updateVehicle(index, "liabilityLimits", value)} />
                   {vehicle.coverageType === "Full Coverage" && (
                     <>
                       <SelectField label="Comp Deductible*" value={vehicle.comprehensiveDeductible} options={["", ...AUTO_DEDUCTIBLE_OPTIONS]} onChange={(value) => updateVehicle(index, "comprehensiveDeductible", value)} />

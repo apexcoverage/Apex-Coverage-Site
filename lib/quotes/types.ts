@@ -5,6 +5,7 @@ export type QuoteStatus =
   | "NEEDS_REVIEW"
   | "SAVED"
   | "APPROVED"
+  | "DECLINED"
   | "ARCHIVED";
 
 export type EmployeeRole = "EMPLOYEE" | "MANAGER" | "ADMIN";
@@ -13,6 +14,21 @@ export type EmployeeUser = {
   email: string;
   name: string;
   role: EmployeeRole;
+};
+
+export type QuoteReviewAction =
+  | "REQUESTED_REVIEW"
+  | "APPROVED_REVIEW"
+  | "DECLINED_REVIEW"
+  | "STATUS_CHANGED";
+
+export type QuoteReviewEvent = {
+  id: string;
+  action: QuoteReviewAction;
+  status: QuoteStatus;
+  note: string;
+  reviewer: EmployeeUser;
+  createdAt: string;
 };
 
 export type AutoQuoteVehicleInput = {
@@ -214,6 +230,7 @@ export type SavedQuoteRecord = {
   };
   input: QuoteInput;
   result: StructuredQuoteResult;
+  reviewEvents: QuoteReviewEvent[];
 };
 
 export type QuoteValidationResult = {

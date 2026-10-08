@@ -4,18 +4,13 @@ export const MVP_RATE_VERSION = "MVP_V1.0";
 export const AUTO_RATE_TABLE = {
   version: AUTO_RATE_VERSION,
   liabilityBaseMonthly: 100,
+  minimumLiabilityMonthly: 25,
   zipFactors: {
     "Very Low": 0.85,
     Low: 0.925,
     Average: 1,
     High: 1.15,
     "Very High": 1.3,
-  },
-  temporaryZipBand: "Average",
-  temporaryVehicleFactors: {
-    liability: 1,
-    comprehensive: 1,
-    collision: 1,
   },
   ageFactors: [
     { label: "16-17", min: 16, max: 17, factor: 1.65 },
@@ -49,6 +44,7 @@ export const AUTO_RATE_TABLE = {
   },
   additionalIncidentImpactFactor: 0.5,
   maxAutomatedDrivingHistoryFactor: 1.75,
+  multipleIncidentManualReviewCount: 3,
   compBaseMonthly: 25,
   collisionBaseMonthly: 50,
   deductibleFactors: {
@@ -80,6 +76,12 @@ export const MVP_RATE_TABLE = {
   version: MVP_RATE_VERSION,
   baseRatePerThousand: 6,
   minimumMonthlyPremium: 15,
+  deductibleFactors: {
+    "500": 1,
+    "1000": 0.9,
+    "1500": 0.85,
+    "2500": 0.75,
+  },
   componentCategories: {
     Wheels: { risk: "Low", multiplier: 0.9 },
     "Basic exhaust": { risk: "Low", multiplier: 0.9 },

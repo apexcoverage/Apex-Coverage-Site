@@ -67,6 +67,7 @@ export default function QuotesDashboard({
       total: quotes.length,
       needsReview: quotes.filter((quote) => quote.status === "NEEDS_REVIEW").length,
       approved: quotes.filter((quote) => quote.status === "APPROVED").length,
+      declined: quotes.filter((quote) => quote.status === "DECLINED").length,
     };
   }, [quotes]);
 
@@ -97,7 +98,7 @@ export default function QuotesDashboard({
           </div>
         </header>
 
-        <section className="mb-6 grid gap-3 md:grid-cols-3">
+        <section className="mb-6 grid gap-3 md:grid-cols-4">
           <div className="apex-agent-stat">
             <div className="apex-agent-stat-value">{stats.total}</div>
             <div className="apex-agent-stat-label">Recent Quotes</div>
@@ -109,6 +110,10 @@ export default function QuotesDashboard({
           <div className="apex-agent-stat">
             <div className="apex-agent-stat-value">{stats.approved}</div>
             <div className="apex-agent-stat-label">Approved</div>
+          </div>
+          <div className="apex-agent-stat">
+            <div className="apex-agent-stat-value">{stats.declined}</div>
+            <div className="apex-agent-stat-label">Declined</div>
           </div>
         </section>
 

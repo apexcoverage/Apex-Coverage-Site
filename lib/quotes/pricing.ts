@@ -13,6 +13,8 @@ import type {
 } from "./types";
 import { AUTO_RATE_TABLE, MVP_RATE_TABLE } from "./rateTables";
 import { parseCurrency } from "./validation";
+import { lookupZipRisk, ZIP_RISK_METHOD } from "./zipRisk";
+import { lookupVehicleRisk, VEHICLE_RISK_METHOD } from "./vehicleRisk";
 
 type MatrixQuoteOutput = {
   result: StructuredQuoteResult;
@@ -149,7 +151,7 @@ function drivingHistoryFactor(input: AutoInsuranceQuoteInput) {
     };
   }
 
-  const impacts = incidents.map((incident, index) => {
+  const ratedIncidents = incidents.map((incident, index) => {
     const key = classifyIncident(incident);
     const config = AUTO_RATE_TABLE.drivingHistory[key as keyof typeof AUTO_RATE_TABLE.drivingHistory];
     if (config.manualReview) {
@@ -159,6 +161,7 @@ function drivingHistoryFactor(input: AutoInsuranceQuoteInput) {
           : "Major or unclassified driving-history event"
       );
     }
+    const impact = Math.max(0, config.factor - 1);
     lineItems.push({
       label: `Incident ${index + 1}`,
       value: incident.incidentType || "Unclassified incident",
@@ -166,13 +169,18 @@ function drivingHistoryFactor(input: AutoInsuranceQuoteInput) {
         detail("Timing", incident.timing || "Not supplied"),
         detail("Classification", key),
         detail("Base factor", factorLabel(config.factor)),
+        detail("Chargeable impact", factorLabel(impact)),
       ],
     });
-    return Math.max(0, config.factor - 1);
+    return { incident, key, index, impact };
   });
 
-  const totalImpact = impacts.reduce((sum, impact, index) => {
-    return sum + impact * (index === 0 ? 1 : AUTO_RATE_TABLE.additionalIncidentImpactFactor);
+  const chargeableIncidents = ratedIncidents
+    .filter((incident) => incident.impact > 0)
+    .sort((a, b) => b.impact - a.impact || a.index - b.index);
+
+  const totalImpact = chargeableIncidents.reduce((sum, incident, index) => {
+    return sum + incident.impact * (index === 0 ? 1 : AUTO_RATE_TABLE.additionalIncidentImpactFactor);
   }, 0);
   const uncappedFactor = 1 + totalImpact;
   const cappedFactor = Math.min(
@@ -180,14 +188,28 @@ function drivingHistoryFactor(input: AutoInsuranceQuoteInput) {
     AUTO_RATE_TABLE.maxAutomatedDrivingHistoryFactor
   );
 
+  if (chargeableIncidents.length >= AUTO_RATE_TABLE.multipleIncidentManualReviewCount) {
+    manualReviewReasons.push(
+      `${chargeableIncidents.length} chargeable incidents require manager review`
+    );
+  }
+
   if (uncappedFactor > AUTO_RATE_TABLE.maxAutomatedDrivingHistoryFactor) {
     manualReviewReasons.push("Driving-history factor exceeded automated cap");
   }
 
   lineItems.push({
-    label: "Driving-history factor",
+    label: "Multiple-incident formula",
     value: factorLabel(cappedFactor),
     details: [
+      detail("Formula", "1 + highest chargeable impact + 50% of each additional chargeable impact"),
+      detail("Chargeable incident count", String(chargeableIncidents.length)),
+      detail(
+        "Primary incident",
+        chargeableIncidents[0]
+          ? `Incident ${chargeableIncidents[0].index + 1} at full impact`
+          : "None"
+      ),
       detail("Uncapped factor", factorLabel(uncappedFactor)),
       detail("Automated cap", factorLabel(AUTO_RATE_TABLE.maxAutomatedDrivingHistoryFactor)),
       detail("Additional incident impact", `${Math.round(AUTO_RATE_TABLE.additionalIncidentImpactFactor * 100)}% of normal impact`),
@@ -231,8 +253,9 @@ function autoDiscounts(discounts: string[]) {
 
 function calculateVehiclePremium(args: {
   vehicle: AutoQuoteVehicleInput;
-  liabilityBeforeCoverage: number;
+  sharedLiabilityBase: number;
 }) {
+  const vehicleRisk = lookupVehicleRisk(args.vehicle);
   const fullCoverage = args.vehicle.coverageType === "Full Coverage";
   const compFactor = fullCoverage
     ? deductibleFactor(args.vehicle.comprehensiveDeductible)
@@ -240,30 +263,44 @@ function calculateVehiclePremium(args: {
   const collisionFactor = fullCoverage
     ? deductibleFactor(args.vehicle.collisionDeductible)
     : 0;
+  const rawLiabilityPremium = args.sharedLiabilityBase * vehicleRisk.liabilityFactor;
+  const liabilityPremium = Math.max(
+    AUTO_RATE_TABLE.minimumLiabilityMonthly,
+    rawLiabilityPremium
+  );
   const compPremium = fullCoverage
     ? AUTO_RATE_TABLE.compBaseMonthly *
-      AUTO_RATE_TABLE.temporaryVehicleFactors.comprehensive *
+      vehicleRisk.comprehensiveFactor *
       compFactor
     : 0;
   const collisionPremium = fullCoverage
     ? AUTO_RATE_TABLE.collisionBaseMonthly *
-      AUTO_RATE_TABLE.temporaryVehicleFactors.collision *
+      vehicleRisk.collisionFactor *
       collisionFactor
     : 0;
-  const gross = args.liabilityBeforeCoverage + compPremium + collisionPremium;
+  const gross = liabilityPremium + compPremium + collisionPremium;
 
   return {
-    liability: args.liabilityBeforeCoverage,
+    liability: liabilityPremium,
     compPremium,
     collisionPremium,
     gross,
+    vehicleRisk,
     lineItem: {
       label: vehicleSummary(args.vehicle) || "Vehicle",
       value: money(gross),
       details: [
         detail("Coverage", args.vehicle.coverageType),
-        detail("Liability limits", args.vehicle.liabilityLimits || "Standard limits"),
-        detail("Liability premium", moneyWithCents(args.liabilityBeforeCoverage)),
+        detail("Liability limits", args.vehicle.liabilityLimits || "State minimum"),
+        detail("Vehicle match", vehicleRisk.matchType),
+        detail("Vehicle source", vehicleRisk.sourceVehicle),
+        detail("Vehicle data years", vehicleRisk.yearRange),
+        detail("Liability vehicle factor", factorLabel(vehicleRisk.liabilityFactor)),
+        detail("Collision vehicle factor", factorLabel(vehicleRisk.collisionFactor)),
+        detail("Comprehensive vehicle factor", factorLabel(vehicleRisk.comprehensiveFactor)),
+        detail("Raw liability premium", moneyWithCents(rawLiabilityPremium)),
+        detail("Minimum liability floor", moneyWithCents(AUTO_RATE_TABLE.minimumLiabilityMonthly)),
+        detail("Liability premium", moneyWithCents(liabilityPremium)),
         detail("Comprehensive", fullCoverage ? moneyWithCents(compPremium) : "Not included"),
         detail("Collision", fullCoverage ? moneyWithCents(collisionPremium) : "Not included"),
         detail("Comp deductible factor", fullCoverage ? factorLabel(compFactor) : "N/A"),
@@ -282,25 +319,31 @@ export function calculateAutoInsuranceQuote(
     AUTO_RATE_TABLE.genderFactors[
       input.gender as keyof typeof AUTO_RATE_TABLE.genderFactors
     ] || 1;
-  const zipFactor = AUTO_RATE_TABLE.zipFactors.Average;
+  const zipRisk = lookupZipRisk(input.zip);
+  const zipFactor = zipRisk.factor;
   const driving = drivingHistoryFactor(input);
   const manualReviewReasons = [...driving.manualReviewReasons];
 
-  const liabilityBeforeCoverage =
+  const sharedLiabilityBase =
     AUTO_RATE_TABLE.liabilityBaseMonthly *
     zipFactor *
-    AUTO_RATE_TABLE.temporaryVehicleFactors.liability *
     age.factor *
     genderFactor *
     driving.factor *
     mileage.factor;
 
   const vehicles = input.vehicles.map((vehicle) =>
-    calculateVehiclePremium({ vehicle, liabilityBeforeCoverage })
+    calculateVehiclePremium({ vehicle, sharedLiabilityBase })
   );
+  vehicles.forEach((vehicle) => {
+    manualReviewReasons.push(...vehicle.vehicleRisk.reviewFlags);
+  });
   const grossPremium = vehicles.reduce((sum, vehicle) => sum + vehicle.gross, 0);
   const discounts = autoDiscounts(input.discounts);
-  const finalMonthly = grossPremium * (1 - discounts.allowed);
+  const discountedMonthly = grossPremium * (1 - discounts.allowed);
+  const minimumLiabilityFloor =
+    AUTO_RATE_TABLE.minimumLiabilityMonthly * Math.max(1, input.vehicles.length);
+  const finalMonthly = Math.max(discountedMonthly, minimumLiabilityFloor);
   const warnings: string[] = [];
 
   if (discounts.capped) {
@@ -332,9 +375,10 @@ export function calculateAutoInsuranceQuote(
   const pricingNotes = [
     `Gross premium before discounts: ${money(grossPremium)}/month.`,
     `Allowed discount: ${percentLabel(discounts.allowed)}${discounts.capped ? " after 25% cap" : ""}.`,
-    "ZIP factor is currently Average = 1.00 until the ZIP table is added.",
-    "Vehicle factors are currently 1.00 until the vehicle rating table is added.",
-    "Liability-limit factors are not finalized; standard limits are treated as baseline.",
+    `Minimum liability floor: ${moneyWithCents(minimumLiabilityFloor)}/month.`,
+    `ZIP factor: ${zipRisk.bucket} = ${factorLabel(zipFactor)} (${zipRisk.matchType} ZIP match).`,
+    "Vehicle factors use sourced HLDI make/model loss data when a match is available, otherwise HLDI class-average fallback is flagged for review.",
+    "Liability defaults to state minimum. Higher liability-limit options are captured for the agent review, with the $25 liability floor enforced in the matrix.",
   ];
 
   const result: StructuredQuoteResult = {
@@ -399,15 +443,18 @@ export function calculateAutoInsuranceQuote(
     warnings,
     missing_information: [],
     employee_notes:
-      "AUTO_V1.0 uses Apex internal matrix pricing. ZIP, vehicle, liability-limit, and final multiple-incident refinements still need production datasets/calibration.",
+      "AUTO_V1.0 uses Apex internal matrix pricing. ZIP risk uses a public-data proxy, vehicle risk uses sourced HLDI loss data, liability has a $25 monthly floor, and multiple incidents use the V1 exact weighted-impact formula.",
     customer_quote_text:
       `Apex Auto Coverage estimate for ${vehicleSummary(primaryVehicle) || "the listed vehicle"}: ${money(finalMonthly)}/month. This is an internal V1 estimate and must be reviewed before binding.`,
     rating_details: {
       rate_version: AUTO_RATE_TABLE.version,
       factors: [
         detail("Base liability", moneyWithCents(AUTO_RATE_TABLE.liabilityBaseMonthly)),
-        detail("ZIP band", `${AUTO_RATE_TABLE.temporaryZipBand} (${factorLabel(zipFactor)})`),
-        detail("Vehicle factor", factorLabel(AUTO_RATE_TABLE.temporaryVehicleFactors.liability)),
+        detail("Minimum liability", moneyWithCents(AUTO_RATE_TABLE.minimumLiabilityMonthly)),
+        detail("ZIP band", `${zipRisk.bucket} (${factorLabel(zipFactor)})`),
+        detail("ZIP match", zipRisk.matchType),
+        detail("ZIP data", zipRisk.dataVersion),
+        detail("Vehicle data", VEHICLE_RISK_METHOD.source),
         detail("Age band", `${age.label} (${factorLabel(age.factor)})`),
         detail("Gender factor", factorLabel(genderFactor)),
         detail("Driving-history factor", factorLabel(driving.factor)),
@@ -415,6 +462,7 @@ export function calculateAutoInsuranceQuote(
         detail("Gross premium", moneyWithCents(grossPremium)),
         detail("Requested discounts", percentLabel(discounts.requested)),
         detail("Allowed discounts", percentLabel(discounts.allowed)),
+        detail("Discounted premium", moneyWithCents(discountedMonthly)),
         detail("Final monthly premium", moneyWithCents(finalMonthly)),
       ],
       line_items: [
@@ -427,7 +475,7 @@ export function calculateAutoInsuranceQuote(
         },
       ],
       manual_review_reasons: manualReviewReasons,
-      audit_notes: pricingNotes,
+      audit_notes: [...pricingNotes, ZIP_RISK_METHOD.limitation, VEHICLE_RISK_METHOD.limitation],
     },
   };
 
@@ -446,6 +494,15 @@ function componentConfig(component: ModifiedVehicleComponentInput) {
   return (
     MVP_RATE_TABLE.componentCategories[component.category] ||
     MVP_RATE_TABLE.componentCategories["Custom/unclassifiable fabrication"]
+  );
+}
+
+function mvpDeductibleFactor(value: string) {
+  const key = String(numeric(value || "500"));
+  return (
+    MVP_RATE_TABLE.deductibleFactors[
+      key as keyof typeof MVP_RATE_TABLE.deductibleFactors
+    ] || MVP_RATE_TABLE.deductibleFactors["500"]
   );
 }
 
@@ -604,7 +661,13 @@ export function calculateModifiedVehicleProtectionQuote(
     manualReviewReasons.push("Multiple very-high-risk systems");
   }
 
-  const finalMonthly = Math.max(MVP_RATE_TABLE.minimumMonthlyPremium, rawPremium);
+  const deductible = input.coverage.deductible || "500";
+  const deductibleFactor = mvpDeductibleFactor(deductible);
+  const deductibleAdjustedPremium = rawPremium * deductibleFactor;
+  const finalMonthly = Math.max(
+    MVP_RATE_TABLE.minimumMonthlyPremium,
+    deductibleAdjustedPremium
+  );
   if (finalMonthly > MVP_RATE_TABLE.manualReviewThresholds.monthlyPremium) {
     manualReviewReasons.push("Calculated MVP premium over $150/month");
   }
@@ -615,12 +678,13 @@ export function calculateModifiedVehicleProtectionQuote(
   const summary = vehicleSummary(input.vehicle);
   const pricingNotes = [
     `Raw component premium: ${moneyWithCents(rawPremium)}/month.`,
+    `Deductible adjustment: $${deductible} deductible = ${factorLabel(deductibleFactor)}.`,
+    `Premium after deductible adjustment: ${moneyWithCents(deductibleAdjustedPremium)}/month.`,
     `Minimum MVP premium: ${moneyWithCents(MVP_RATE_TABLE.minimumMonthlyPremium)}/month.`,
-    rawPremium < MVP_RATE_TABLE.minimumMonthlyPremium
+    deductibleAdjustedPremium < MVP_RATE_TABLE.minimumMonthlyPremium
       ? "Minimum premium adjustment applied."
       : "Minimum premium adjustment not needed.",
     "MVP protects declared aftermarket components selected for coverage; it does not insure the underlying/base vehicle.",
-    "MVP deductible rate adjustments are not finalized in V1.",
   ];
 
   const result: StructuredQuoteResult = {
@@ -644,7 +708,7 @@ export function calculateModifiedVehicleProtectionQuote(
     coverage: {
       type: "Modified Vehicle Protection",
       tier,
-      deductible: input.coverage.deductible ? `$${input.coverage.deductible}` : "$500",
+      deductible: `$${deductible}`,
       included_items: components.map((component) =>
         `${component.name || component.category} (${money(parseCurrency(component.declaredValue) || 0)})`
       ),
@@ -685,6 +749,9 @@ export function calculateModifiedVehicleProtectionQuote(
         detail("Base rate", `${moneyWithCents(MVP_RATE_TABLE.baseRatePerThousand)} per $1,000`),
         detail("Total declared aftermarket value", moneyWithCents(totalDeclaredValue)),
         detail("Raw premium", moneyWithCents(rawPremium)),
+        detail("Deductible", `$${deductible}`),
+        detail("Deductible factor", factorLabel(deductibleFactor)),
+        detail("Deductible-adjusted premium", moneyWithCents(deductibleAdjustedPremium)),
         detail("Final monthly premium", moneyWithCents(finalMonthly)),
         detail("Tier", tier),
         detail("Vehicle usage", input.coverage.vehicleUsage || "Not supplied"),

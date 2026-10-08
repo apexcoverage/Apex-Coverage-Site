@@ -29,6 +29,16 @@ export const MODIFIED_VEHICLE_DISCOUNT_OPTIONS = [
 
 export const AUTO_DEDUCTIBLE_OPTIONS = ["250", "500", "1000", "2000"];
 
+export const AUTO_LIABILITY_LIMIT_OPTIONS = [
+  "State minimum",
+  "50/100/50",
+  "100/300/100",
+  "250/500/100",
+  "250/500/250",
+  "500 CSL",
+  "500/500/250",
+];
+
 export const MVP_DEDUCTIBLE_OPTIONS = ["500", "1000", "1500", "2500"];
 
 export const MODIFIED_TIER_OPTIONS = [
@@ -72,7 +82,7 @@ export const EMPTY_AUTO_VEHICLE: AutoQuoteVehicleInput = {
   model: "",
   trimEngine: "",
   coverageType: "",
-  liabilityLimits: "Standard limits",
+  liabilityLimits: "State minimum",
   comprehensiveDeductible: "",
   collisionDeductible: "",
 };

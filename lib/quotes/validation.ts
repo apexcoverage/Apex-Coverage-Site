@@ -14,6 +14,11 @@ function clean(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function normalizeLiabilityLimits(value: unknown) {
+  const cleaned = clean(value);
+  return !cleaned || cleaned === "Standard limits" ? "State minimum" : cleaned;
+}
+
 function asList(value: unknown) {
   return Array.isArray(value)
     ? value.map((item) => clean(item)).filter(Boolean)
@@ -73,7 +78,7 @@ function normalizeAutoInput(input: Partial<AutoInsuranceQuoteInput>) {
       model: clean(vehicle?.model),
       trimEngine: clean(vehicle?.trimEngine),
       coverageType: clean(vehicle?.coverageType),
-      liabilityLimits: clean(vehicle?.liabilityLimits) || "Standard limits",
+      liabilityLimits: normalizeLiabilityLimits(vehicle?.liabilityLimits),
       comprehensiveDeductible: clean(vehicle?.comprehensiveDeductible),
       collisionDeductible: clean(vehicle?.collisionDeductible),
     })),
@@ -176,19 +181,14 @@ function buildAutoPricingContext(input: AutoInsuranceQuoteInput) {
         `${label}: liability-only coverage ignores comprehensive and collision deductibles.`
       );
     }
-    if (vehicle.coverageType === "Full Coverage" && vehicle.liabilityLimits === "Standard limits") {
-      warnings.push(
-        `${label}: liability-limit pricing is using the V1 standard-limits placeholder.`
-      );
-    }
   });
 
   return {
     deterministicPricingAvailable: true,
     notes: [
       "Auto coverage pricing uses the Apex AUTO_V1.0 matrix.",
-      "ZIP and vehicle-specific tables are not finalized yet, so V1 uses Average ZIP and 1.00 vehicle factors.",
-      "Liability-limit pricing is not finalized yet; standard limits are treated as the baseline.",
+      "ZIP risk uses the Apex public-data ZIP bucket table. Vehicle factors use sourced HLDI make/model loss data when available.",
+      "Liability coverage defaults to state minimum and uses the Apex $25 monthly liability floor.",
     ],
     warnings,
   } satisfies QuotePricingContext;

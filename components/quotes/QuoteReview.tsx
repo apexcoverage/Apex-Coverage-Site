@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { readJsonResponse } from "@/lib/quotes/apiClient";
-import type { QuoteStatus, SavedQuoteRecord } from "@/lib/quotes/types";
+import type { EmployeeUser, QuoteStatus, SavedQuoteRecord } from "@/lib/quotes/types";
 
 function quoteTypeLabel(type: string) {
   return type === "AUTO_INSURANCE"
@@ -22,9 +22,11 @@ function editHref(quote: SavedQuoteRecord) {
 export default function QuoteReview({ quoteId }: { quoteId: string }) {
   const router = useRouter();
   const [quote, setQuote] = useState<SavedQuoteRecord | null>(null);
+  const [currentUser, setCurrentUser] = useState<EmployeeUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [reviewNote, setReviewNote] = useState("");
 
   async function loadQuote() {
     setLoading(true);
@@ -40,6 +42,14 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
       const data = await readJsonResponse(res);
       if (!data.ok) throw new Error(data.error || "Could not load quote.");
       setQuote(data.quote);
+
+      const meRes = await fetch("/api/internal/auth/me", { cache: "no-store" });
+      if (meRes.status === 401) {
+        router.push("/agent/quotes/login");
+        return;
+      }
+      const meData = await readJsonResponse(meRes);
+      if (meData.ok) setCurrentUser(meData.user);
     } catch (err: any) {
       setError(err.message || "Could not load quote.");
     } finally {
@@ -59,11 +69,12 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
       const res = await fetch(`/api/internal/quotes/${quoteId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, note: reviewNote }),
       });
       const data = await readJsonResponse(res);
       if (!data.ok) throw new Error(data.error || "Could not update quote.");
       setQuote(data.quote);
+      setReviewNote("");
     } catch (err: any) {
       setError(err.message || "Could not update quote.");
     } finally {
@@ -100,6 +111,9 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
       .filter(Boolean)
       .join(" ");
   }, [quote]);
+
+  const canManageReview =
+    currentUser?.role === "MANAGER" || currentUser?.role === "ADMIN";
 
   if (loading) {
     return (
@@ -159,11 +173,31 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
             <button
               type="button"
               disabled={!!busy}
-              onClick={() => updateStatus("APPROVED")}
-              className="apex-agent-button-primary px-3 py-2 text-sm disabled:opacity-60"
+              onClick={() => updateStatus("NEEDS_REVIEW")}
+              className="apex-agent-button-secondary px-3 py-2 text-sm disabled:opacity-60"
             >
-              {busy === "APPROVED" ? "Approving..." : "Approve Quote"}
+              {busy === "NEEDS_REVIEW" ? "Requesting..." : "Request Review"}
             </button>
+            {canManageReview && (
+              <button
+                type="button"
+                disabled={!!busy}
+                onClick={() => updateStatus("DECLINED")}
+                className="apex-agent-button-secondary px-3 py-2 text-sm disabled:opacity-60"
+              >
+                {busy === "DECLINED" ? "Declining..." : "Decline"}
+              </button>
+            )}
+            {canManageReview && (
+              <button
+                type="button"
+                disabled={!!busy}
+                onClick={() => updateStatus("APPROVED")}
+                className="apex-agent-button-primary px-3 py-2 text-sm disabled:opacity-60"
+              >
+                {busy === "APPROVED" ? "Approving..." : "Approve Quote"}
+              </button>
+            )}
           </div>
         </header>
 
@@ -178,6 +212,25 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
           <SummaryBox label="Customer" value={quote.customer.name} />
           <SummaryBox label="Vehicle" value={vehicleSummary || "-"} />
           <SummaryBox label="Matrix" value={quote.result.rate_version || quote.result.rating_details?.rate_version || quoteTypeLabel(quote.quoteType)} />
+        </section>
+
+        <section className="apex-agent-card-light mb-5 p-5">
+          <div className="grid gap-3 lg:grid-cols-[1fr_280px] lg:items-end">
+            <label className="text-sm font-semibold text-slate-700">
+              Review note
+              <textarea
+                className="mt-2 min-h-[86px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                value={reviewNote}
+                onChange={(event) => setReviewNote(event.target.value)}
+                placeholder="Add a short note before saving, requesting review, approving, or declining."
+              />
+            </label>
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+              {canManageReview
+                ? "You can approve or decline quotes as a manager/admin."
+                : "Employees can save quotes or request manager review. Approval requires a manager/admin account."}
+            </div>
+          </div>
         </section>
 
         <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
@@ -285,6 +338,35 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
               <p className="whitespace-pre-wrap text-sm text-slate-700">
                 {quote.result.employee_notes || "No employee notes returned."}
               </p>
+            </Panel>
+
+            <Panel title="Review Activity">
+              {(quote.reviewEvents || []).length === 0 ? (
+                <p className="text-sm text-slate-500">No review actions yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {(quote.reviewEvents || []).map((event) => (
+                    <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm font-semibold text-slate-900">
+                          {event.status.replace(/_/g, " ")}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {new Date(event.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        {event.action.replace(/_/g, " ")} by {event.reviewer.name}
+                      </div>
+                      {event.note && (
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+                          {event.note}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </aside>
         </div>

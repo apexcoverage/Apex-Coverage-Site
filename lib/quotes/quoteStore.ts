@@ -5,6 +5,8 @@ import { randomUUID } from "crypto";
 import type {
   EmployeeUser,
   QuoteInput,
+  QuoteReviewAction,
+  QuoteReviewEvent,
   QuoteStatus,
   QuoteType,
   SavedQuoteRecord,
@@ -38,6 +40,17 @@ type QuoteRow = {
   vehicle_title_status: string;
   input_json: string;
   result_json: string;
+};
+
+type QuoteReviewEventRow = {
+  id: string;
+  action: QuoteReviewAction;
+  status: QuoteStatus;
+  note: string;
+  reviewer_email: string;
+  reviewer_name: string;
+  reviewer_role: string;
+  created_at: string;
 };
 
 let db: DatabaseSync | null | undefined;
@@ -121,6 +134,18 @@ function loadSqlite() {
         payload_json TEXT NOT NULL,
         created_at TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS quote_review_events (
+        id TEXT PRIMARY KEY,
+        quote_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        status TEXT NOT NULL,
+        note TEXT NOT NULL,
+        reviewer_email TEXT NOT NULL,
+        reviewer_name TEXT NOT NULL,
+        reviewer_role TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
     `);
     return db;
   } catch {
@@ -140,7 +165,11 @@ function readJsonStore() {
   const raw = fs.readFileSync(file, "utf8");
   if (!raw.trim()) return [] as SavedQuoteRecord[];
   try {
-    return JSON.parse(raw) as SavedQuoteRecord[];
+    const records = JSON.parse(raw) as SavedQuoteRecord[];
+    return records.map((quote) => ({
+      ...quote,
+      reviewEvents: quote.reviewEvents || [],
+    }));
   } catch {
     return [] as SavedQuoteRecord[];
   }
@@ -212,7 +241,42 @@ function makeQuoteId(existingCount: number, date = new Date()) {
   return `APX-${year}-${String(existingCount + 1).padStart(6, "0")}`;
 }
 
-function rowToRecord(row: QuoteRow): SavedQuoteRecord {
+function rowToReviewEvent(row: QuoteReviewEventRow): QuoteReviewEvent {
+  return {
+    id: row.id,
+    action: row.action,
+    status: row.status,
+    note: row.note,
+    reviewer: {
+      email: row.reviewer_email,
+      name: row.reviewer_name,
+      role: row.reviewer_role as EmployeeUser["role"],
+    },
+    createdAt: row.created_at,
+  };
+}
+
+function reviewEventsForQuoteId(internalQuoteId: string) {
+  const sqlite = loadSqlite();
+  if (!sqlite) return [];
+
+  const rows = sqlite
+    .prepare(
+      `
+      SELECT
+        id, action, status, note, reviewer_email, reviewer_name,
+        reviewer_role, created_at
+      FROM quote_review_events
+      WHERE quote_id = ?
+      ORDER BY created_at ASC
+    `
+    )
+    .all(internalQuoteId) as QuoteReviewEventRow[];
+
+  return rows.map(rowToReviewEvent);
+}
+
+function rowToRecord(row: QuoteRow, reviewEvents: QuoteReviewEvent[] = []): SavedQuoteRecord {
   return {
     id: row.id,
     quoteId: row.quote_id,
@@ -244,6 +308,7 @@ function rowToRecord(row: QuoteRow): SavedQuoteRecord {
     },
     input: JSON.parse(row.input_json),
     result: JSON.parse(row.result_json),
+    reviewEvents,
   };
 }
 
@@ -283,7 +348,7 @@ export function listQuotes(search = "") {
     .all() as QuoteRow[];
 
   return rows
-    .map(rowToRecord)
+    .map((row) => rowToRecord(row))
     .filter((quote) =>
       normalizedSearch ? JSON.stringify(quote).toLowerCase().includes(normalizedSearch) : true
     );
@@ -319,7 +384,7 @@ export function getQuoteByQuoteId(quoteId: string) {
     )
     .get(quoteId) as QuoteRow | undefined;
 
-  return row ? rowToRecord(row) : null;
+  return row ? rowToRecord(row, reviewEventsForQuoteId(row.id)) : null;
 }
 
 export function createSavedQuote(args: {
@@ -355,6 +420,7 @@ export function createSavedQuote(args: {
     },
     input: args.input,
     result: args.result,
+    reviewEvents: [],
   };
 
   if (!sqlite) {
@@ -460,4 +526,75 @@ export function updateQuoteStatus(quoteId: string, status: QuoteStatus) {
     .run(status, now, quoteId);
 
   return getQuoteByQuoteId(quoteId);
+}
+
+export function updateQuoteReviewStatus(args: {
+  quoteId: string;
+  status: QuoteStatus;
+  reviewer: EmployeeUser;
+  note?: string;
+  action?: QuoteReviewAction;
+}) {
+  const sqlite = loadSqlite();
+  const now = new Date().toISOString();
+  const event: QuoteReviewEvent = {
+    id: randomUUID(),
+    action: args.action || "STATUS_CHANGED",
+    status: args.status,
+    note: clean(args.note),
+    reviewer: args.reviewer,
+    createdAt: now,
+  };
+
+  if (!sqlite) {
+    const records = readJsonStore();
+    let updated: SavedQuoteRecord | null = null;
+    const next = records.map((quote) => {
+      if (quote.quoteId !== args.quoteId) return quote;
+      updated = {
+        ...quote,
+        status: args.status,
+        updatedAt: now,
+        reviewEvents: [...(quote.reviewEvents || []), event],
+      };
+      return updated;
+    });
+    writeJsonStore(next);
+    return updated;
+  }
+
+  const quoteRow = sqlite
+    .prepare("SELECT id FROM quotes WHERE quote_id = ? LIMIT 1")
+    .get(args.quoteId) as { id: string } | undefined;
+
+  if (!quoteRow) return null;
+
+  sqlite.exec("BEGIN");
+  try {
+    sqlite
+      .prepare("UPDATE quotes SET status = ?, updated_at = ? WHERE quote_id = ?")
+      .run(args.status, now, args.quoteId);
+
+    sqlite
+      .prepare(
+        "INSERT INTO quote_review_events (id, quote_id, action, status, note, reviewer_email, reviewer_name, reviewer_role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+      .run(
+        event.id,
+        quoteRow.id,
+        event.action,
+        event.status,
+        event.note,
+        event.reviewer.email,
+        event.reviewer.name,
+        event.reviewer.role,
+        event.createdAt
+      );
+
+    sqlite.exec("COMMIT");
+    return getQuoteByQuoteId(args.quoteId);
+  } catch (err) {
+    sqlite.exec("ROLLBACK");
+    throw err;
+  }
 }

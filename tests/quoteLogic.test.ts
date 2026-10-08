@@ -15,6 +15,8 @@ import {
   validateQuoteInput,
   validateStructuredQuoteResult,
 } from "../lib/quotes/validation";
+import { lookupZipRisk } from "../lib/quotes/zipRisk";
+import { lookupVehicleRisk } from "../lib/quotes/vehicleRisk";
 
 function validAutoInput(): AutoInsuranceQuoteInput {
   return {
@@ -37,7 +39,7 @@ function validAutoInput(): AutoInsuranceQuoteInput {
         model: "Explorer Sport",
         trimEngine: "",
         coverageType: "Liability Only",
-        liabilityLimits: "Standard limits",
+        liabilityLimits: "State minimum",
         comprehensiveDeductible: "",
         collisionDeductible: "",
       },
@@ -211,6 +213,118 @@ test("auto matrix calculates a deterministic monthly premium", () => {
   assert.equal(result.result.rate_version, "AUTO_V1.0");
   assert.equal(result.result.pricing.pricing_available, true);
   assert.match(result.result.pricing.monthly_estimate, /^\$\d+\/month$/);
+  assert.ok(result.result.rating_details?.factors.some((factor) => factor.label === "ZIP band"));
+  assert.ok(result.result.rating_details?.factors.some((factor) => factor.label === "Minimum liability"));
+});
+
+test("auto liability coverage has a 25 dollar monthly floor", () => {
+  const input = validAutoInput();
+  input.zip = "99801";
+  input.dob = "";
+  input.age = "45";
+  input.gender = "Female";
+  input.annualMileage = "3000";
+  input.discounts = [];
+  input.vehicles = [
+    {
+      year: "2004",
+      make: "Audi",
+      model: "TT",
+      trimEngine: "Quattro",
+      coverageType: "Liability Only",
+      liabilityLimits: "State minimum",
+      comprehensiveDeductible: "",
+      collisionDeductible: "",
+    },
+  ];
+
+  const result = calculateAutoInsuranceQuote(input);
+
+  assert.equal(result.result.pricing.monthly_estimate, "$25/month");
+});
+
+test("multiple-incident formula is order independent and flags heavy histories", () => {
+  const first = validAutoInput();
+  first.drivingRecordStatus = "Accident(s)/Ticket(s)";
+  first.incidents = [
+    {
+      incidentType: "Minor speeding ticket",
+      atFault: "N/A",
+      timing: "1 year ago",
+      count: "1",
+      details: "",
+    },
+    {
+      incidentType: "Accident",
+      atFault: "At-fault",
+      timing: "2 years ago",
+      count: "1",
+      details: "",
+    },
+    {
+      incidentType: "Accident",
+      atFault: "At-fault",
+      timing: "4 years ago",
+      count: "1",
+      details: "",
+    },
+  ];
+  const second = {
+    ...first,
+    incidents: [...first.incidents].reverse(),
+  };
+
+  const firstResult = calculateAutoInsuranceQuote(first);
+  const secondResult = calculateAutoInsuranceQuote(second);
+
+  assert.equal(firstResult.result.pricing.monthly_estimate, secondResult.result.pricing.monthly_estimate);
+  assert.ok(
+    firstResult.result.underwriting.review_flags.some((flag) =>
+      flag.includes("3 chargeable incidents")
+    )
+  );
+});
+
+test("ZIP risk lookup uses exact ZIPs before prefix fallback", () => {
+  const exact = lookupZipRisk("92692");
+  const prefix = lookupZipRisk("92699");
+  const fallback = lookupZipRisk("");
+
+  assert.equal(exact.matchType, "exact");
+  assert.equal(exact.bucket, "Very High");
+  assert.equal(prefix.matchType, "prefix");
+  assert.equal(prefix.bucket, "Very High");
+  assert.equal(fallback.matchType, "default");
+  assert.equal(fallback.bucket, "Average");
+});
+
+test("vehicle risk lookup uses sourced HLDI model factors", () => {
+  const regularVehicle = lookupVehicleRisk({
+    year: "2013",
+    make: "Nissan",
+    model: "370Z",
+    trimEngine: "NISMO",
+    coverageType: "Full Coverage",
+    liabilityLimits: "State minimum",
+    comprehensiveDeductible: "500",
+    collisionDeductible: "1000",
+  });
+  const highRiskVehicle = lookupVehicleRisk({
+    year: "2024",
+    make: "Lamborghini",
+    model: "Huracan",
+    trimEngine: "",
+    coverageType: "Full Coverage",
+    liabilityLimits: "State minimum",
+    comprehensiveDeductible: "500",
+    collisionDeductible: "500",
+  });
+
+  assert.equal(regularVehicle.matchType, "model");
+  assert.match(regularVehicle.sourceVehicle, /Nissan 370Z/);
+  assert.ok(regularVehicle.collisionFactor > 1);
+  assert.equal(highRiskVehicle.matchType, "model");
+  assert.ok(highRiskVehicle.reviewFlags.length > 0);
 });
 
 test("modified vehicle matrix prices component rows and applies the floor", () => {
@@ -221,6 +335,31 @@ test("modified vehicle matrix prices component rows and applies the floor", () =
   assert.equal(result.result.rate_version, "MVP_V1.0");
   assert.equal(result.result.coverage.tier, "Street Plus");
   assert.match(result.result.pricing.monthly_estimate, /^\$\d+\/month$/);
+});
+
+test("modified vehicle matrix applies deductible factors before the floor", () => {
+  const standard = calculateModifiedVehicleProtectionQuote(validModifiedInput());
+  const higherDeductibleInput = validModifiedInput();
+  higherDeductibleInput.coverage.deductible = "2500";
+
+  const higherDeductible = calculateModifiedVehicleProtectionQuote(higherDeductibleInput);
+  const standardMonthly = Number(
+    standard.result.pricing.monthly_estimate.replace(/[^0-9]/g, "")
+  );
+  const higherDeductibleMonthly = Number(
+    higherDeductible.result.pricing.monthly_estimate.replace(/[^0-9]/g, "")
+  );
+  const deductibleFactor = higherDeductible.result.rating_details?.factors.find(
+    (factor) => factor.label === "Deductible factor"
+  );
+
+  assert.equal(deductibleFactor?.value, "0.75x");
+  assert.ok(higherDeductibleMonthly < standardMonthly);
+  assert.ok(
+    higherDeductible.result.pricing.pricing_notes.some((note) =>
+      note.includes("Deductible adjustment")
+    )
+  );
 });
 
 test("structured quote validation prevents quote type bleed-over", () => {
