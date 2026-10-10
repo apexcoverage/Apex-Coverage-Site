@@ -77,6 +77,7 @@ function normalizeAutoInput(input: Partial<AutoInsuranceQuoteInput>) {
       make: clean(vehicle?.make),
       model: clean(vehicle?.model),
       trimEngine: clean(vehicle?.trimEngine),
+      titleStatus: clean(vehicle?.titleStatus) || "Clean",
       coverageType: clean(vehicle?.coverageType),
       liabilityLimits: normalizeLiabilityLimits(vehicle?.liabilityLimits),
       comprehensiveDeductible: clean(vehicle?.comprehensiveDeductible),
@@ -186,9 +187,9 @@ function buildAutoPricingContext(input: AutoInsuranceQuoteInput) {
   return {
     deterministicPricingAvailable: true,
     notes: [
-      "Auto coverage pricing uses the Apex AUTO_V1.0 matrix.",
+      "Auto coverage pricing uses the Apex AUTO_V1.1 matrix.",
       "ZIP risk uses the Apex public-data ZIP bucket table. Vehicle factors use sourced HLDI make/model loss data when available.",
-      "Liability coverage defaults to state minimum and uses the Apex $25 monthly liability floor.",
+      "Liability coverage defaults to state minimum, higher liability limits rate above state minimum, incidents fade by age, and the Apex $25 monthly liability floor applies.",
     ],
     warnings,
   } satisfies QuotePricingContext;
@@ -220,9 +221,9 @@ function buildModifiedVehiclePricingContext(
     deterministicPricingAvailable: true,
     totalDeclaredBuildValue,
     notes: [
-      "Modified Vehicle Protection pricing uses the Apex MVP_V1.0 component matrix.",
+      "Modified Vehicle Protection pricing uses the Apex MVP_V1.1 component matrix.",
       "Components are priced individually so a high-risk part does not increase the rate for unrelated low-risk parts.",
-      "MVP deductible rate adjustments are not finalized; V1 displays the selected deductible but does not rate-adjust it.",
+      "MVP deductible factors and approved discounts are applied before the $15 minimum premium floor.",
     ],
     warnings,
   } satisfies QuotePricingContext;

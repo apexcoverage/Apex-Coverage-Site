@@ -11,7 +11,11 @@ import type {
   QuoteType,
   StructuredQuoteResult,
 } from "./types";
-import { AUTO_RATE_TABLE, MVP_RATE_TABLE } from "./rateTables";
+import {
+  AUTO_RATE_TABLE as DEFAULT_AUTO_RATE_TABLE,
+  MVP_RATE_TABLE as DEFAULT_MVP_RATE_TABLE,
+} from "./rateTables";
+import { getActiveRateConfig } from "./rateConfigStore";
 import { parseCurrency } from "./validation";
 import { lookupZipRisk, ZIP_RISK_METHOD } from "./zipRisk";
 import { lookupVehicleRisk, VEHICLE_RISK_METHOD } from "./vehicleRisk";
@@ -21,6 +25,9 @@ type MatrixQuoteOutput = {
   pricingContext: QuotePricingContext;
   status: QuoteStatus;
 };
+
+let AUTO_RATE_TABLE = DEFAULT_AUTO_RATE_TABLE;
+let MVP_RATE_TABLE = DEFAULT_MVP_RATE_TABLE;
 
 function money(value: number) {
   return `$${Math.round(value).toLocaleString()}`;
@@ -80,6 +87,38 @@ function mileageFactor(mileageValue: string) {
     mileage,
     label: band?.label || "10,001-15,000",
     factor: band?.factor || 1,
+  };
+}
+
+function incidentTimingFactor(timingValue: string) {
+  const raw = String(timingValue || "").trim().toLowerCase();
+  if (!raw) {
+    return {
+      label: "Timing not supplied",
+      months: null as number | null,
+      factor: 1,
+    };
+  }
+
+  const numericMatch = raw.match(/(\d+(?:\.\d+)?)/);
+  const amount = numericMatch ? Number(numericMatch[1]) : 0;
+  let months = amount;
+
+  if (raw.includes("year")) months = amount * 12;
+  if (raw.includes("week") || raw.includes("day") || raw.includes("recent") || raw.includes("current")) {
+    months = 0;
+  }
+  if (raw.includes("month")) months = amount;
+  if (!Number.isFinite(months)) months = 0;
+
+  const band = AUTO_RATE_TABLE.incidentTimingFactors.find(
+    (item) => months >= item.minMonths && months <= item.maxMonths
+  );
+
+  return {
+    label: band?.label || "0-12 months",
+    months,
+    factor: band?.factor ?? 1,
   };
 }
 
@@ -161,15 +200,20 @@ function drivingHistoryFactor(input: AutoInsuranceQuoteInput) {
           : "Major or unclassified driving-history event"
       );
     }
-    const impact = Math.max(0, config.factor - 1);
+    const timing = incidentTimingFactor(incident.timing);
+    const baseImpact = Math.max(0, config.factor - 1);
+    const impact = baseImpact * timing.factor;
     lineItems.push({
       label: `Incident ${index + 1}`,
       value: incident.incidentType || "Unclassified incident",
       details: [
         detail("Timing", incident.timing || "Not supplied"),
+        detail("Timing band", timing.label),
+        detail("Timing impact factor", factorLabel(timing.factor)),
         detail("Classification", key),
         detail("Base factor", factorLabel(config.factor)),
-        detail("Chargeable impact", factorLabel(impact)),
+        detail("Base impact", factorLabel(baseImpact)),
+        detail("Adjusted chargeable impact", factorLabel(impact)),
       ],
     });
     return { incident, key, index, impact };
@@ -202,7 +246,7 @@ function drivingHistoryFactor(input: AutoInsuranceQuoteInput) {
     label: "Multiple-incident formula",
     value: factorLabel(cappedFactor),
     details: [
-      detail("Formula", "1 + highest chargeable impact + 50% of each additional chargeable impact"),
+      detail("Formula", "1 + highest timing-adjusted chargeable impact + 50% of each additional timing-adjusted chargeable impact"),
       detail("Chargeable incident count", String(chargeableIncidents.length)),
       detail(
         "Primary incident",
@@ -355,6 +399,7 @@ function calculateVehiclePremium(args: {
 export function calculateAutoInsuranceQuote(
   input: AutoInsuranceQuoteInput
 ): MatrixQuoteOutput {
+  AUTO_RATE_TABLE = getActiveRateConfig().auto;
   const age = ageFactor(input.age);
   const mileage = mileageFactor(input.annualMileage);
   const genderFactor =
@@ -379,6 +424,12 @@ export function calculateAutoInsuranceQuote(
   );
   vehicles.forEach((vehicle) => {
     manualReviewReasons.push(...vehicle.vehicleRisk.reviewFlags);
+  });
+  input.vehicles.forEach((vehicle, index) => {
+    if (["Rebuilt", "Salvage"].includes(vehicle.titleStatus)) {
+      const label = input.vehicles.length > 1 ? `Vehicle ${index + 1}` : "Vehicle";
+      manualReviewReasons.push(`${label}: ${vehicle.titleStatus} title requires manager approval`);
+    }
   });
   const grossPremium = vehicles.reduce((sum, vehicle) => sum + vehicle.gross, 0);
   const discounts = autoDiscounts(input.discounts);
@@ -408,6 +459,7 @@ export function calculateAutoInsuranceQuote(
     make: "",
     model: "",
     trimEngine: "",
+    titleStatus: "",
     coverageType: "",
     liabilityLimits: "",
     comprehensiveDeductible: "",
@@ -421,6 +473,7 @@ export function calculateAutoInsuranceQuote(
     `ZIP factor: ${zipRisk.bucket} = ${factorLabel(zipFactor)} (${zipRisk.matchType} ZIP match).`,
     "Vehicle factors use sourced HLDI make/model loss data when a match is available, otherwise HLDI class-average fallback is flagged for review.",
     "Liability defaults to state minimum. Higher liability-limit options now increase the liability portion of the quote, with the $25 liability floor still enforced.",
+    "Incident pricing uses the AUTO_V1.1 timing fade: 100% impact for 0-12 months, 85% for 13-24, 65% for 25-36, 40% for 37-48, 20% for 49-60, and 0% after 60 months.",
   ];
 
   const result: StructuredQuoteResult = {
@@ -485,9 +538,9 @@ export function calculateAutoInsuranceQuote(
     warnings,
     missing_information: [],
     employee_notes:
-      "AUTO_V1.0 uses Apex internal matrix pricing. ZIP risk uses a public-data proxy, vehicle risk uses sourced HLDI loss data, liability has a $25 monthly floor, and multiple incidents use the V1 exact weighted-impact formula.",
+      "AUTO_V1.1 uses Apex internal matrix pricing. ZIP risk uses a public-data proxy, vehicle risk uses sourced HLDI loss data, liability has a $25 monthly floor, incidents fade by age, and rebuilt/salvage titles require manager approval.",
     customer_quote_text:
-      `Apex Auto Coverage estimate for ${vehicleSummary(primaryVehicle) || "the listed vehicle"}: ${money(finalMonthly)}/month. This is an internal V1 estimate and must be reviewed before binding.`,
+      `Apex Auto Coverage estimate for ${vehicleSummary(primaryVehicle) || "the listed vehicle"}: ${money(finalMonthly)}/month. This estimate is based on the information provided and remains subject to final eligibility review, state requirements, and any manager approval flags before binding.`,
     rating_details: {
       rate_version: AUTO_RATE_TABLE.version,
       factors: [
@@ -624,6 +677,7 @@ function requiredMvpDocuments(input: ModifiedVehicleProtectionQuoteInput) {
 export function calculateModifiedVehicleProtectionQuote(
   input: ModifiedVehicleProtectionQuoteInput
 ): MatrixQuoteOutput {
+  MVP_RATE_TABLE = getActiveRateConfig().mvp;
   const components = input.modifications.components.filter(
     (component) => component.name || component.category || component.declaredValue
   );
@@ -800,9 +854,9 @@ export function calculateModifiedVehicleProtectionQuote(
       ],
     missing_information: [],
     employee_notes:
-      "MVP_V1.0 prices covered components individually using declared value, component risk, and usage. Manager approval is required for any manual-review trigger.",
+      "MVP_V1.1 prices covered components individually using declared value, component risk, usage, deductible, and approved discounts. Manager approval is required for any manual-review trigger.",
     customer_quote_text:
-      `Apex Modified Vehicle Protection estimate for ${summary || "the listed vehicle"}: ${money(finalMonthly)}/month, ${tier} tier. Final eligibility depends on documentation and review.`,
+      `Apex Modified Vehicle Protection estimate for ${summary || "the listed vehicle"}: ${money(finalMonthly)}/month, ${tier} tier. This estimate is based on the declared components provided. Final eligibility, covered value, and binding depend on documentation review and any manager approval flags.`,
     rating_details: {
       rate_version: MVP_RATE_TABLE.version,
       factors: [

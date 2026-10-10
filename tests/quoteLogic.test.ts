@@ -38,6 +38,7 @@ function validAutoInput(): AutoInsuranceQuoteInput {
         make: "Ford",
         model: "Explorer Sport",
         trimEngine: "",
+        titleStatus: "Clean",
         coverageType: "Liability Only",
         liabilityLimits: "State minimum",
         comprehensiveDeductible: "",
@@ -210,7 +211,7 @@ test("auto matrix calculates a deterministic monthly premium", () => {
   const result = calculateAutoInsuranceQuote(validAutoInput());
 
   assert.equal(result.pricingContext.deterministicPricingAvailable, true);
-  assert.equal(result.result.rate_version, "AUTO_V1.0");
+  assert.equal(result.result.rate_version, "AUTO_V1.1");
   assert.equal(result.result.pricing.pricing_available, true);
   assert.match(result.result.pricing.monthly_estimate, /^\$\d+\/month$/);
   assert.ok(result.result.rating_details?.factors.some((factor) => factor.label === "ZIP band"));
@@ -231,6 +232,7 @@ test("auto liability coverage has a 25 dollar monthly floor", () => {
       make: "Audi",
       model: "TT",
       trimEngine: "Quattro",
+      titleStatus: "Clean",
       coverageType: "Liability Only",
       liabilityLimits: "State minimum",
       comprehensiveDeductible: "",
@@ -308,6 +310,59 @@ test("multiple-incident formula is order independent and flags heavy histories",
   );
 });
 
+test("older auto incidents fade by timing band", () => {
+  const recent = validAutoInput();
+  recent.discounts = [];
+  recent.drivingRecordStatus = "Accident(s)/Ticket(s)";
+  recent.incidents = [
+    {
+      incidentType: "Accident",
+      atFault: "At-fault",
+      timing: "6 months ago",
+      count: "1",
+      details: "",
+    },
+  ];
+  const old = {
+    ...recent,
+    incidents: [
+      {
+        ...recent.incidents[0],
+        timing: "5 years ago",
+      },
+    ],
+  };
+
+  const recentResult = calculateAutoInsuranceQuote(recent);
+  const oldResult = calculateAutoInsuranceQuote(old);
+  const recentMonthly = Number(
+    recentResult.result.pricing.monthly_estimate.replace(/[^0-9]/g, "")
+  );
+  const oldMonthly = Number(
+    oldResult.result.pricing.monthly_estimate.replace(/[^0-9]/g, "")
+  );
+  const oldTimingFactor = oldResult.result.rating_details?.line_items
+    .flatMap((item) => item.details)
+    .find((detail) => detail.label === "Timing impact factor");
+
+  assert.equal(oldTimingFactor?.value, "0.2x");
+  assert.ok(oldMonthly < recentMonthly);
+});
+
+test("auto rebuilt and salvage titles require manager approval", () => {
+  const input = validAutoInput();
+  input.vehicles[0].titleStatus = "Rebuilt";
+
+  const result = calculateAutoInsuranceQuote(input);
+
+  assert.equal(result.status, "NEEDS_REVIEW");
+  assert.ok(
+    result.result.underwriting.review_flags.some((flag) =>
+      flag.includes("Rebuilt title")
+    )
+  );
+});
+
 test("ZIP risk lookup uses exact ZIPs before prefix fallback", () => {
   const exact = lookupZipRisk("92692");
   const prefix = lookupZipRisk("92699");
@@ -327,6 +382,7 @@ test("vehicle risk lookup uses sourced HLDI model factors", () => {
     make: "Nissan",
     model: "370Z",
     trimEngine: "NISMO",
+    titleStatus: "Clean",
     coverageType: "Full Coverage",
     liabilityLimits: "State minimum",
     comprehensiveDeductible: "500",
@@ -337,6 +393,7 @@ test("vehicle risk lookup uses sourced HLDI model factors", () => {
     make: "Lamborghini",
     model: "Huracan",
     trimEngine: "",
+    titleStatus: "Clean",
     coverageType: "Full Coverage",
     liabilityLimits: "State minimum",
     comprehensiveDeductible: "500",
@@ -355,7 +412,7 @@ test("modified vehicle matrix prices component rows and applies the floor", () =
 
   assert.equal(result.pricingContext.deterministicPricingAvailable, true);
   assert.equal(result.pricingContext.totalDeclaredBuildValue, 5500);
-  assert.equal(result.result.rate_version, "MVP_V1.0");
+  assert.equal(result.result.rate_version, "MVP_V1.1");
   assert.equal(result.result.coverage.tier, "Street Plus");
   assert.match(result.result.pricing.monthly_estimate, /^\$\d+\/month$/);
 });

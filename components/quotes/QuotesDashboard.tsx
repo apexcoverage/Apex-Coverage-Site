@@ -88,6 +88,12 @@ export default function QuotesDashboard({
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-blue-100">
               {currentUser.name} - {currentUser.role}
             </span>
+            <Link
+              href="/agent/quotes/rates"
+              className="apex-agent-button-secondary px-3 py-2 text-center text-sm"
+            >
+              Rate Matrix
+            </Link>
             <button
               type="button"
               onClick={logout}

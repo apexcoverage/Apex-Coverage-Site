@@ -209,7 +209,7 @@ function vehicleFromInput(quoteType: QuoteType, input: QuoteInput) {
       trim: clean(vehicle?.trimEngine),
       vin: "",
       mileage: "",
-      titleStatus: "",
+      titleStatus: clean(vehicle?.titleStatus),
     };
   }
 

@@ -8,6 +8,7 @@ import {
   AUTO_DEDUCTIBLE_OPTIONS,
   AUTO_DISCOUNT_OPTIONS,
   AUTO_LIABILITY_LIMIT_OPTIONS,
+  AUTO_TITLE_STATUS_OPTIONS,
   EMPTY_AUTO_INCIDENT,
   EMPTY_AUTO_QUOTE_INPUT,
   EMPTY_AUTO_VEHICLE,
@@ -292,6 +293,7 @@ export default function AutoQuoteForm() {
                   <TextField label="Make*" value={vehicle.make} onChange={(value) => updateVehicle(index, "make", value)} />
                   <TextField label="Model*" value={vehicle.model} onChange={(value) => updateVehicle(index, "model", value)} />
                   <TextField label="Trim / Engine" value={vehicle.trimEngine} onChange={(value) => updateVehicle(index, "trimEngine", value)} />
+                  <SelectField label="Title Status" value={vehicle.titleStatus} options={["", ...AUTO_TITLE_STATUS_OPTIONS]} onChange={(value) => updateVehicle(index, "titleStatus", value)} />
                   <SelectField label="Coverage Type*" value={vehicle.coverageType} options={["", "Liability Only", "Full Coverage"]} onChange={(value) => updateVehicle(index, "coverageType", value)} />
                   <SelectField label="Liability Limits*" value={vehicle.liabilityLimits} options={["", ...AUTO_LIABILITY_LIMIT_OPTIONS]} onChange={(value) => updateVehicle(index, "liabilityLimits", value)} />
                   {vehicle.coverageType === "Full Coverage" && (

@@ -36,6 +36,7 @@ export type AutoQuoteVehicleInput = {
   make: string;
   model: string;
   trimEngine: string;
+  titleStatus: string;
   coverageType: string;
   liabilityLimits: string;
   comprehensiveDeductible: string;

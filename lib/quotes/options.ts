@@ -29,6 +29,13 @@ export const MODIFIED_VEHICLE_DISCOUNT_OPTIONS = [
 
 export const AUTO_DEDUCTIBLE_OPTIONS = ["250", "500", "1000", "2000"];
 
+export const AUTO_TITLE_STATUS_OPTIONS = [
+  "Clean",
+  "Rebuilt",
+  "Salvage",
+  "Unknown",
+];
+
 export const AUTO_LIABILITY_LIMIT_OPTIONS = [
   "State minimum",
   "50/100/50",
@@ -81,6 +88,7 @@ export const EMPTY_AUTO_VEHICLE: AutoQuoteVehicleInput = {
   make: "",
   model: "",
   trimEngine: "",
+  titleStatus: "Clean",
   coverageType: "",
   liabilityLimits: "State minimum",
   comprehensiveDeductible: "",

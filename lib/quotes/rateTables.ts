@@ -1,8 +1,15 @@
-export const AUTO_RATE_VERSION = "AUTO_V1.0";
-export const MVP_RATE_VERSION = "MVP_V1.0";
+export const AUTO_RATE_VERSION = "AUTO_V1.1";
+export const MVP_RATE_VERSION = "MVP_V1.1";
+export const MATRIX_EFFECTIVE_DATE = "2026-10-08";
 
 export const AUTO_RATE_TABLE = {
   version: AUTO_RATE_VERSION,
+  effectiveDate: MATRIX_EFFECTIVE_DATE,
+  changeSummary: [
+    "Higher liability limits rate above state minimum.",
+    "Incident impact now fades as incidents age.",
+    "Rebuilt and salvage titles require manager approval.",
+  ],
   liabilityBaseMonthly: 100,
   minimumLiabilityMonthly: 25,
   liabilityLimitFactors: {
@@ -51,6 +58,14 @@ export const AUTO_RATE_TABLE = {
     dui: { factor: 1.75, manualReview: true },
     unclassified: { factor: 1.25, manualReview: true },
   },
+  incidentTimingFactors: [
+    { label: "0-12 months", minMonths: 0, maxMonths: 12, factor: 1 },
+    { label: "13-24 months", minMonths: 13, maxMonths: 24, factor: 0.85 },
+    { label: "25-36 months", minMonths: 25, maxMonths: 36, factor: 0.65 },
+    { label: "37-48 months", minMonths: 37, maxMonths: 48, factor: 0.4 },
+    { label: "49-60 months", minMonths: 49, maxMonths: 60, factor: 0.2 },
+    { label: "60+ months", minMonths: 61, maxMonths: Number.MAX_SAFE_INTEGER, factor: 0 },
+  ],
   additionalIncidentImpactFactor: 0.5,
   maxAutomatedDrivingHistoryFactor: 1.75,
   multipleIncidentManualReviewCount: 3,
@@ -83,6 +98,13 @@ export const AUTO_RATE_TABLE = {
 
 export const MVP_RATE_TABLE = {
   version: MVP_RATE_VERSION,
+  effectiveDate: MATRIX_EFFECTIVE_DATE,
+  changeSummary: [
+    "MVP discounts stack and cap at 25%.",
+    "Military discount remains 10%.",
+    "Rebuilt/salvage titles and safety-related mods require manager approval.",
+    "DIY and mixed installs require install photos or proof of proper installation.",
+  ],
   baseRatePerThousand: 6,
   minimumMonthlyPremium: 15,
   deductibleFactors: {
