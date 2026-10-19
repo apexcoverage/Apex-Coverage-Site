@@ -6,8 +6,10 @@ import Footer from '@/components/Footer';
 import GoogleAdsTag from '@/components/GoogleAdsTag';
 
 export const metadata: Metadata = {
-  title: 'Apex Coverage',
-  description: 'For those who drive, not just commute.',
+  metadataBase: new URL('https://www.driveapexcoverage.com'),
+  title: 'Apex Coverage | Modified Vehicle Protection and Auto Coverage',
+  description:
+    'Apex Coverage helps drivers explore modified vehicle protection for eligible aftermarket parts and auto coverage options with guidance from a real agent.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

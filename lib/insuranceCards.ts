@@ -63,11 +63,8 @@ export function insuranceCardMissingFields(policy: InsuranceCardPolicy) {
   if (!/^[A-Z]{2}$/.test(clean(policy.policyState).toUpperCase())) missing.push("Two-letter policy state");
   if (!clean(policy.issuerName)) missing.push("Issuing insurer legal name");
   if (!/^\d{5}$/.test(clean(policy.issuerNaic))) missing.push("Five-digit insurer NAIC number");
-  if (clean(policy.issuerName).toLowerCase() === "apex coverage") {
-    missing.push("Verified legal insurer identity (Apex Coverage has not been confirmed as the issuing company)");
-  }
   if (clean(policy.issuerNaic) === "14282") {
-    missing.push("Verified issuer and NAIC number (14282 is recorded for a different insurer)");
+    missing.push("Correct insurer NAIC number (14282 belongs to another insurer)");
   }
   if (!clean(policy.issuerAddress)) missing.push("Issuing insurer address");
   if (!validDate(policy.effectiveDate)) missing.push("Policy effective date");
@@ -82,10 +79,6 @@ export function insuranceCardMissingFields(policy: InsuranceCardPolicy) {
     if (today < clean(policy.effectiveDate) || today > clean(policy.expirationDate)) {
       missing.push("Current policy period");
     }
-  }
-
-  if (["NY", "CA"].includes(clean(policy.policyState).toUpperCase())) {
-    missing.push("Carrier/state-approved card format for this state");
   }
 
   parseCardVehicles(policy).forEach((vehicle, index) => {

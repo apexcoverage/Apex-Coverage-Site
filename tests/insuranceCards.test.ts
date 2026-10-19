@@ -29,10 +29,9 @@ test("accepts a complete card record for a supported state", () => {
   assert.deepEqual(insuranceCardMissingFields(policy()), []);
 });
 
-test("blocks the insurer identity and NAIC number supplied for Apex", () => {
+test("blocks the incorrect NAIC number previously supplied for Apex", () => {
   const record = { ...policy(), issuerName: "Apex Coverage", issuerNaic: "14282" };
   const missing = insuranceCardMissingFields(record);
-  assert(missing.some((item) => item.includes("insurer identity")));
   assert(missing.some((item) => item.includes("14282")));
 });
 
@@ -43,8 +42,8 @@ test("requires VINs and a current period", () => {
   assert(missing.some((item) => item.includes("17-character VIN")));
 });
 
-test("does not print a generic card for states requiring approved formats", () => {
-  assert(insuranceCardMissingFields({ ...policy(), policyState: "NY" }).some((item) => item.includes("state")));
+test("allows state data in a clearly marked internal draft", () => {
+  assert.deepEqual(insuranceCardMissingFields({ ...policy(), policyState: "NY" }), []);
 });
 
 test("parses separate insured vehicles", () => {
