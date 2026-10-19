@@ -110,10 +110,21 @@ export async function agentSendCoveragePdf(payload: {
   customerName?: string;
   documentType: "auto" | "build";
   filename: string;
-  pdfBase64: string;
+  docxBase64: string;
   summary?: Record<string, string>;
 }) {
   return postAgentAction("sendcoveragepdf", payload);
+}
+
+export async function agentConvertCoveragePdf(payload: {
+  filename: string;
+  docxBase64: string;
+}) {
+  return postAgentAction("convertcoveragepdf", payload) as Promise<{
+    ok: true;
+    filename: string;
+    pdfBase64: string;
+  }>;
 }
 
 export function getStripeModeFromSecretKey(secretKey: string) {

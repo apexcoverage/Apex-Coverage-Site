@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { InsuranceCardPanel } from "@/components/InsuranceCardPanel";
+import { parseCardVehicles, type InsuranceCardVehicle } from "@/lib/insuranceCards";
 
 type AutoLead = {
   id: number;
@@ -24,6 +26,13 @@ type AutoLead = {
   renewalDate?: string;
   vehicles?: string;
   monthlyPremium?: string;
+  policyState?: string;
+  issuerName?: string;
+  issuerNaic?: string;
+  issuerAddress?: string;
+  effectiveDate?: string;
+  expirationDate?: string;
+  cardVehicles?: string;
   activityLog?: string;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
@@ -124,6 +133,13 @@ type AutoForm = {
   renewalDate: string;
   vehicles: string;
   monthlyPremium: string;
+  policyState: string;
+  issuerName: string;
+  issuerNaic: string;
+  issuerAddress: string;
+  effectiveDate: string;
+  expirationDate: string;
+  cardVehicles: InsuranceCardVehicle[];
 };
 
 type BuildForm = {
@@ -206,9 +222,9 @@ function autoCoverageDocumentPayload(auto: AutoLead) {
     zip: auto.zip || "",
     agent: auto.agent || "",
     policyNumber: auto.policyNumber || "",
-    effectiveDate: auto.renewalDate || "",
-    policyPeriodStart: auto.renewalDate || "",
-    policyPeriodEnd: auto.renewalDate || "",
+    effectiveDate: auto.effectiveDate || "",
+    policyPeriodStart: auto.effectiveDate || "",
+    policyPeriodEnd: auto.expirationDate || "",
     policyTerm: auto.monthlyPremium ? "Monthly" : "",
     status: auto.status || "",
     coverage: auto.coverage || "",
@@ -288,6 +304,27 @@ async function sendCoveragePdf(payload: Record<string, any>) {
   }
 
   return data as { ok: true; to: string; filename: string };
+}
+
+async function downloadCoveragePdfPreview(payload: Record<string, any>, filename: string) {
+  const res = await fetch("/api/coverage-documents/preview-pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || "Could not create the PDF preview.");
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 30000);
 }
 
 function formatPaymentAmount(value?: string, currency?: string) {
@@ -427,6 +464,13 @@ function autoFormFromRecord(auto?: AutoLead): AutoForm {
     renewalDate: auto?.renewalDate || "",
     vehicles: auto?.vehicles || fallbackVehicle,
     monthlyPremium: auto?.monthlyPremium || "",
+    policyState: auto?.policyState || "",
+    issuerName: auto?.issuerName || "",
+    issuerNaic: auto?.issuerNaic || "",
+    issuerAddress: auto?.issuerAddress || "",
+    effectiveDate: auto?.effectiveDate || "",
+    expirationDate: auto?.expirationDate || "",
+    cardVehicles: parseCardVehicles(auto || {}),
   };
 }
 
@@ -640,6 +684,15 @@ export default function CustomerProfilePage() {
     setEditingAuto(true);
   }
 
+  function updateCardVehicle(index: number, field: keyof InsuranceCardVehicle, value: string) {
+    setAutoForm((previous) => ({
+      ...previous,
+      cardVehicles: previous.cardVehicles.map((vehicle, vehicleIndex) =>
+        vehicleIndex === index ? { ...vehicle, [field]: value } : vehicle
+      ),
+    }));
+  }
+
   function openBuildEditor(build: BuildReview) {
     setBuildForm(buildFormFromRecord(build));
     setEditingBuildId(build.id);
@@ -708,6 +761,7 @@ export default function CustomerProfilePage() {
     try {
       await updateAuto(profile.auto.id, {
         ...autoForm,
+        cardVehicles: JSON.stringify(autoForm.cardVehicles),
         activityNote: "Auto policy details updated",
       });
       setEditingAuto(false);
@@ -1125,6 +1179,22 @@ export default function CustomerProfilePage() {
     }
   }
 
+  async function previewAutoCoveragePdf() {
+    const auto = profile?.auto;
+    if (!auto) return;
+    try {
+      setSaving("auto-pdf-preview");
+      await downloadCoveragePdfPreview(
+        autoCoverageDocumentPayload(auto),
+        `${fileSafeName(auto.name)}-auto-coverage-preview.pdf`
+      );
+    } catch (err: any) {
+      alert(err.message || "Could not preview the auto coverage PDF.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
   async function generateBuildProtectionPacket() {
     const build = profile?.primaryBuild;
     if (!build) return;
@@ -1166,6 +1236,22 @@ export default function CustomerProfilePage() {
     } catch (err: any) {
       console.error(err);
       alert(err.message || "Error sending build protection PDF");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function previewBuildProtectionPdf() {
+    const build = profile?.primaryBuild;
+    if (!build) return;
+    try {
+      setSaving("build-pdf-preview");
+      await downloadCoveragePdfPreview(
+        buildProtectionDocumentPayload(build),
+        `${fileSafeName(build.name)}-build-protection-preview.pdf`
+      );
+    } catch (err: any) {
+      alert(err.message || "Could not preview the build protection PDF.");
     } finally {
       setSaving(null);
     }
@@ -1320,6 +1406,13 @@ export default function CustomerProfilePage() {
                   </button>
                   <button
                     className="btn-secondary"
+                    onClick={previewAutoCoveragePdf}
+                    disabled={saving === "auto-pdf-preview"}
+                  >
+                    {saving === "auto-pdf-preview" ? "Preparing..." : "Preview Auto PDF"}
+                  </button>
+                  <button
+                    className="btn-secondary"
                     onClick={sendAutoCoveragePdf}
                     disabled={saving === "auto-pdf-email" || !auto.email}
                     title={!auto.email ? "Add a customer email before sending." : undefined}
@@ -1342,6 +1435,13 @@ export default function CustomerProfilePage() {
                     {saving === "build-document"
                       ? "Generating..."
                       : "Generate Build Protection Packet"}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={previewBuildProtectionPdf}
+                    disabled={saving === "build-pdf-preview"}
+                  >
+                    {saving === "build-pdf-preview" ? "Preparing..." : "Preview Build PDF"}
                   </button>
                   <button
                     className="btn-secondary"
@@ -1464,6 +1564,41 @@ export default function CustomerProfilePage() {
                   <Input label="Monthly Premium" value={autoForm.monthlyPremium} onChange={(value) => setAutoForm((prev) => ({ ...prev, monthlyPremium: value }))} />
                   <Textarea label="Vehicles" value={autoForm.vehicles} onChange={(value) => setAutoForm((prev) => ({ ...prev, vehicles: value }))} />
                 </div>
+                <div className="card-body border-t border-slate-200">
+                  <h3 className="mb-2 text-base font-semibold">Insurance card details</h3>
+                  <p className="meta-text mb-4">Copy these details from the issued auto policy. The renewal date above does not set the card period.</p>
+                  <div className="form-grid">
+                    <Input label="Policy state (2 letters)" value={autoForm.policyState} onChange={(value) => setAutoForm((prev) => ({ ...prev, policyState: value.toUpperCase() }))} />
+                    <Input label="Issuing insurer legal name" value={autoForm.issuerName} onChange={(value) => setAutoForm((prev) => ({ ...prev, issuerName: value }))} />
+                    <Input label="Insurer NAIC number" value={autoForm.issuerNaic} onChange={(value) => setAutoForm((prev) => ({ ...prev, issuerNaic: value }))} />
+                    <Input label="Issuing insurer address" value={autoForm.issuerAddress} onChange={(value) => setAutoForm((prev) => ({ ...prev, issuerAddress: value }))} />
+                    <Input label="Policy effective date" type="date" value={autoForm.effectiveDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, effectiveDate: value }))} />
+                    <Input label="Policy expiration date" type="date" value={autoForm.expirationDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, expirationDate: value }))} />
+                  </div>
+                  <div className="mt-5 space-y-4">
+                    {autoForm.cardVehicles.map((vehicle, index) => (
+                      <div className="rounded-md border border-slate-200 p-4" key={index}>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h4 className="font-semibold">Insured vehicle {index + 1}</h4>
+                          {autoForm.cardVehicles.length > 1 && (
+                            <button type="button" className="link-button" onClick={() => setAutoForm((previous) => ({ ...previous, cardVehicles: previous.cardVehicles.filter((_, vehicleIndex) => vehicleIndex !== index) }))}>
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <div className="form-grid">
+                          <Input label="Year" value={vehicle.year} onChange={(value) => updateCardVehicle(index, "year", value)} />
+                          <Input label="Make" value={vehicle.make} onChange={(value) => updateCardVehicle(index, "make", value)} />
+                          <Input label="Model" value={vehicle.model} onChange={(value) => updateCardVehicle(index, "model", value)} />
+                          <Input label="VIN" value={vehicle.vin} onChange={(value) => updateCardVehicle(index, "vin", value.toUpperCase())} />
+                        </div>
+                      </div>
+                    ))}
+                    <button type="button" className="btn-secondary" onClick={() => setAutoForm((previous) => ({ ...previous, cardVehicles: [...previous.cardVehicles, { year: "", make: "", model: "", vin: "" }] }))}>
+                      Add insured vehicle
+                    </button>
+                  </div>
+                </div>
                 <CardActions>
                   <button className="btn-secondary" onClick={() => setEditingAuto(false)}>
                     Cancel
@@ -1485,11 +1620,17 @@ export default function CustomerProfilePage() {
                     ["Discounts", auto.discounts || "-"],
                     ["Renewal Date", auto.renewalDate || "-"],
                     ["Monthly Premium", formatCurrency(auto.monthlyPremium)],
+                    ["Policy State", auto.policyState || "-"],
+                    ["Issuing Insurer", auto.issuerName || "-"],
+                    ["NAIC", auto.issuerNaic || "-"],
+                    ["Policy Period", auto.effectiveDate && auto.expirationDate ? `${auto.effectiveDate} to ${auto.expirationDate}` : "-"],
                   ]}
                 />
               </div>
             )}
           </section>
+
+          {auto && <InsuranceCardPanel policy={auto} onEdit={openAutoEditor} />}
 
           <section className="card">
             <div className="card-header card-header-with-actions">
@@ -2044,15 +2185,17 @@ function Input({
   label,
   value,
   onChange,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  type?: string;
 }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input value={value || ""} onChange={(event) => onChange(event.target.value)} />
+      <input type={type} value={value || ""} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }

@@ -20,6 +20,13 @@ export async function POST(req: Request) {
       renewalDate,
       vehicles,
       monthlyPremium,
+      policyState,
+      issuerName,
+      issuerNaic,
+      issuerAddress,
+      effectiveDate,
+      expirationDate,
+      cardVehicles,
       activityNote,
       status,
     } = body || {};
@@ -59,6 +66,13 @@ export async function POST(req: Request) {
     }
 
     if (renewalDate !== undefined) patch.renewalDate = renewalDate;
+    if (policyState !== undefined) patch.policyState = String(policyState).trim().toUpperCase();
+    if (issuerName !== undefined) patch.issuerName = String(issuerName).trim();
+    if (issuerNaic !== undefined) patch.issuerNaic = String(issuerNaic).trim();
+    if (issuerAddress !== undefined) patch.issuerAddress = String(issuerAddress).trim();
+    if (effectiveDate !== undefined) patch.effectiveDate = String(effectiveDate).trim();
+    if (expirationDate !== undefined) patch.expirationDate = String(expirationDate).trim();
+    if (cardVehicles !== undefined) patch.cardVehicles = String(cardVehicles);
 
     if (vehicles !== undefined) {
       patch.vehicles = Array.isArray(vehicles)

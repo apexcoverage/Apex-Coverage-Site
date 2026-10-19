@@ -939,6 +939,13 @@ function agentListLeads_() {
   const renewalDateCol = ensureCol("Renewal Date");
   const vehiclesCol = ensureCol("Vehicles");
   const monthlyPremiumCol = ensureCol("Monthly Premium");
+  const policyStateCol = ensureCol("Policy State");
+  const issuerNameCol = ensureCol("Issuing Insurer Name");
+  const issuerNaicCol = ensureCol("Issuing Insurer NAIC");
+  const issuerAddressCol = ensureCol("Issuing Insurer Address");
+  const effectiveDateCol = ensureCol("Policy Effective Date");
+  const expirationDateCol = ensureCol("Policy Expiration Date");
+  const cardVehiclesCol = ensureCol("Insurance Card Vehicles");
   const activityLogCol = ensureCol("Activity Log");
 
   const stripeCustomerIdCol = ensureCol("Stripe Customer ID");
@@ -980,6 +987,17 @@ function agentListLeads_() {
       renewalDate: String(row[renewalDateCol] || ""),
       vehicles: String(row[vehiclesCol] || ""),
       monthlyPremium: String(row[monthlyPremiumCol] || ""),
+      policyState: String(row[policyStateCol] || ""),
+      issuerName: String(row[issuerNameCol] || ""),
+      issuerNaic: String(row[issuerNaicCol] || ""),
+      issuerAddress: String(row[issuerAddressCol] || ""),
+      effectiveDate: row[effectiveDateCol] instanceof Date
+        ? Utilities.formatDate(row[effectiveDateCol], "America/New_York", "yyyy-MM-dd")
+        : String(row[effectiveDateCol] || ""),
+      expirationDate: row[expirationDateCol] instanceof Date
+        ? Utilities.formatDate(row[expirationDateCol], "America/New_York", "yyyy-MM-dd")
+        : String(row[expirationDateCol] || ""),
+      cardVehicles: String(row[cardVehiclesCol] || ""),
       activityLog: String(row[activityLogCol] || ""),
 
       stripeCustomerId: String(row[stripeCustomerIdCol] || ""),
@@ -1037,6 +1055,13 @@ function agentUpdateLead_(id, patch) {
   const renewalDateCol1 = ensureCol1("Renewal Date");
   const vehiclesCol1 = ensureCol1("Vehicles");
   const monthlyPremiumCol1 = ensureCol1("Monthly Premium");
+  const policyStateCol1 = ensureCol1("Policy State");
+  const issuerNameCol1 = ensureCol1("Issuing Insurer Name");
+  const issuerNaicCol1 = ensureCol1("Issuing Insurer NAIC");
+  const issuerAddressCol1 = ensureCol1("Issuing Insurer Address");
+  const effectiveDateCol1 = ensureCol1("Policy Effective Date");
+  const expirationDateCol1 = ensureCol1("Policy Expiration Date");
+  const cardVehiclesCol1 = ensureCol1("Insurance Card Vehicles");
 
   const map = {
     name: 2,
@@ -1058,6 +1083,13 @@ function agentUpdateLead_(id, patch) {
     renewaldate: renewalDateCol1,
     vehicles: vehiclesCol1,
     monthlypremium: monthlyPremiumCol1,
+    policystate: policyStateCol1,
+    issuername: issuerNameCol1,
+    issuernaic: issuerNaicCol1,
+    issueraddress: issuerAddressCol1,
+    effectivedate: effectiveDateCol1,
+    expirationdate: expirationDateCol1,
+    cardvehicles: cardVehiclesCol1,
   };
 
   Object.keys(patch || {}).forEach(function (k) {
@@ -1700,15 +1732,71 @@ function coveragePdfEmailHtml_(args) {
     + '</div>';
 }
 
+function apexConvertCoverageDocxToPdf_(body) {
+  if (typeof Drive === 'undefined' || !Drive.Files || !Drive.Files.create) {
+    throw new Error('Enable the Drive API under Services in this Apps Script project to convert policy documents.');
+  }
+
+  var encoded = safeString_(body.docxBase64);
+  if (!encoded) throw new Error('Missing DOCX packet data. Publish the updated website before sending PDFs.');
+  var bytes = Utilities.base64Decode(encoded);
+  if (bytes.length < 4 || bytes[0] !== 80 || bytes[1] !== 75) {
+    throw new Error('The policy packet is not a valid DOCX file.');
+  }
+
+  var filename = safeString_(body.filename) || 'apex-coverage-packet.pdf';
+  if (!/\.pdf$/i.test(filename)) filename += '.pdf';
+  var tempName = 'apex-packet-conversion-' + Utilities.getUuid() + '.docx';
+  var docx = Utilities.newBlob(
+    bytes,
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    tempName
+  );
+  var imported = null;
+
+  try {
+    imported = Drive.Files.create(
+      { name: tempName, mimeType: 'application/vnd.google-apps.document' },
+      docx,
+      { fields: 'id,mimeType' }
+    );
+    if (!imported || !imported.id || imported.mimeType !== 'application/vnd.google-apps.document') {
+      throw new Error('Google Drive could not import the DOCX packet.');
+    }
+
+    var pdf = DriveApp.getFileById(imported.id).getAs(MimeType.PDF).setName(filename);
+    var pdfBytes = pdf.getBytes();
+    if (pdfBytes.length < 1000 ||
+        pdfBytes[0] !== 37 || pdfBytes[1] !== 80 ||
+        pdfBytes[2] !== 68 || pdfBytes[3] !== 70 || pdfBytes[4] !== 45) {
+      throw new Error('Google Drive returned an invalid or empty PDF packet.');
+    }
+    return pdf;
+  } finally {
+    if (imported && imported.id) {
+      try {
+        Drive.Files.remove(imported.id);
+      } catch (cleanupError) {
+        try { DriveApp.getFileById(imported.id).setTrashed(true); } catch (ignored) {}
+        Logger.log('Temporary policy conversion cleanup: ' + String(cleanupError));
+      }
+    }
+  }
+}
+
+function agentConvertCoveragePdf_(body) {
+  var pdf = apexConvertCoverageDocxToPdf_(body || {});
+  return {
+    ok: true,
+    filename: pdf.getName(),
+    pdfBase64: Utilities.base64Encode(pdf.getBytes())
+  };
+}
+
 function agentSendCoveragePdf_(body) {
   var to = safeString_(body.to).trim();
   if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
     return { ok: false, error: 'Missing or invalid customer email.' };
-  }
-
-  var pdfBase64 = safeString_(body.pdfBase64);
-  if (!pdfBase64) {
-    return { ok: false, error: 'Missing PDF attachment data.' };
   }
 
   var filename = safeString_(body.filename) || 'apex-coverage-packet.pdf';
@@ -1756,11 +1844,7 @@ function agentSendCoveragePdf_(body) {
     supportEmail + '\n' +
     (typeof SITE_URL !== 'undefined' ? SITE_URL : 'https://www.driveapexcoverage.com') + '\n';
 
-  var blob = Utilities.newBlob(
-    Utilities.base64Decode(pdfBase64),
-    'application/pdf',
-    filename
-  );
+  var blob = apexConvertCoverageDocxToPdf_(body);
 
   var emailOptions = {
     htmlBody: coveragePdfEmailHtml_({
@@ -1866,7 +1950,8 @@ function doPost(e) {
         action === 'loadworksheet' ||
         action === 'updatecustomer' ||
         action === 'appendpaymenthistory' ||
-        action === 'sendcoveragepdf'
+        action === 'sendcoveragepdf' ||
+        action === 'convertcoveragepdf'
       ) {
         if (body.secret !== AGENT_SECRET) {
           return agentError_('Unauthorized', 401);
@@ -1940,9 +2025,19 @@ function doPost(e) {
         }
 
         if (action === 'sendcoveragepdf') {
-          var resPdf = agentSendCoveragePdf_(body);
-          return ContentService.createTextOutput(JSON.stringify(resPdf))
-            .setMimeType(ContentService.MimeType.JSON);
+          try {
+            return respond(agentSendCoveragePdf_(body));
+          } catch (conversionError) {
+            return agentError_(String(conversionError.message || conversionError), 500);
+          }
+        }
+
+        if (action === 'convertcoveragepdf') {
+          try {
+            return respond(agentConvertCoveragePdf_(body));
+          } catch (conversionError) {
+            return agentError_(String(conversionError.message || conversionError), 500);
+          }
         }
       }
     } catch (err) {

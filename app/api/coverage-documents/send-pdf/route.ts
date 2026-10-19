@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { agentSendCoveragePdf } from "@/lib/agentAppsScript";
 import {
-  buildCoveragePdfBuffer,
-  getCoveragePdfFilename,
-} from "@/lib/coveragePdfBuilder";
-import type { CoverageDocumentData } from "@/lib/coverageDocumentBuilder";
+  buildCoverageDocumentBuffer,
+  getCoverageDocumentFilename,
+  type CoverageDocumentData,
+} from "@/lib/coverageDocumentBuilder";
 
 export const runtime = "nodejs";
 
@@ -65,15 +65,15 @@ export async function POST(req: Request) {
       return badRequest("Customer email is required before sending a PDF packet.");
     }
 
-    const pdfBuffer = buildCoveragePdfBuffer(body);
-    const filename = getCoveragePdfFilename(body);
+    const docxBuffer = buildCoverageDocumentBuffer(body);
+    const filename = getCoverageDocumentFilename(body).replace(/\.docx$/i, ".pdf");
 
     await agentSendCoveragePdf({
       to: String(body.email).trim(),
       customerName: String(body.customerName || "Customer").trim(),
       documentType: body.type,
       filename,
-      pdfBase64: pdfBuffer.toString("base64"),
+      docxBase64: docxBuffer.toString("base64"),
       summary: buildEmailSummary(body),
     });
 
