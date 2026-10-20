@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { InsuranceCardPanel } from "@/components/InsuranceCardPanel";
-import { parseCardVehicles, type InsuranceCardVehicle } from "@/lib/insuranceCards";
+import { parseCardVehicles, policyPeriodIsTooShort, suggestedMonthlyExpiration, type InsuranceCardVehicle } from "@/lib/insuranceCards";
 
 type AutoLead = {
   id: number;
@@ -790,6 +790,10 @@ export default function CustomerProfilePage() {
     if (!profile?.auto) return;
     if (autoForm.cardVehicles.some((vehicle) => !completeVin(vehicle.vin) || !vehicle.year.trim() || !vehicle.make.trim() || !vehicle.model.trim())) {
       alert("Enter the year, make, model, and valid 17-character VIN for every covered auto before saving.");
+      return;
+    }
+    if (policyPeriodIsTooShort(autoForm.effectiveDate, autoForm.expirationDate)) {
+      alert("This auto policy period is shorter than one month. Confirm the current period dates with the issued policy before saving.");
       return;
     }
     setSaving("auto");
@@ -1629,7 +1633,7 @@ export default function CustomerProfilePage() {
                   <Input label="Coverage" value={autoForm.coverage} onChange={(value) => setAutoForm((prev) => ({ ...prev, coverage: value }))} />
                   <Input label="Deductibles" value={autoForm.deductibles} onChange={(value) => setAutoForm((prev) => ({ ...prev, deductibles: value }))} />
                   <Input label="Discounts" value={autoForm.discounts} onChange={(value) => setAutoForm((prev) => ({ ...prev, discounts: value }))} />
-                  <Input label="Renewal Date" value={autoForm.renewalDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, renewalDate: value }))} />
+                  <Input label="Next Renewal Date" value={autoForm.renewalDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, renewalDate: value }))} />
                   <Input label="Monthly Premium" value={autoForm.monthlyPremium} onChange={(value) => setAutoForm((prev) => ({ ...prev, monthlyPremium: value }))} />
                   <Textarea label="Vehicles" value={autoForm.vehicles} onChange={(value) => setAutoForm((prev) => ({ ...prev, vehicles: value }))} />
                 </div>
@@ -1638,9 +1642,16 @@ export default function CustomerProfilePage() {
                   <p className="meta-text mb-4">The card uses the mailing state from Contact Info and each vehicle VIN below. Verify the NAIC and policy dates against the issued auto policy.</p>
                   <div className="form-grid">
                     <Input label="Insurer NAIC number" value={autoForm.issuerNaic} onChange={(value) => setAutoForm((prev) => ({ ...prev, issuerNaic: value }))} />
-                    <Input label="Policy effective date" type="date" value={autoForm.effectiveDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, effectiveDate: value }))} />
-                    <Input label="Policy expiration date" type="date" value={autoForm.expirationDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, expirationDate: value }))} />
+                    <Input label="Current policy period starts" type="date" value={autoForm.effectiveDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, effectiveDate: value }))} />
+                    <Input label="Current policy period ends" type="date" value={autoForm.expirationDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, expirationDate: value, renewalDate: value }))} />
                   </div>
+                  <button type="button" className="btn-secondary mt-3" disabled={!suggestedMonthlyExpiration(autoForm.effectiveDate)} onClick={() => setAutoForm((previous) => {
+                    const date = suggestedMonthlyExpiration(previous.effectiveDate);
+                    return { ...previous, expirationDate: date, renewalDate: date };
+                  })}>
+                    Suggest One-Month End Date
+                  </button>
+                  <p className="meta-text mt-2">Confirm the suggested date against the issued policy before saving.</p>
                   <div className="mt-5 space-y-4">
                     {autoForm.cardVehicles.map((vehicle, index) => (
                       <div className="rounded-md border border-slate-200 p-4" key={index}>

@@ -57,6 +57,19 @@ function validDate(value: unknown) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === text;
 }
 
+export function suggestedMonthlyExpiration(effectiveDate: string) {
+  if (!validDate(effectiveDate)) return "";
+  const [year, month, day] = effectiveDate.split("-").map(Number);
+  const lastDayOfNextMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month, Math.min(day, lastDayOfNextMonth))).toISOString().slice(0, 10);
+}
+
+export function policyPeriodIsTooShort(effectiveDate: string, expirationDate: string) {
+  if (!validDate(effectiveDate) || !validDate(expirationDate)) return false;
+  const days = (Date.parse(`${expirationDate}T12:00:00Z`) - Date.parse(`${effectiveDate}T12:00:00Z`)) / 86400000;
+  return days < 28;
+}
+
 export function insuranceCardMissingFields(policy: InsuranceCardPolicy) {
   const missing: string[] = [];
   if (clean(policy.status).toLowerCase() !== "won") missing.push("Active auto policy status");
@@ -76,6 +89,9 @@ export function insuranceCardMissingFields(policy: InsuranceCardPolicy) {
   if (validDate(policy.effectiveDate) && validDate(policy.expirationDate)) {
     if (clean(policy.expirationDate) <= clean(policy.effectiveDate)) {
       missing.push("Expiration date after effective date");
+    }
+    if (policyPeriodIsTooShort(clean(policy.effectiveDate), clean(policy.expirationDate))) {
+      missing.push("Monthly policy end date (the saved period is under 28 days)");
     }
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;

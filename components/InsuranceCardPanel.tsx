@@ -23,7 +23,7 @@ export function InsuranceCardPanel({
   onEditContact: () => void;
 }) {
   const [verified, setVerified] = useState(false);
-  const [copies, setCopies] = useState(1);
+  const [copies, setCopies] = useState(4);
   const missing = useMemo(() => insuranceCardMissingFields(policy), [policy]);
   const vehicles = useMemo(() => parseCardVehicles(policy), [policy]);
   const cardSheets = useMemo(() => {
@@ -93,7 +93,7 @@ export function InsuranceCardPanel({
                       <div className="apex-insurance-card" key={`${vehicle.vin}-${sheetIndex}-${cardIndex}`}>
                         <div className="apex-insurance-card-header">
                           <div>
-                            <div className="apex-insurance-card-eyebrow">{policy.state?.toUpperCase()} AUTO POLICY DATA REVIEW</div>
+                            <div className="apex-insurance-card-eyebrow">{policy.state?.toUpperCase()} AUTO POLICY</div>
                             <strong>Apex Coverage</strong>
                           </div>
                           <img src="/Apex_Shield_Email.png" alt="Apex Coverage shield" />
@@ -109,7 +109,7 @@ export function InsuranceCardPanel({
                         </div>
                         <div className="apex-insurance-card-footer">
                           <div><b>Apex Coverage</b> &nbsp; <b>NAIC:</b> {policy.issuerNaic}<br />Richmond, VA</div>
-                          <div className="apex-insurance-card-phone">844-398-2739</div>
+                          <div className="apex-insurance-card-phone"><span>Customer Support</span>844-398-2739</div>
                         </div>
                         <div className="apex-insurance-card-warning">INTERNAL DRAFT - NOT VALID PROOF OF INSURANCE</div>
                       </div>
@@ -136,16 +136,19 @@ export function InsuranceCardPanel({
         .apex-card-vin { letter-spacing: .03em; }
         .apex-insurance-card-footer { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; padding-top: 7px; border-top: 1px solid #cbd5e1; font-size: 9px; line-height: 1.3; }
         .apex-insurance-card-phone { font-size: 11px; font-weight: 800; white-space: nowrap; }
+        .apex-insurance-card-phone span { display: block; color: #516174; font-size: 8px; font-weight: 800; text-transform: uppercase; }
         .apex-insurance-card-warning { margin-top: auto; padding-top: 8px; color: #b91c1c; text-align: center; font-size: 9px; font-weight: 900; letter-spacing: .04em; }
         @media (max-width: 720px) { .apex-card-sheet { grid-template-columns: 1fr; } }
         @media print {
-          @page { size: letter landscape; margin: .35in; }
+          @page { size: letter landscape; margin: .4in; }
           body * { visibility: hidden !important; }
           .apex-card-print, .apex-card-print * { visibility: visible !important; }
-          .apex-card-print { display: block; position: absolute; top: 0; left: 0; width: 10.2in; margin: 0 !important; }
-          .apex-card-sheet { display: grid; grid-template-columns: repeat(2, 5in); grid-template-rows: repeat(2, 3.75in); gap: .2in; width: 10.2in; height: 7.7in; margin: 0; break-after: page; page-break-after: always; }
+          .apex-card-print { display: block; position: absolute; top: 0; left: 0; width: 9.7in; margin: 0 !important; }
+          .apex-card-sheet { display: grid; grid-template-columns: repeat(2, 4.75in); grid-template-rows: repeat(2, 3.45in); gap: .2in; width: 9.7in; height: 7.1in; margin: 0; break-after: page; page-break-after: always; }
           .apex-card-sheet:last-child { break-after: auto; page-break-after: auto; }
-          .apex-insurance-card { width: 5in; height: 3.75in; min-height: 0; box-shadow: none; page-break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          .apex-insurance-card { width: 4.75in; height: 3.45in; min-height: 0; padding: 9px 11px; box-shadow: none; page-break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          .apex-insurance-card-grid { gap: 5px 10px; padding: 7px 0; }
+          .apex-insurance-card-warning { padding-top: 5px; }
         }
       `}</style>
     </section>

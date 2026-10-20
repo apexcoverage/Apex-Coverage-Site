@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { agentUpdateLead } from "@/lib/agentAppsScript";
+import { policyPeriodIsTooShort } from "@/lib/insuranceCards";
 
 export async function POST(req: Request) {
   try {
@@ -67,6 +68,10 @@ export async function POST(req: Request) {
       if (!Array.isArray(vehicles) || !vehicles.length || vehicles.some((vehicle) => !/^[A-HJ-NPR-Z0-9]{17}$/.test(String(vehicle.vin || "").trim().toUpperCase()))) {
         return NextResponse.json({ ok: false, error: "Each covered vehicle needs a valid 17-character VIN." }, { status: 400 });
       }
+    }
+    if (effectiveDate !== undefined && expirationDate !== undefined &&
+        policyPeriodIsTooShort(String(effectiveDate), String(expirationDate))) {
+      return NextResponse.json({ ok: false, error: "The saved auto policy period must be at least 28 days." }, { status: 400 });
     }
 
     const patch: Record<string, any> = {};
