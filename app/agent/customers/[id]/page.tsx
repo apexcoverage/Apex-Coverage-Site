@@ -12,6 +12,10 @@ type AutoLead = {
   email: string;
   phone: string;
   zip: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
   dob: string;
   year: string;
   make: string;
@@ -26,10 +30,7 @@ type AutoLead = {
   renewalDate?: string;
   vehicles?: string;
   monthlyPremium?: string;
-  policyState?: string;
-  issuerName?: string;
   issuerNaic?: string;
-  issuerAddress?: string;
   effectiveDate?: string;
   expirationDate?: string;
   cardVehicles?: string;
@@ -49,6 +50,10 @@ type BuildReview = {
   email: string;
   phone: string;
   zip: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
   dob: string;
   year: string;
   make: string;
@@ -120,6 +125,10 @@ type ContactForm = {
   email: string;
   phone: string;
   zip: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
   dob: string;
   agent: string;
 };
@@ -133,10 +142,7 @@ type AutoForm = {
   renewalDate: string;
   vehicles: string;
   monthlyPremium: string;
-  policyState: string;
-  issuerName: string;
   issuerNaic: string;
-  issuerAddress: string;
   effectiveDate: string;
   expirationDate: string;
   cardVehicles: InsuranceCardVehicle[];
@@ -208,8 +214,27 @@ function buildProtectionNumber(build: BuildReview) {
   return `APX-MVP-${String(build.id).padStart(5, "0")}`;
 }
 
-function autoCoverageDocumentPayload(auto: AutoLead) {
-  const vehicleLines = String(auto.vehicles || vehicleLabel(auto) || "")
+function mailingAddress(record: { addressLine1?: string; addressLine2?: string; city?: string; state?: string; zip?: string }) {
+  return [
+    record.addressLine1,
+    record.addressLine2,
+    [record.city, record.state].filter(Boolean).join(", ") + (record.zip ? ` ${record.zip}` : ""),
+  ].filter(Boolean).join("\n");
+}
+
+function completeMailingAddress(record: { addressLine1?: string; city?: string; state?: string; zip?: string }) {
+  return Boolean(record.addressLine1?.trim() && record.city?.trim() && /^[A-Za-z]{2}$/.test(record.state?.trim() || "") && /^\d{5}(?:-\d{4})?$/.test(record.zip?.trim() || ""));
+}
+
+function completeVin(vin: string) {
+  return /^[A-HJ-NPR-Z0-9]{17}$/.test(vin.trim().toUpperCase());
+}
+
+function autoCoverageDocumentPayload(auto: AutoLead, addressSource: AutoLead | BuildReview = auto) {
+  const scheduledVehicles = parseCardVehicles(auto);
+  const vehicleLines = scheduledVehicles.every((vehicle) => /^[A-HJ-NPR-Z0-9]{17}$/.test(vehicle.vin))
+    ? scheduledVehicles.map((vehicle) => [vehicle.vin, vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" "))
+    : String(auto.vehicles || vehicleLabel(auto) || "")
     .split(/\r?\n/)
     .map((v) => v.trim())
     .filter(Boolean);
@@ -220,6 +245,7 @@ function autoCoverageDocumentPayload(auto: AutoLead) {
     email: auto.email || "",
     phone: auto.phone || "",
     zip: auto.zip || "",
+    mailingAddress: mailingAddress(addressSource.addressLine1 ? addressSource : auto),
     agent: auto.agent || "",
     policyNumber: auto.policyNumber || "",
     effectiveDate: auto.effectiveDate || "",
@@ -236,13 +262,14 @@ function autoCoverageDocumentPayload(auto: AutoLead) {
   };
 }
 
-function buildProtectionDocumentPayload(build: BuildReview) {
+function buildProtectionDocumentPayload(build: BuildReview, addressSource: AutoLead | BuildReview = build) {
   return {
     type: "build",
     customerName: build.name || "",
     email: build.email || "",
     phone: build.phone || "",
     zip: build.zip || "",
+    mailingAddress: mailingAddress(addressSource.addressLine1 ? addressSource : build),
     agent: build.agent || "",
     planNumber: buildProtectionNumber(build),
     policyTerm: "Pending confirmation",
@@ -448,6 +475,10 @@ function emptyContactForm(seed?: Partial<AutoLead & BuildReview>): ContactForm {
     email: seed?.email || "",
     phone: seed?.phone || "",
     zip: seed?.zip || "",
+    addressLine1: seed?.addressLine1 || "",
+    addressLine2: seed?.addressLine2 || "",
+    city: seed?.city || "",
+    state: seed?.state || "",
     dob: seed?.dob || "",
     agent: seed?.agent || "",
   };
@@ -464,10 +495,7 @@ function autoFormFromRecord(auto?: AutoLead): AutoForm {
     renewalDate: auto?.renewalDate || "",
     vehicles: auto?.vehicles || fallbackVehicle,
     monthlyPremium: auto?.monthlyPremium || "",
-    policyState: auto?.policyState || "",
-    issuerName: auto?.issuerName || "",
     issuerNaic: auto?.issuerNaic || "",
-    issuerAddress: auto?.issuerAddress || "",
     effectiveDate: auto?.effectiveDate || "",
     expirationDate: auto?.expirationDate || "",
     cardVehicles: parseCardVehicles(auto || {}),
@@ -554,7 +582,7 @@ export default function CustomerProfilePage() {
       (review) => (review.status || "") === "Active"
     );
     const primaryBuild = activeBuilds[0] || matchedBuilds[0];
-    const display = auto || primaryBuild || seed;
+    const display = (auto?.addressLine1 ? auto : primaryBuild?.addressLine1 ? primaryBuild : auto || primaryBuild) || seed;
 
     return {
       display,
@@ -724,6 +752,10 @@ export default function CustomerProfilePage() {
 
   async function saveContact() {
     if (!profile) return;
+    if (!completeMailingAddress(contactForm)) {
+      alert("Enter the customer's street address, city, two-letter state, and ZIP before saving.");
+      return;
+    }
     setSaving("contact");
 
     try {
@@ -756,6 +788,10 @@ export default function CustomerProfilePage() {
 
   async function saveAuto() {
     if (!profile?.auto) return;
+    if (autoForm.cardVehicles.some((vehicle) => !completeVin(vehicle.vin) || !vehicle.year.trim() || !vehicle.make.trim() || !vehicle.model.trim())) {
+      alert("Enter the year, make, model, and valid 17-character VIN for every covered auto before saving.");
+      return;
+    }
     setSaving("auto");
 
     try {
@@ -776,6 +812,10 @@ export default function CustomerProfilePage() {
 
   async function saveBuild() {
     if (!editingBuildId) return;
+    if (!completeVin(buildForm.vin)) {
+      alert("Enter a valid 17-character VIN for the covered build before saving.");
+      return;
+    }
     setSaving(`build-${editingBuildId}`);
 
     try {
@@ -1134,14 +1174,33 @@ export default function CustomerProfilePage() {
     }
   }
 
+  function checkDocumentDetails(record: AutoLead | BuildReview) {
+    const contact = record.addressLine1 ? record : profile?.display || record;
+    if (!completeMailingAddress(contact)) {
+      alert("Add the customer's mailing street address, city, two-letter state, and ZIP in Contact Info before generating documents.");
+      return false;
+    }
+    if (!("vin" in record)) {
+      if (parseCardVehicles(record).some((vehicle) => !completeVin(vehicle.vin) || !vehicle.year || !vehicle.make || !vehicle.model)) {
+        alert("Add the year, make, model, and 17-character VIN for every covered auto in Edit Auto Policy before generating documents.");
+        return false;
+      }
+    } else if (!completeVin(record.vin)) {
+      alert("Add the 17-character build VIN in Edit Build Coverage before generating documents.");
+      return false;
+    }
+    return true;
+  }
+
   async function generateAutoCoveragePacket() {
     const auto = profile?.auto;
     if (!auto) return;
+    if (!checkDocumentDetails(auto)) return;
 
     try {
       setSaving("auto-document");
       await downloadCoverageDocument(
-        autoCoverageDocumentPayload(auto),
+        autoCoverageDocumentPayload(auto, profile?.display),
         `${fileSafeName(auto.name)}-auto-coverage-packet.docx`
       );
 
@@ -1158,6 +1217,7 @@ export default function CustomerProfilePage() {
   async function sendAutoCoveragePdf() {
     const auto = profile?.auto;
     if (!auto) return;
+    if (!checkDocumentDetails(auto)) return;
     if (!auto.email) {
       alert("Add a customer email before sending the auto coverage PDF.");
       return;
@@ -1165,7 +1225,7 @@ export default function CustomerProfilePage() {
 
     try {
       setSaving("auto-pdf-email");
-      const result = await sendCoveragePdf(autoCoverageDocumentPayload(auto));
+      const result = await sendCoveragePdf(autoCoverageDocumentPayload(auto, profile?.display));
       await updateAuto(auto.id, {
         activityNote: `Auto coverage PDF emailed to ${result.to}`,
       });
@@ -1182,10 +1242,11 @@ export default function CustomerProfilePage() {
   async function previewAutoCoveragePdf() {
     const auto = profile?.auto;
     if (!auto) return;
+    if (!checkDocumentDetails(auto)) return;
     try {
       setSaving("auto-pdf-preview");
       await downloadCoveragePdfPreview(
-        autoCoverageDocumentPayload(auto),
+        autoCoverageDocumentPayload(auto, profile?.display),
         `${fileSafeName(auto.name)}-auto-coverage-preview.pdf`
       );
     } catch (err: any) {
@@ -1198,12 +1259,13 @@ export default function CustomerProfilePage() {
   async function generateBuildProtectionPacket() {
     const build = profile?.primaryBuild;
     if (!build) return;
+    if (!checkDocumentDetails(build)) return;
 
     try {
       setSaving("build-document");
 
       await downloadCoverageDocument(
-        buildProtectionDocumentPayload(build),
+        buildProtectionDocumentPayload(build, profile?.display),
         `${fileSafeName(build.name)}-build-protection-packet.docx`
       );
 
@@ -1220,6 +1282,7 @@ export default function CustomerProfilePage() {
   async function sendBuildProtectionPdf() {
     const build = profile?.primaryBuild;
     if (!build) return;
+    if (!checkDocumentDetails(build)) return;
     if (!build.email) {
       alert("Add a customer email before sending the build protection PDF.");
       return;
@@ -1227,7 +1290,7 @@ export default function CustomerProfilePage() {
 
     try {
       setSaving("build-pdf-email");
-      const result = await sendCoveragePdf(buildProtectionDocumentPayload(build));
+      const result = await sendCoveragePdf(buildProtectionDocumentPayload(build, profile?.display));
       await updateBuild(build.id, {
         activityNote: `Build protection PDF emailed to ${result.to}`,
       });
@@ -1244,10 +1307,11 @@ export default function CustomerProfilePage() {
   async function previewBuildProtectionPdf() {
     const build = profile?.primaryBuild;
     if (!build) return;
+    if (!checkDocumentDetails(build)) return;
     try {
       setSaving("build-pdf-preview");
       await downloadCoveragePdfPreview(
-        buildProtectionDocumentPayload(build),
+        buildProtectionDocumentPayload(build, profile?.display),
         `${fileSafeName(build.name)}-build-protection-preview.pdf`
       );
     } catch (err: any) {
@@ -1351,7 +1415,11 @@ export default function CustomerProfilePage() {
               <Input label="Name" value={contactForm.name} onChange={(value) => setContactForm((prev) => ({ ...prev, name: value }))} />
               <Input label="Email" value={contactForm.email} onChange={(value) => setContactForm((prev) => ({ ...prev, email: value }))} />
               <Input label="Phone" value={contactForm.phone} onChange={(value) => setContactForm((prev) => ({ ...prev, phone: value }))} />
-              <Input label="ZIP" value={contactForm.zip} onChange={(value) => setContactForm((prev) => ({ ...prev, zip: value }))} />
+              <Input label="Mailing street address *" value={contactForm.addressLine1} onChange={(value) => setContactForm((prev) => ({ ...prev, addressLine1: value }))} />
+              <Input label="Apartment / suite" value={contactForm.addressLine2} onChange={(value) => setContactForm((prev) => ({ ...prev, addressLine2: value }))} />
+              <Input label="City *" value={contactForm.city} onChange={(value) => setContactForm((prev) => ({ ...prev, city: value }))} />
+              <Input label="State (2 letters) *" value={contactForm.state} onChange={(value) => setContactForm((prev) => ({ ...prev, state: value.toUpperCase().slice(0, 2) }))} />
+              <Input label="ZIP *" value={contactForm.zip} onChange={(value) => setContactForm((prev) => ({ ...prev, zip: value }))} />
               <Input label="Date of Birth" value={contactForm.dob} onChange={(value) => setContactForm((prev) => ({ ...prev, dob: value }))} />
               <Input label="Assigned Agent" value={contactForm.agent} onChange={(value) => setContactForm((prev) => ({ ...prev, agent: value }))} />
             </div>
@@ -1474,6 +1542,7 @@ export default function CustomerProfilePage() {
                     ["Name", display.name],
                     ["Phone", display.phone],
                     ["Email", display.email],
+                    ["Mailing Address", mailingAddress(display)],
                     ["ZIP", display.zip],
                     ["Date of Birth", display.dob],
                   ]}
@@ -1566,12 +1635,9 @@ export default function CustomerProfilePage() {
                 </div>
                 <div className="card-body border-t border-slate-200">
                   <h3 className="mb-2 text-base font-semibold">Insurance card details</h3>
-                  <p className="meta-text mb-4">Copy these details from the issued auto policy. The renewal date above does not set the card period.</p>
+                  <p className="meta-text mb-4">The card uses the mailing state from Contact Info and each vehicle VIN below. Verify the NAIC and policy dates against the issued auto policy.</p>
                   <div className="form-grid">
-                    <Input label="Policy state (2 letters)" value={autoForm.policyState} onChange={(value) => setAutoForm((prev) => ({ ...prev, policyState: value.toUpperCase() }))} />
-                    <Input label="Issuing insurer legal name" value={autoForm.issuerName} onChange={(value) => setAutoForm((prev) => ({ ...prev, issuerName: value }))} />
                     <Input label="Insurer NAIC number" value={autoForm.issuerNaic} onChange={(value) => setAutoForm((prev) => ({ ...prev, issuerNaic: value }))} />
-                    <Input label="Issuing insurer address" value={autoForm.issuerAddress} onChange={(value) => setAutoForm((prev) => ({ ...prev, issuerAddress: value }))} />
                     <Input label="Policy effective date" type="date" value={autoForm.effectiveDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, effectiveDate: value }))} />
                     <Input label="Policy expiration date" type="date" value={autoForm.expirationDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, expirationDate: value }))} />
                   </div>
@@ -1579,7 +1645,7 @@ export default function CustomerProfilePage() {
                     {autoForm.cardVehicles.map((vehicle, index) => (
                       <div className="rounded-md border border-slate-200 p-4" key={index}>
                         <div className="mb-3 flex items-center justify-between gap-3">
-                          <h4 className="font-semibold">Insured vehicle {index + 1}</h4>
+                          <h4 className="font-semibold">Covered vehicle {index + 1}</h4>
                           {autoForm.cardVehicles.length > 1 && (
                             <button type="button" className="link-button" onClick={() => setAutoForm((previous) => ({ ...previous, cardVehicles: previous.cardVehicles.filter((_, vehicleIndex) => vehicleIndex !== index) }))}>
                               Remove
@@ -1595,7 +1661,7 @@ export default function CustomerProfilePage() {
                       </div>
                     ))}
                     <button type="button" className="btn-secondary" onClick={() => setAutoForm((previous) => ({ ...previous, cardVehicles: [...previous.cardVehicles, { year: "", make: "", model: "", vin: "" }] }))}>
-                      Add insured vehicle
+                      Add covered vehicle
                     </button>
                   </div>
                 </div>
@@ -1620,8 +1686,8 @@ export default function CustomerProfilePage() {
                     ["Discounts", auto.discounts || "-"],
                     ["Renewal Date", auto.renewalDate || "-"],
                     ["Monthly Premium", formatCurrency(auto.monthlyPremium)],
-                    ["Policy State", auto.policyState || "-"],
-                    ["Issuing Insurer", auto.issuerName || "-"],
+                    ["Card State", display.state || "-"],
+                    ["Company", "Apex Coverage"],
                     ["NAIC", auto.issuerNaic || "-"],
                     ["Policy Period", auto.effectiveDate && auto.expirationDate ? `${auto.effectiveDate} to ${auto.expirationDate}` : "-"],
                   ]}
@@ -1630,7 +1696,7 @@ export default function CustomerProfilePage() {
             )}
           </section>
 
-          {auto && <InsuranceCardPanel policy={auto} onEdit={openAutoEditor} />}
+          {auto && <InsuranceCardPanel policy={{ ...auto, ...(!auto.addressLine1 ? { addressLine1: display.addressLine1, addressLine2: display.addressLine2, city: display.city, state: display.state, zip: display.zip } : {}) }} onEdit={openAutoEditor} onEditContact={openContactEditor} />}
 
           <section className="card">
             <div className="card-header card-header-with-actions">

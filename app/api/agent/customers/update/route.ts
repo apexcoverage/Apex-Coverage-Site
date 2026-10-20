@@ -11,6 +11,10 @@ export async function POST(req: Request) {
       email,
       phone,
       zip,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
       dob,
       agent,
       policyNumber,
@@ -46,12 +50,35 @@ export async function POST(req: Request) {
       );
     }
 
+    if (state !== undefined && !/^[A-Z]{2}$/.test(String(state).trim().toUpperCase())) {
+      return NextResponse.json({ ok: false, error: "State must be a two-letter abbreviation." }, { status: 400 });
+    }
+    if ([addressLine1, addressLine2, city, state].some((value) => value !== undefined) &&
+        (!String(addressLine1 || "").trim() || !String(city || "").trim() || !/^[A-Z]{2}$/.test(String(state || "").trim().toUpperCase()) || !/^\d{5}(?:-\d{4})?$/.test(String(zip || "").trim()))) {
+      return NextResponse.json({ ok: false, error: "A complete mailing address requires street, city, two-letter state, and ZIP." }, { status: 400 });
+    }
+    if (cardVehicles !== undefined) {
+      let vehicles: Array<{ vin?: unknown }>;
+      try {
+        vehicles = JSON.parse(String(cardVehicles));
+      } catch {
+        return NextResponse.json({ ok: false, error: "Invalid vehicle schedule." }, { status: 400 });
+      }
+      if (!Array.isArray(vehicles) || !vehicles.length || vehicles.some((vehicle) => !/^[A-HJ-NPR-Z0-9]{17}$/.test(String(vehicle.vin || "").trim().toUpperCase()))) {
+        return NextResponse.json({ ok: false, error: "Each covered vehicle needs a valid 17-character VIN." }, { status: 400 });
+      }
+    }
+
     const patch: Record<string, any> = {};
 
     if (name !== undefined) patch.name = name;
     if (email !== undefined) patch.email = email;
     if (phone !== undefined) patch.phone = phone;
     if (zip !== undefined) patch.zip = zip;
+    if (addressLine1 !== undefined) patch.addressLine1 = String(addressLine1).trim();
+    if (addressLine2 !== undefined) patch.addressLine2 = String(addressLine2).trim();
+    if (city !== undefined) patch.city = String(city).trim();
+    if (state !== undefined) patch.state = String(state).trim().toUpperCase();
     if (dob !== undefined) patch.dob = dob;
     if (agent !== undefined) patch.agent = agent;
 

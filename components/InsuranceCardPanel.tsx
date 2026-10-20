@@ -16,9 +16,11 @@ function displayDate(value?: string) {
 export function InsuranceCardPanel({
   policy,
   onEdit,
+  onEditContact,
 }: {
   policy: InsuranceCardPolicy;
   onEdit: () => void;
+  onEditContact: () => void;
 }) {
   const [verified, setVerified] = useState(false);
   const [copies, setCopies] = useState(1);
@@ -38,9 +40,10 @@ export function InsuranceCardPanel({
           <h2>Internal Auto Card Drafts</h2>
           <p className="subtitle">Review one draft for each vehicle. These are not proof of insurance.</p>
         </div>
-        <button type="button" className="btn-secondary" onClick={onEdit}>
-          Edit Card Details
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn-secondary" onClick={onEditContact}>Edit Mailing Address</button>
+          <button type="button" className="btn-secondary" onClick={onEdit}>Edit Policy &amp; Vehicles</button>
+        </div>
       </div>
       <div className="card-body">
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm font-bold text-red-900">
@@ -90,21 +93,22 @@ export function InsuranceCardPanel({
                       <div className="apex-insurance-card" key={`${vehicle.vin}-${sheetIndex}-${cardIndex}`}>
                         <div className="apex-insurance-card-header">
                           <div>
-                            <div className="apex-insurance-card-eyebrow">{policy.policyState} AUTO POLICY DATA REVIEW</div>
-                            <strong>Internal Card Draft</strong>
+                            <div className="apex-insurance-card-eyebrow">{policy.state?.toUpperCase()} AUTO POLICY DATA REVIEW</div>
+                            <strong>Apex Coverage</strong>
                           </div>
                           <img src="/Apex_Shield_Email.png" alt="Apex Coverage shield" />
                         </div>
                         <div className="apex-insurance-card-grid">
-                          <div><span>Insured</span><strong>{policy.name}</strong></div>
+                          <div><span>Covered</span><strong>{policy.name}</strong></div>
                           <div><span>Policy number</span><strong>{policy.policyNumber}</strong></div>
                           <div><span>Effective</span><strong>{displayDate(policy.effectiveDate)}</strong></div>
                           <div><span>Expires</span><strong>{displayDate(policy.expirationDate)}</strong></div>
                           <div><span>Year / Make / Model</span><strong>{vehicle.year} {vehicle.make} {vehicle.model}</strong></div>
                           <div><span>VIN</span><strong className="apex-card-vin">{vehicle.vin}</strong></div>
+                          <div className="apex-insurance-card-address"><span>Covered mailing address</span><strong>{[policy.addressLine1, policy.addressLine2, [policy.city, policy.state?.toUpperCase()].filter(Boolean).join(", ") + ` ${policy.zip}`].filter(Boolean).join(", ")}</strong></div>
                         </div>
                         <div className="apex-insurance-card-footer">
-                          <div><b>Insurer entered by agent:</b> {policy.issuerName} &nbsp; <b>NAIC entered:</b> {policy.issuerNaic}<br />{policy.issuerAddress}</div>
+                          <div><b>Apex Coverage</b> &nbsp; <b>NAIC:</b> {policy.issuerNaic}<br />Richmond, VA</div>
                           <div className="apex-insurance-card-phone">844-398-2739</div>
                         </div>
                         <div className="apex-insurance-card-warning">INTERNAL DRAFT - NOT VALID PROOF OF INSURANCE</div>
@@ -128,6 +132,7 @@ export function InsuranceCardPanel({
         .apex-insurance-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; padding: 10px 0; }
         .apex-insurance-card-grid span { display: block; color: #516174; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
         .apex-insurance-card-grid strong { display: block; margin-top: 2px; font-size: 11px; overflow-wrap: anywhere; }
+        .apex-insurance-card-address { grid-column: 1 / -1; }
         .apex-card-vin { letter-spacing: .03em; }
         .apex-insurance-card-footer { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; padding-top: 7px; border-top: 1px solid #cbd5e1; font-size: 9px; line-height: 1.3; }
         .apex-insurance-card-phone { font-size: 11px; font-weight: 800; white-space: nowrap; }

@@ -9,10 +9,12 @@ export type InsuranceCardPolicy = {
   status?: string;
   name?: string;
   policyNumber?: string;
-  policyState?: string;
-  issuerName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
   issuerNaic?: string;
-  issuerAddress?: string;
   effectiveDate?: string;
   expirationDate?: string;
   cardVehicles?: string;
@@ -58,15 +60,16 @@ function validDate(value: unknown) {
 export function insuranceCardMissingFields(policy: InsuranceCardPolicy) {
   const missing: string[] = [];
   if (clean(policy.status).toLowerCase() !== "won") missing.push("Active auto policy status");
-  if (!clean(policy.name)) missing.push("Insured name");
+  if (!clean(policy.name)) missing.push("Covered name");
   if (!clean(policy.policyNumber)) missing.push("Policy number");
-  if (!/^[A-Z]{2}$/.test(clean(policy.policyState).toUpperCase())) missing.push("Two-letter policy state");
-  if (!clean(policy.issuerName)) missing.push("Issuing insurer legal name");
+  if (!clean(policy.addressLine1) || !clean(policy.city) || !/^\d{5}(?:-\d{4})?$/.test(clean(policy.zip))) {
+    missing.push("Covered mailing address (street, city, and ZIP)");
+  }
+  if (!/^[A-Z]{2}$/.test(clean(policy.state).toUpperCase())) missing.push("Two-letter mailing state");
   if (!/^\d{5}$/.test(clean(policy.issuerNaic))) missing.push("Five-digit insurer NAIC number");
   if (clean(policy.issuerNaic) === "14282") {
     missing.push("Correct insurer NAIC number (14282 belongs to another insurer)");
   }
-  if (!clean(policy.issuerAddress)) missing.push("Issuing insurer address");
   if (!validDate(policy.effectiveDate)) missing.push("Policy effective date");
   if (!validDate(policy.expirationDate)) missing.push("Policy expiration date");
 
