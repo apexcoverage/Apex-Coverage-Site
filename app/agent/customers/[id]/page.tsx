@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { InsuranceCardPanel } from "@/components/InsuranceCardPanel";
-import { parseCardVehicles, policyPeriodIsTooShort, suggestedMonthlyExpiration, type InsuranceCardVehicle } from "@/lib/insuranceCards";
+import { parseCardVehicles, policyPeriodIsTooShort, serializeCardVehicles, suggestedMonthlyExpiration, type InsuranceCardVehicle } from "@/lib/insuranceCards";
 
 type AutoLead = {
   id: number;
@@ -801,6 +801,7 @@ export default function CustomerProfilePage() {
     try {
       await updateAuto(profile.auto.id, {
         ...autoForm,
+        vehicles: serializeCardVehicles(autoForm.cardVehicles),
         cardVehicles: JSON.stringify(autoForm.cardVehicles),
         activityNote: "Auto policy details updated",
       });
@@ -1348,10 +1349,9 @@ export default function CustomerProfilePage() {
   const auto = profile.auto;
   const primaryBuild = profile.primaryBuild;
   const display = profile.display;
-  const autoVehicleLines = String(auto?.vehicles || (auto ? vehicleLabel(auto) : ""))
-    .split(/\r?\n/)
-    .map((v) => v.trim())
-    .filter(Boolean);
+  const autoVehicleLines = auto ? parseCardVehicles(auto).map((vehicle) =>
+    [vehicle.year, vehicle.make, vehicle.model, vehicle.vin].filter(Boolean).join(" ")
+  ) : [];
 
   return (
     <>
@@ -1635,7 +1635,6 @@ export default function CustomerProfilePage() {
                   <Input label="Discounts" value={autoForm.discounts} onChange={(value) => setAutoForm((prev) => ({ ...prev, discounts: value }))} />
                   <Input label="Next Renewal Date" value={autoForm.renewalDate} onChange={(value) => setAutoForm((prev) => ({ ...prev, renewalDate: value }))} />
                   <Input label="Monthly Premium" value={autoForm.monthlyPremium} onChange={(value) => setAutoForm((prev) => ({ ...prev, monthlyPremium: value }))} />
-                  <Textarea label="Vehicles" value={autoForm.vehicles} onChange={(value) => setAutoForm((prev) => ({ ...prev, vehicles: value }))} />
                 </div>
                 <div className="card-body border-t border-slate-200">
                   <h3 className="mb-2 text-base font-semibold">Insurance card details</h3>

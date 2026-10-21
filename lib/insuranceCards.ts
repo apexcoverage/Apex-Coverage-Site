@@ -28,6 +28,33 @@ function clean(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function sameVehicle(a: InsuranceCardVehicle, b: InsuranceCardVehicle) {
+  if (a.vin && b.vin) return a.vin === b.vin;
+  if (!a.year || !a.make || !a.model || !b.year || !b.make || !b.model) return false;
+  if (a.year !== b.year || a.make.toLowerCase() !== b.make.toLowerCase()) return false;
+  const aModel = a.model.toLowerCase();
+  const bModel = b.model.toLowerCase();
+  return aModel === bModel || aModel.startsWith(`${bModel} `) || bModel.startsWith(`${aModel} `);
+}
+
+function uniqueVehicles(vehicles: InsuranceCardVehicle[]) {
+  const result: InsuranceCardVehicle[] = [];
+  for (const vehicle of vehicles) {
+    const match = result.find((saved) => sameVehicle(saved, vehicle));
+    if (match) {
+      if (!match.vin) match.vin = vehicle.vin;
+    } else {
+      result.push({ ...vehicle });
+    }
+  }
+  return result;
+}
+
+export function serializeCardVehicles(vehicles: InsuranceCardVehicle[]) {
+  return vehicles.map((vehicle) => [vehicle.vin, vehicle.year, vehicle.make, vehicle.model]
+    .map(clean).filter(Boolean).join(" ")).join("\n");
+}
+
 export function parseCardVehicles(policy: InsuranceCardPolicy): InsuranceCardVehicle[] {
   const structured: InsuranceCardVehicle[] = [];
   try {
@@ -57,27 +84,22 @@ export function parseCardVehicles(policy: InsuranceCardPolicy): InsuranceCardVeh
     lines = rawVehicles.split(/\r?\n|;|,\s*(?=(?:19|20)\d{2}\b)/);
   }
 
-  const legacy = lines.map((line) => {
+  const legacy = uniqueVehicles(lines.map((line) => {
     const vin = line.match(/\b[A-HJ-NPR-Z0-9]{17}\b/i)?.[0]?.toUpperCase() || "";
     const withoutVin = line.replace(vin, "").replace(/\bVIN\s*[:#-]?/i, "").replace(/^\s*(?:\d+[.)-]|[-*])\s*/, "").replace(/[,|]/g, " ").trim();
     const yearMatch = withoutVin.match(/\b(?:19|20)\d{2}\b/);
     const parts = yearMatch ? withoutVin.slice((yearMatch.index || 0) + 4).trim().split(/\s+/) : [];
     return { year: yearMatch?.[0] || "", make: parts[0] || "", model: parts.slice(1).join(" "), vin };
-  }).filter((vehicle) => vehicle.year || vehicle.make || vehicle.model || vehicle.vin);
+  }).filter((vehicle) => vehicle.year || vehicle.make || vehicle.model || vehicle.vin));
 
-  const result = [...structured];
+  const result = uniqueVehicles(structured);
+  // A multi-vehicle card schedule has already been reviewed; legacy text can only fill a single-vehicle migration.
+  const targetCount = result.length > 1 ? result.length : Math.max(result.length, legacy.length);
   for (const vehicle of legacy) {
-    const match = result.find((saved) =>
-      (vehicle.vin && saved.vin && vehicle.vin === saved.vin) ||
-      (vehicle.year === saved.year && vehicle.make.toLowerCase() === saved.make.toLowerCase() &&
-        Boolean(vehicle.model && saved.model) &&
-        (vehicle.model.toLowerCase() === saved.model.toLowerCase() ||
-          vehicle.model.toLowerCase().startsWith(`${saved.model.toLowerCase()} `) ||
-          saved.model.toLowerCase().startsWith(`${vehicle.model.toLowerCase()} `)))
-    );
+    const match = result.find((saved) => sameVehicle(saved, vehicle));
     if (match) {
       if (!match.vin) match.vin = vehicle.vin;
-    } else {
+    } else if (result.length < targetCount) {
       result.push(vehicle);
     }
   }
