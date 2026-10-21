@@ -18,6 +18,7 @@ export type InsuranceCardPolicy = {
   effectiveDate?: string;
   expirationDate?: string;
   cardVehicles?: string;
+  vehicles?: string;
   year?: string;
   make?: string;
   model?: string;
@@ -28,26 +29,75 @@ function clean(value: unknown) {
 }
 
 export function parseCardVehicles(policy: InsuranceCardPolicy): InsuranceCardVehicle[] {
+  const structured: InsuranceCardVehicle[] = [];
   try {
     const parsed = JSON.parse(clean(policy.cardVehicles) || "[]");
-    if (Array.isArray(parsed) && parsed.length) {
-      return parsed.map((vehicle) => ({
+    if (Array.isArray(parsed)) {
+      structured.push(...parsed.map((vehicle) => ({
         year: clean(vehicle?.year),
         make: clean(vehicle?.make),
         model: clean(vehicle?.model),
         vin: clean(vehicle?.vin).toUpperCase(),
-      }));
+      })));
     }
   } catch {
     // Older policies do not have a structured vehicle schedule yet.
   }
 
+  const rawVehicles = clean(policy.vehicles);
+  let lines: string[] = [];
+  try {
+    const parsed = JSON.parse(rawVehicles);
+    if (Array.isArray(parsed)) {
+      lines = parsed.map((vehicle) => typeof vehicle === "string"
+        ? vehicle
+        : [vehicle?.vin, vehicle?.year, vehicle?.make, vehicle?.model].filter(Boolean).join(" "));
+    }
+  } catch {
+    lines = rawVehicles.split(/\r?\n|;|,\s*(?=(?:19|20)\d{2}\b)/);
+  }
+
+  const legacy = lines.map((line) => {
+    const vin = line.match(/\b[A-HJ-NPR-Z0-9]{17}\b/i)?.[0]?.toUpperCase() || "";
+    const withoutVin = line.replace(vin, "").replace(/\bVIN\s*[:#-]?/i, "").replace(/^\s*(?:\d+[.)-]|[-*])\s*/, "").replace(/[,|]/g, " ").trim();
+    const yearMatch = withoutVin.match(/\b(?:19|20)\d{2}\b/);
+    const parts = yearMatch ? withoutVin.slice((yearMatch.index || 0) + 4).trim().split(/\s+/) : [];
+    return { year: yearMatch?.[0] || "", make: parts[0] || "", model: parts.slice(1).join(" "), vin };
+  }).filter((vehicle) => vehicle.year || vehicle.make || vehicle.model || vehicle.vin);
+
+  const result = [...structured];
+  for (const vehicle of legacy) {
+    const match = result.find((saved) =>
+      (vehicle.vin && saved.vin && vehicle.vin === saved.vin) ||
+      (vehicle.year === saved.year && vehicle.make.toLowerCase() === saved.make.toLowerCase() &&
+        Boolean(vehicle.model && saved.model) &&
+        (vehicle.model.toLowerCase() === saved.model.toLowerCase() ||
+          vehicle.model.toLowerCase().startsWith(`${saved.model.toLowerCase()} `) ||
+          saved.model.toLowerCase().startsWith(`${vehicle.model.toLowerCase()} `)))
+    );
+    if (match) {
+      if (!match.vin) match.vin = vehicle.vin;
+    } else {
+      result.push(vehicle);
+    }
+  }
+
+  if (result.length) return result;
   return [{
     year: clean(policy.year),
     make: clean(policy.make),
     model: clean(policy.model),
     vin: "",
   }];
+}
+
+export function defaultCardCopies(vehicleCount: number) {
+  return vehicleCount <= 1 ? 4 : vehicleCount === 2 ? 2 : 1;
+}
+
+export function groupCardSheets(vehicles: InsuranceCardVehicle[], copies: number) {
+  const cards = vehicles.flatMap((vehicle) => Array.from({ length: copies }, () => vehicle));
+  return Array.from({ length: Math.ceil(cards.length / 4) }, (_, index) => cards.slice(index * 4, index * 4 + 4));
 }
 
 function validDate(value: unknown) {

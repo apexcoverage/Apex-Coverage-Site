@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
+  defaultCardCopies,
+  groupCardSheets,
   insuranceCardMissingFields,
   parseCardVehicles,
   type InsuranceCardPolicy,
@@ -23,15 +26,45 @@ export function InsuranceCardPanel({
   onEditContact: () => void;
 }) {
   const [verified, setVerified] = useState(false);
-  const [copies, setCopies] = useState(4);
+  const [requestedCopies, setRequestedCopies] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
   const missing = useMemo(() => insuranceCardMissingFields(policy), [policy]);
   const vehicles = useMemo(() => parseCardVehicles(policy), [policy]);
-  const cardSheets = useMemo(() => {
-    const cards = vehicles.flatMap((vehicle) => Array.from({ length: copies }, () => vehicle));
-    return Array.from({ length: Math.ceil(cards.length / 4) }, (_, index) => cards.slice(index * 4, index * 4 + 4));
-  }, [vehicles, copies]);
+  const copies = requestedCopies ?? defaultCardCopies(vehicles.length);
+  const cardSheets = useMemo(() => groupCardSheets(vehicles, copies), [vehicles, copies]);
 
   useEffect(() => setVerified(false), [policy]);
+  useEffect(() => setMounted(true), []);
+
+  const cardPages = cardSheets.map((sheet, sheetIndex) => (
+    <div className="apex-card-sheet" key={sheetIndex}>
+      {sheet.map((vehicle, cardIndex) => (
+        <div className="apex-insurance-card" key={`${vehicle.vin}-${sheetIndex}-${cardIndex}`}>
+          <div className="apex-insurance-card-header">
+            <div>
+              <div className="apex-insurance-card-eyebrow">{policy.state?.toUpperCase()} AUTO POLICY</div>
+              <strong>Apex Coverage</strong>
+            </div>
+            <img src="/Apex_Shield_Email.png" alt="Apex Coverage shield" />
+          </div>
+          <div className="apex-insurance-card-grid">
+            <div><span>Covered</span><strong>{policy.name}</strong></div>
+            <div><span>Policy number</span><strong>{policy.policyNumber}</strong></div>
+            <div><span>Effective</span><strong>{displayDate(policy.effectiveDate)}</strong></div>
+            <div><span>Expires</span><strong>{displayDate(policy.expirationDate)}</strong></div>
+            <div><span>Year / Make / Model</span><strong>{vehicle.year} {vehicle.make} {vehicle.model}</strong></div>
+            <div><span>VIN</span><strong className="apex-card-vin">{vehicle.vin}</strong></div>
+            <div className="apex-insurance-card-address"><span>Covered mailing address</span><strong>{[policy.addressLine1, policy.addressLine2, [policy.city, policy.state?.toUpperCase()].filter(Boolean).join(", ") + ` ${policy.zip}`].filter(Boolean).join(", ")}</strong></div>
+          </div>
+          <div className="apex-insurance-card-footer">
+            <div><b>Apex Coverage</b> &nbsp; <b>NAIC:</b> {policy.issuerNaic}<br />Richmond, VA</div>
+            <div className="apex-insurance-card-phone"><span>Customer Support</span>844-398-2739</div>
+          </div>
+          <div className="apex-insurance-card-warning">INTERNAL DRAFT - NOT VALID PROOF OF INSURANCE</div>
+        </div>
+      ))}
+    </div>
+  ));
 
   return (
     <section className="card" id="insurance-cards">
@@ -74,7 +107,7 @@ export function InsuranceCardPanel({
                 <select
                   className="rounded border border-slate-300 bg-white px-3 py-2"
                   value={copies}
-                  onChange={(event) => setCopies(Number(event.target.value))}
+                  onChange={(event) => setRequestedCopies(Number(event.target.value))}
                 >
                   <option value={1}>1 copy</option>
                   <option value={2}>2 copies</option>
@@ -86,43 +119,18 @@ export function InsuranceCardPanel({
               </button>
             </div>
             {verified && (
-              <div className="apex-card-print mt-6">
-                {cardSheets.map((sheet, sheetIndex) => (
-                  <div className="apex-card-sheet" key={sheetIndex}>
-                    {sheet.map((vehicle, cardIndex) => (
-                      <div className="apex-insurance-card" key={`${vehicle.vin}-${sheetIndex}-${cardIndex}`}>
-                        <div className="apex-insurance-card-header">
-                          <div>
-                            <div className="apex-insurance-card-eyebrow">{policy.state?.toUpperCase()} AUTO POLICY</div>
-                            <strong>Apex Coverage</strong>
-                          </div>
-                          <img src="/Apex_Shield_Email.png" alt="Apex Coverage shield" />
-                        </div>
-                        <div className="apex-insurance-card-grid">
-                          <div><span>Covered</span><strong>{policy.name}</strong></div>
-                          <div><span>Policy number</span><strong>{policy.policyNumber}</strong></div>
-                          <div><span>Effective</span><strong>{displayDate(policy.effectiveDate)}</strong></div>
-                          <div><span>Expires</span><strong>{displayDate(policy.expirationDate)}</strong></div>
-                          <div><span>Year / Make / Model</span><strong>{vehicle.year} {vehicle.make} {vehicle.model}</strong></div>
-                          <div><span>VIN</span><strong className="apex-card-vin">{vehicle.vin}</strong></div>
-                          <div className="apex-insurance-card-address"><span>Covered mailing address</span><strong>{[policy.addressLine1, policy.addressLine2, [policy.city, policy.state?.toUpperCase()].filter(Boolean).join(", ") + ` ${policy.zip}`].filter(Boolean).join(", ")}</strong></div>
-                        </div>
-                        <div className="apex-insurance-card-footer">
-                          <div><b>Apex Coverage</b> &nbsp; <b>NAIC:</b> {policy.issuerNaic}<br />Richmond, VA</div>
-                          <div className="apex-insurance-card-phone"><span>Customer Support</span>844-398-2739</div>
-                        </div>
-                        <div className="apex-insurance-card-warning">INTERNAL DRAFT - NOT VALID PROOF OF INSURANCE</div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
+              <div className="apex-card-preview mt-6">{cardPages}</div>
             )}
           </>
         )}
       </div>
+      {mounted && verified && !missing.length && createPortal(
+        <div id="apex-card-print-root" className="apex-card-print">{cardPages}</div>,
+        document.body
+      )}
       <style jsx global>{`
-        .apex-card-print { display: flex; flex-direction: column; gap: 20px; }
+        .apex-card-preview { display: flex; flex-direction: column; gap: 20px; }
+        .apex-card-print { display: none; }
         .apex-card-sheet { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: min(100%, 10.2in); }
         .apex-insurance-card { box-sizing: border-box; display: flex; flex-direction: column; width: 100%; min-width: 0; min-height: 3.75in; border: 2px solid #0b3269; border-radius: 7px; background: #fff; color: #10213d; padding: 12px 14px; font-family: Arial, sans-serif; break-inside: avoid; }
         .apex-insurance-card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 8px; border-bottom: 2px solid #1677ff; }
@@ -141,9 +149,9 @@ export function InsuranceCardPanel({
         @media (max-width: 720px) { .apex-card-sheet { grid-template-columns: 1fr; } }
         @media print {
           @page { size: letter landscape; margin: .4in; }
-          body * { visibility: hidden !important; }
-          .apex-card-print, .apex-card-print * { visibility: visible !important; }
-          .apex-card-print { display: block; position: absolute; top: 0; left: 0; width: 9.7in; margin: 0 !important; }
+          html, body { height: auto !important; min-height: 0 !important; background: #fff !important; }
+          body > :not(#apex-card-print-root) { display: none !important; }
+          .apex-card-print { display: block !important; width: 9.7in; margin: 0 auto !important; }
           .apex-card-sheet { display: grid; grid-template-columns: repeat(2, 4.75in); grid-template-rows: repeat(2, 3.45in); gap: .2in; width: 9.7in; height: 7.1in; margin: 0; break-after: page; page-break-after: always; }
           .apex-card-sheet:last-child { break-after: auto; page-break-after: auto; }
           .apex-insurance-card { width: 4.75in; height: 3.45in; min-height: 0; padding: 9px 11px; box-shadow: none; page-break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
