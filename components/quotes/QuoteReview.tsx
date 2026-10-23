@@ -36,7 +36,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
         cache: "no-store",
       });
       if (res.status === 401) {
-        router.push("/agent/quotes/login");
+        router.push("/employee-sign-in");
         return;
       }
       const data = await readJsonResponse(res);
@@ -45,7 +45,7 @@ export default function QuoteReview({ quoteId }: { quoteId: string }) {
 
       const meRes = await fetch("/api/internal/auth/me", { cache: "no-store" });
       if (meRes.status === 401) {
-        router.push("/agent/quotes/login");
+        router.push("/employee-sign-in");
         return;
       }
       const meData = await readJsonResponse(meRes);

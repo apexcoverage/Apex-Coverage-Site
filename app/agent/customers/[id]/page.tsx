@@ -846,10 +846,8 @@ export default function CustomerProfilePage() {
       const existingAuto = profile.autos[0];
 
       if (existingAuto) {
-        await updateAuto(existingAuto.id, {
-          status: "Won",
-          activityNote: "Auto coverage reactivated from customer profile",
-        });
+        await updateAuto(existingAuto.id, { status: "Onboarding", activityNote: "Auto customer setup started from profile" });
+        router.push(`/agent/onboarding/auto-${existingAuto.id}`);
       } else if (profile.primaryBuild) {
         const res = await fetch("/api/agent/cross-coverage", {
           method: "POST",
@@ -861,6 +859,9 @@ export default function CustomerProfilePage() {
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || "Could not add auto coverage");
+        if (!Number.isInteger(Number(data.id))) throw new Error("Auto request was added, but its record number was not returned. Refresh the customer profile.");
+        await updateAuto(Number(data.id), { status: "Onboarding", activityNote: "Auto customer setup started from profile" });
+        router.push(`/agent/onboarding/auto-${data.id}`);
       }
 
       await loadProfile();
@@ -880,10 +881,8 @@ export default function CustomerProfilePage() {
       const existingBuild = profile.builds[0];
 
       if (existingBuild) {
-        await updateBuild(existingBuild.id, {
-          status: "Active",
-          activityNote: "Build coverage reactivated from customer profile",
-        });
+        await updateBuild(existingBuild.id, { status: "Onboarding", activityNote: "Build customer setup started from profile" });
+        router.push(`/agent/onboarding/build-${existingBuild.id}`);
       } else {
         const res = await fetch("/api/agent/cross-coverage", {
           method: "POST",
@@ -895,6 +894,9 @@ export default function CustomerProfilePage() {
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || "Could not add build coverage");
+        if (!Number.isInteger(Number(data.id))) throw new Error("Build request was added, but its record number was not returned. Refresh the customer profile.");
+        await updateBuild(Number(data.id), { status: "Onboarding", activityNote: "Build customer setup started from profile" });
+        router.push(`/agent/onboarding/build-${data.id}`);
       }
 
       await loadProfile();
@@ -906,16 +908,14 @@ export default function CustomerProfilePage() {
     }
   }
 
-  async function setAutoActive(active: boolean) {
+  async function deactivateAuto() {
     if (!profile?.auto) return;
     setSaving("auto-status");
 
     try {
       await updateAuto(profile.auto.id, {
-        status: active ? "Won" : "Inactive",
-        activityNote: active
-          ? "Auto coverage reactivated"
-          : "Auto coverage deactivated",
+        status: "Inactive",
+        activityNote: "Auto coverage deactivated",
       });
       await loadProfile();
     } catch (err: any) {
@@ -926,15 +926,13 @@ export default function CustomerProfilePage() {
     }
   }
 
-  async function setBuildActive(build: BuildReview, active: boolean) {
+  async function deactivateBuild(build: BuildReview) {
     setSaving(`build-status-${build.id}`);
 
     try {
       await updateBuild(build.id, {
-        status: active ? "Active" : "Inactive",
-        activityNote: active
-          ? "Build coverage reactivated"
-          : "Build coverage deactivated",
+        status: "Inactive",
+        activityNote: "Build coverage deactivated",
       });
       await loadProfile();
     } catch (err: any) {
@@ -1565,18 +1563,18 @@ export default function CustomerProfilePage() {
               </div>
               <div className="card-body action-stack">
                 {profile.hasAuto ? (
-                  <button className="btn-outline" onClick={() => setAutoActive(false)}>
+                  <button className="btn-outline" onClick={deactivateAuto}>
                     Deactivate Auto Coverage
                   </button>
                 ) : (
                   <button className="btn-primary" onClick={addAutoCoverage} disabled={saving === "add-auto"}>
-                    Add Auto Coverage
+                    {profile.autos[0] ? "Set Up Auto Coverage" : "Add Auto Coverage"}
                   </button>
                 )}
 
                 {profile.hasBuild ? (
                   primaryBuild && (
-                    <button className="btn-outline" onClick={() => setBuildActive(primaryBuild, false)}>
+                    <button className="btn-outline" onClick={() => deactivateBuild(primaryBuild)}>
                       Deactivate Build Coverage
                     </button>
                   )
@@ -1586,21 +1584,10 @@ export default function CustomerProfilePage() {
                     onClick={addBuildCoverage}
                     disabled={!auto || saving === "add-build"}
                   >
-                    Add Build Coverage
+                    {profile.builds[0] ? "Set Up Build Coverage" : "Add Build Coverage"}
                   </button>
                 )}
 
-                {!profile.hasAuto && profile.autos[0] && (
-                  <button className="btn-outline" onClick={() => setAutoActive(true)}>
-                    Reactivate Auto Coverage
-                  </button>
-                )}
-
-                {!profile.hasBuild && profile.builds[0] && (
-                  <button className="btn-outline" onClick={() => setBuildActive(profile.builds[0], true)}>
-                    Reactivate Build Coverage
-                  </button>
-                )}
 
                 {!auto && !primaryBuild && (
                   <p className="meta-text">No coverage records are available to manage.</p>

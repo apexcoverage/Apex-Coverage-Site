@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getEmployeeSessionFromRequest } from "@/lib/internalAuth";
 
 export async function GET(request: NextRequest) {
-  const session = getEmployeeSessionFromRequest(request);
+  const session = await getEmployeeSessionFromRequest(request);
 
   if (!session) {
     return NextResponse.json(

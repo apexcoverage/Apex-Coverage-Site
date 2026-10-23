@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 import { agentSendCoveragePdf } from "@/lib/agentAppsScript";
 import {
   buildCoverageDocumentBuffer,
@@ -54,6 +55,8 @@ function buildEmailSummary(input: CoverageDocumentData) {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const body = (await req.json().catch(() => null)) as CoverageDocumentData | null;
 

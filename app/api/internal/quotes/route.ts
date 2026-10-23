@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getEmployeeSessionFromRequest } from "@/lib/internalAuth";
 import { generateQuoteFromMatrix } from "@/lib/quotes/pricing";
 import {
-  createSavedQuote,
-  listQuotes,
-} from "@/lib/quotes/quoteStore";
+  createStoredQuote,
+  listStoredQuotes,
+} from "@/lib/quotes/persistentStore";
+import { getPersistentRateConfig } from "@/lib/quotes/persistentRateConfig";
+import { withRateConfig } from "@/lib/quotes/rateConfigStore";
 import type {
   QuoteType,
 } from "@/lib/quotes/types";
@@ -18,7 +20,7 @@ function isQuoteType(value: unknown): value is QuoteType {
 }
 
 export async function GET(request: NextRequest) {
-  const session = getEmployeeSessionFromRequest(request);
+  const session = await getEmployeeSessionFromRequest(request);
   if (!session) {
     return NextResponse.json(
       { ok: false, error: "Not signed in." },
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const search = request.nextUrl.searchParams.get("search") || "";
-    return NextResponse.json({ ok: true, quotes: listQuotes(search) });
+    return NextResponse.json({ ok: true, quotes: await listStoredQuotes(search) });
   } catch (err: any) {
     return NextResponse.json(
       {
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = getEmployeeSessionFromRequest(request);
+  const session = await getEmployeeSessionFromRequest(request);
   if (!session) {
     return NextResponse.json(
       { ok: false, error: "Not signed in." },
@@ -76,12 +78,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const generated = generateQuoteFromMatrix(
+    const config = await getPersistentRateConfig();
+    const generated = withRateConfig(config, () => generateQuoteFromMatrix(
       quoteType,
       validation.normalizedInput
-    );
+    ));
 
-    const quote = createSavedQuote({
+    const quote = await createStoredQuote({
       quoteType,
       employee: session.user,
       input: validation.normalizedInput,

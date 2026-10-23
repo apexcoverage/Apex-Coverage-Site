@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { coverageStage } from "@/lib/agentLifecycle";
 
 type AutoLead = {
   id: number;
@@ -115,7 +117,7 @@ type DashboardItem =
       autoLead: AutoLead;
     };
 
-const AGENTS = ["", "Lewis", "Brandon", "Kelly"];
+const LEGACY_AGENTS = ["", "Lewis", "Brandon", "Kelly"];
 
 const AUTO_STATUS_OPTIONS = [
   "",
@@ -123,8 +125,8 @@ const AUTO_STATUS_OPTIONS = [
   "Attempted Contact",
   "In Progress",
   "Quoted",
-  "Won",
   "Lost",
+  "Archived",
   "Do Not Contact",
 ];
 
@@ -135,9 +137,9 @@ const BUILD_STATUS_OPTIONS = [
   "Under Review",
   "Approved",
   "Quoted",
-  "Active",
   "Rejected",
   "Lost",
+  "Archived",
   "Do Not Contact",
 ];
 
@@ -198,6 +200,11 @@ function isBuildCustomer(review: BuildReview) {
   return (review.status || "") === "Active";
 }
 
+function isClosedPipelineStatus(status?: string) {
+  return ["archived", "lost", "rejected", "do not contact", "inactive", "canceled"]
+    .includes(String(status || "").trim().toLowerCase());
+}
+
 function normalizeAutoInterest(value?: string) {
   const normalized = String(value || "").trim().toLowerCase();
   return normalized === "yes" || normalized === "true" ? "Yes" : "No";
@@ -211,13 +218,21 @@ function contactKey(item: { email?: string; phone?: string; name?: string }) {
 }
 
 export default function AgentDashboardPage() {
+  const router = useRouter();
   const [autoLeads, setAutoLeads] = useState<AutoLead[]>([]);
   const [buildReviews, setBuildReviews] = useState<BuildReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [employeeNames, setEmployeeNames] = useState<string[]>([]);
+  const AGENTS = useMemo(() => Array.from(new Set([
+    "", ...LEGACY_AGENTS, ...employeeNames,
+    ...autoLeads.map((lead) => lead.agent || ""),
+    ...buildReviews.map((review) => review.agent || ""),
+  ])), [autoLeads, buildReviews, employeeNames]);
 
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"pipeline" | "onboarding">("pipeline");
   const [productFilter, setProductFilter] = useState<ProductFilter>("all");
   const [statusFilter, setStatusFilter] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
@@ -267,6 +282,10 @@ export default function AgentDashboardPage() {
 
   useEffect(() => {
     loadDashboard();
+    fetch("/api/internal/agents", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => { if (data.ok && Array.isArray(data.names)) setEmployeeNames(data.names); })
+      .catch(() => {});
   }, []);
 
   const dashboardItems = useMemo<DashboardItem[]>(() => {
@@ -286,7 +305,7 @@ export default function AgentDashboardPage() {
     });
 
     const buildItems: DashboardItem[] = buildReviews
-      .filter((review) => !isBuildCustomer(review))
+      .filter((review) => !isBuildCustomer(review) && !isClosedPipelineStatus(review.status))
       .map((review) => {
         const vehicle = vehicleLabel(review);
         const relatedAutoLeads = autoByContact.get(contactKey(review)) || [];
@@ -326,7 +345,7 @@ export default function AgentDashboardPage() {
       });
 
     const autoItems: DashboardItem[] = autoLeads
-      .filter((lead) => !isAutoCustomer(lead))
+      .filter((lead) => !isAutoCustomer(lead) && !isClosedPipelineStatus(lead.status))
       .map((lead) => {
         const vehicle = vehicleLabel(lead);
         const relatedBuildReviews = buildByContact.get(contactKey(lead)) || [];
@@ -380,20 +399,27 @@ export default function AgentDashboardPage() {
 
   const visibleItems = useMemo(() => {
     const s = search.trim().toLowerCase();
-
+    const seen = new Set<string>();
     return dashboardItems.filter((item) => {
+      if (coverageStage(item.kind === "auto-quote" ? "auto" : "build", item.status) !== view) return false;
       if (productFilter !== "all" && item.kind !== productFilter) return false;
       if (statusFilter && item.status !== statusFilter) return false;
       if (agentFilter && item.agent !== agentFilter) return false;
       if (s && !item.searchText.includes(s)) return false;
+      if (view === "onboarding") {
+        const key = String(item.email || "").trim().toLowerCase() || String(item.phone || "").replace(/\D/g, "") || item.key;
+        if (seen.has(key)) return false;
+        seen.add(key);
+      }
       return true;
     });
-  }, [dashboardItems, productFilter, statusFilter, agentFilter, search]);
+  }, [dashboardItems, productFilter, statusFilter, agentFilter, search, view]);
 
   const stats = useMemo(() => {
-    const buildOpen = buildReviews.filter((review) => !isBuildCustomer(review))
+    const buildOpen = buildReviews.filter((review) => coverageStage("build", review.status) === "pipeline")
       .length;
-    const autoOpen = autoLeads.filter((lead) => !isAutoCustomer(lead)).length;
+    const autoOpen = autoLeads.filter((lead) => coverageStage("auto", lead.status) === "pipeline").length;
+    const onboarding = dashboardItems.filter((item) => coverageStage(item.kind === "auto-quote" ? "auto" : "build", item.status) === "onboarding").length;
     const customersWithAuto = autoLeads.filter(isAutoCustomer).length;
     const customersWithBuild = buildReviews.filter(isBuildCustomer).length;
     const bothInterested = buildReviews.filter(
@@ -403,6 +429,7 @@ export default function AgentDashboardPage() {
     return {
       buildOpen,
       autoOpen,
+      onboarding,
       customersWithAuto,
       customersWithBuild,
       bothInterested,
@@ -471,7 +498,7 @@ export default function AgentDashboardPage() {
     }
   }
 
-  async function createBuildCustomerFromAuto(lead: AutoLead) {
+  async function createBuildRequestFromAuto(lead: AutoLead) {
     const key = `auto-quote-${lead.id}`;
     setSavingKey(key);
 
@@ -486,18 +513,18 @@ export default function AgentDashboardPage() {
       });
 
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Could not add build coverage");
+      if (!data.ok) throw new Error(data.error || "Could not add build request");
 
       await loadDashboard();
     } catch (err: any) {
       console.error(err);
-      alert(`Could not add build coverage: ${err.message || err}`);
+      alert(`Could not add build request: ${err.message || err}`);
     } finally {
       setSavingKey(null);
     }
   }
 
-  async function createAutoCustomerFromBuild(review: BuildReview) {
+  async function createAutoRequestFromBuild(review: BuildReview) {
     const key = `build-review-${review.id}`;
     setSavingKey(key);
 
@@ -512,50 +539,48 @@ export default function AgentDashboardPage() {
       });
 
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Could not add auto customer");
+      if (!data.ok) throw new Error(data.error || "Could not add auto request");
 
       await loadDashboard();
     } catch (err: any) {
       console.error(err);
-      alert(`Could not add auto customer: ${err.message || err}`);
+      alert(`Could not add auto request: ${err.message || err}`);
     } finally {
       setSavingKey(null);
     }
   }
 
   async function addBuildCoverage(item: Extract<DashboardItem, { kind: "auto-quote" }>) {
-    if (item.relatedBuildReview) {
-      await updateBuildReview(item.relatedBuildReview.id, {
-        status: "Active",
-        agent: item.agent,
-        activityNote: "Build coverage marked active from auto coverage pipeline",
-      } as Partial<BuildReview>);
-      await loadDashboard();
-      return;
-    }
-
-    await createBuildCustomerFromAuto(item.autoLead);
+    if (!item.relatedBuildReview) await createBuildRequestFromAuto(item.autoLead);
   }
 
   async function addAutoCoverage(item: Extract<DashboardItem, { kind: "build-review" }>) {
-    if (item.relatedAutoLead) {
-      await updateAutoLead(item.relatedAutoLead.id, {
-        status: "Won",
-        agent: item.agent,
-        activityNote: "Auto coverage marked won from build review pipeline",
-      } as Partial<AutoLead>);
-      await loadDashboard();
-      return;
-    }
-
-    await createAutoCustomerFromBuild(item.buildReview);
+    if (!item.relatedAutoLead) await createAutoRequestFromBuild(item.buildReview);
   }
 
-  async function deletePipelineItem(item: DashboardItem) {
+  async function beginCustomerSetup(item: DashboardItem) {
+    setSavingKey(item.key);
+    try {
+      const response = await fetch("/api/agent/onboarding", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: item.kind === "auto-quote" ? "auto" : "build", id: item.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "Could not start setup.");
+      router.push(data.path);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not start setup.");
+      await loadDashboard();
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function archivePipelineItem(item: DashboardItem) {
     const label =
       item.kind === "build-review" ? "build review" : "auto coverage request";
     const confirmed = window.confirm(
-      `Remove this ${label} from the pipeline? This will delete the row from Google Sheets.`
+      `Remove this ${label} from the pipeline? The Google Sheets row will be kept and marked Archived.`
     );
 
     if (!confirmed) return;
@@ -563,19 +588,17 @@ export default function AgentDashboardPage() {
     setSavingKey(item.key);
 
     try {
-      const res = await fetch(
-        item.kind === "build-review"
-          ? "/api/agent/build-reviews"
-          : "/api/agent/leads",
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: item.id }),
-        }
-      );
-
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Delete failed");
+      if (item.kind === "build-review") {
+        await updateBuildReview(item.id, {
+          status: "Archived",
+          activityNote: "Build review removed from pipeline; row retained",
+        } as Partial<BuildReview>);
+      } else {
+        await updateAutoLead(item.id, {
+          status: "Archived",
+          activityNote: "Auto coverage request removed from pipeline; row retained",
+        } as Partial<AutoLead>);
+      }
 
       await loadDashboard();
     } catch (err: any) {
@@ -744,14 +767,20 @@ export default function AgentDashboardPage() {
           </div>
         </header>
 
-        <section className="mb-6 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <section className="mb-6 grid gap-3 md:grid-cols-3 xl:grid-cols-7">
           <StatCard label="Open Build Reviews" value={stats.buildOpen} />
           <StatCard label="Open Auto Coverage" value={stats.autoOpen} />
+          <StatCard label="In Customer Setup" value={stats.onboarding} />
           <StatCard label="Build Customers" value={stats.customersWithBuild} />
           <StatCard label="Auto Customers" value={stats.customersWithAuto} />
           <StatCard label="Both Requested" value={stats.bothInterested} />
           <StatCard label="Unassigned" value={stats.unassigned} />
         </section>
+
+        <div className="mb-5 flex gap-2" role="tablist" aria-label="Agent work queue">
+          <button type="button" role="tab" aria-selected={view === "pipeline"} className={view === "pipeline" ? "apex-agent-button-primary px-4 py-2 text-sm" : "apex-agent-button-secondary px-4 py-2 text-sm"} onClick={() => { setView("pipeline"); setStatusFilter(""); }}>Pipeline</button>
+          <button type="button" role="tab" aria-selected={view === "onboarding"} className={view === "onboarding" ? "apex-agent-button-primary px-4 py-2 text-sm" : "apex-agent-button-secondary px-4 py-2 text-sm"} onClick={() => { setView("onboarding"); setStatusFilter(""); }}>Customer Setup</button>
+        </div>
 
         <section className="apex-agent-card mb-6 grid gap-3 p-4 lg:grid-cols-[1fr_auto_auto_auto] lg:items-end">
           <div className="flex flex-col text-xs">
@@ -807,7 +836,7 @@ export default function AgentDashboardPage() {
         )}
 
         {loading ? (
-          <div className="apex-agent-soft-text text-sm">Loading pipeline...</div>
+          <div className="apex-agent-soft-text text-sm">Loading {view === "pipeline" ? "pipeline" : "customer setup"}...</div>
         ) : visibleItems.length === 0 ? (
           <div className="apex-agent-card p-6 text-sm text-blue-100">
             No records match your current filters.
@@ -880,7 +909,7 @@ export default function AgentDashboardPage() {
                         )}
                       </td>
                       <td className="px-3 py-3">
-                        <select
+                        {view === "onboarding" ? <span className="inline-block rounded-md bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">In setup</span> : <select
                           className="w-full min-w-[150px] rounded-md border border-slate-300 bg-white px-2 py-1 text-xs"
                           value={item.status || ""}
                           disabled={disabled}
@@ -902,7 +931,7 @@ export default function AgentDashboardPage() {
                               {option || "-"}
                             </option>
                           ))}
-                        </select>
+                        </select>}
                       </td>
                       <td className="px-3 py-3">
                         <select
@@ -928,7 +957,9 @@ export default function AgentDashboardPage() {
                       </td>
                       <td className="px-3 py-3 text-right">
                         <div className="flex min-w-[170px] flex-wrap justify-end gap-1">
-                          {item.kind === "build-review" ? (
+                          {view === "onboarding" ? (
+                            <Link href={`/agent/onboarding/${item.kind === "auto-quote" ? "auto" : "build"}-${item.id}`} className="rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white">Continue setup</Link>
+                          ) : item.kind === "build-review" ? (
                             <>
                               <button
                                 type="button"
@@ -941,18 +972,13 @@ export default function AgentDashboardPage() {
                                 <button
                                   type="button"
                                   disabled={disabled}
-                                  onClick={() =>
-                                    updateBuildReview(item.id, {
-                                      status: "Active",
-                                      activityNote: "Build coverage marked active from pipeline",
-                                    } as Partial<BuildReview>)
-                                  }
+                                  onClick={() => beginCustomerSetup(item)}
                                   className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                                 >
-                                  Mark Customer
+                                  Begin setup
                                 </button>
                               )}
-                              {!item.hasAutoCustomer && (
+                              {!item.relatedAutoLead && (
                                 <button
                                   type="button"
                                   disabled={disabled}
@@ -965,7 +991,7 @@ export default function AgentDashboardPage() {
                               <button
                                 type="button"
                                 disabled={disabled}
-                                onClick={() => deletePipelineItem(item)}
+                                onClick={() => archivePipelineItem(item)}
                                 className="rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
                               >
                                 Remove
@@ -984,18 +1010,13 @@ export default function AgentDashboardPage() {
                                 <button
                                   type="button"
                                   disabled={disabled}
-                                  onClick={() =>
-                                    updateAutoLead(item.id, {
-                                      status: "Won",
-                                      activityNote: "Auto coverage marked won from pipeline",
-                                    } as Partial<AutoLead>)
-                                  }
+                                  onClick={() => beginCustomerSetup(item)}
                                   className="rounded-md bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                                 >
-                                  Mark Customer
+                                  Begin setup
                                 </button>
                               )}
-                              {!item.hasBuildCustomer && (
+                              {!item.relatedBuildReview && (
                                 <button
                                   type="button"
                                   disabled={disabled}
@@ -1008,7 +1029,7 @@ export default function AgentDashboardPage() {
                               <button
                                 type="button"
                                 disabled={disabled}
-                                onClick={() => deletePipelineItem(item)}
+                                onClick={() => archivePipelineItem(item)}
                                 className="rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
                               >
                                 Remove

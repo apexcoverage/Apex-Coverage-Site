@@ -10,6 +10,7 @@ export default function QuoteLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -20,11 +21,12 @@ export default function QuoteLogin() {
       const res = await fetch("/api/internal/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, remember }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Sign in failed.");
-      router.push(searchParams.get("next") || "/agent/quotes");
+      const next = searchParams.get("next") || "/agent";
+      router.push(next.startsWith("/agent") && !next.startsWith("//") ? next : "/agent");
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Sign in failed.");
@@ -41,7 +43,7 @@ export default function QuoteLogin() {
         </p>
         <h1 className="mt-2 text-3xl font-black text-slate-950">Employee Sign In</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Sign in to create and review internal quote estimates.
+          Sign in to access the Apex employee workspace.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={submit}>
@@ -55,6 +57,11 @@ export default function QuoteLogin() {
               autoComplete="email"
               required
             />
+          </label>
+
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+            Remember me on this computer
           </label>
 
           <label className="block text-sm">

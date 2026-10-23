@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmployeeSessionFromRequest } from "@/lib/internalAuth";
-import {
-  getActiveRateConfig,
-  resetActiveRateConfig,
-  updateActiveRateConfig,
-} from "@/lib/quotes/rateConfigStore";
+import { getPersistentRateConfig, savePersistentRateConfig } from "@/lib/quotes/persistentRateConfig";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +10,7 @@ function canManageRates(role: string) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = getEmployeeSessionFromRequest(request);
+  const session = await getEmployeeSessionFromRequest(request);
   if (!session) {
     return NextResponse.json(
       { ok: false, error: "Not signed in." },
@@ -22,15 +18,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({
-    ok: true,
-    config: getActiveRateConfig(),
-    canManage: canManageRates(session.user.role),
-  });
+  try {
+    return NextResponse.json({ ok: true, config: await getPersistentRateConfig(), canManage: canManageRates(session.user.role) });
+  } catch {
+    return NextResponse.json({ ok: false, error: "Rate matrix is temporarily unavailable." }, { status: 503 });
+  }
 }
 
 export async function PUT(request: NextRequest) {
-  const session = getEmployeeSessionFromRequest(request);
+  const session = await getEmployeeSessionFromRequest(request);
   if (!session) {
     return NextResponse.json(
       { ok: false, error: "Not signed in." },
@@ -47,9 +43,10 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
   const reset = body?.reset === true;
-  const config = reset
-    ? resetActiveRateConfig(session.user)
-    : updateActiveRateConfig(body?.config || {}, session.user);
-
-  return NextResponse.json({ ok: true, config });
+  try {
+    const config = await savePersistentRateConfig(body?.config || {}, session.user, reset);
+    return NextResponse.json({ ok: true, config });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Could not save rate matrix." }, { status: 400 });
+  }
 }

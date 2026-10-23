@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmployeeSessionFromRequest } from "@/lib/internalAuth";
 import {
-  getQuoteByQuoteId,
-  updateQuoteReviewStatus,
-} from "@/lib/quotes/quoteStore";
+  getStoredQuote,
+  updateStoredQuoteReview,
+} from "@/lib/quotes/persistentStore";
 import type { QuoteReviewAction, QuoteStatus } from "@/lib/quotes/types";
 
 export const runtime = "nodejs";
@@ -33,7 +33,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = getEmployeeSessionFromRequest(request);
+  const session = await getEmployeeSessionFromRequest(request);
   if (!session) {
     return NextResponse.json(
       { ok: false, error: "Not signed in." },
@@ -41,7 +41,7 @@ export async function GET(
     );
   }
 
-  const quote = getQuoteByQuoteId(params.id);
+  const quote = await getStoredQuote(params.id);
   if (!quote) {
     return NextResponse.json(
       { ok: false, error: "Quote not found." },
@@ -56,7 +56,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const session = getEmployeeSessionFromRequest(request);
+  const session = await getEmployeeSessionFromRequest(request);
   if (!session) {
     return NextResponse.json(
       { ok: false, error: "Not signed in." },
@@ -85,7 +85,7 @@ export async function PATCH(
     );
   }
 
-  const quote = updateQuoteReviewStatus({
+  const quote = await updateStoredQuoteReview({
     quoteId: params.id,
     status,
     reviewer: session.user,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 import {
   buildCoverageDocumentBuffer,
   getCoverageDocumentFilename,
@@ -11,6 +12,8 @@ function safeString(value: unknown): string {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
     const {

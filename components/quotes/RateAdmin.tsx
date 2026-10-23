@@ -39,7 +39,7 @@ export default function RateAdmin({ currentUser }: { currentUser: EmployeeUser }
     try {
       const res = await fetch("/api/internal/quote-rates", { cache: "no-store" });
       if (res.status === 401) {
-        router.push("/agent/quotes/login");
+        router.push("/employee-sign-in");
         return;
       }
       const data: ApiResponse = await readJsonResponse(res);

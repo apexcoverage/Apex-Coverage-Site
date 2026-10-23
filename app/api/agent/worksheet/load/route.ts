@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 
 const AGENT_URL =
   process.env.APPSCRIPT_AGENT_WEBHOOK_URL ||
@@ -43,6 +44,8 @@ async function callAgentLoadWorksheet(leadId: number) {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const payload = await req.json().catch(() => ({} as any));
     const leadId = Number(payload.leadId);

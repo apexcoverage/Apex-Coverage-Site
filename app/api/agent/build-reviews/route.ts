@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 import {
   agentDeleteBuildReview,
   agentListBuildReviews,
   agentUpdateBuildReview,
 } from "@/lib/agentAppsScript";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const data = await agentListBuildReviews();
     return NextResponse.json({ ok: true, rows: data.rows || [] });
@@ -18,6 +21,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
     const { id, patch } = body || {};
@@ -56,6 +61,8 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
     const { id, confirmHardDelete } = body || {};

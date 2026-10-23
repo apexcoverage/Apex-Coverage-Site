@@ -1,7 +1,7 @@
-import QuoteLogin from "@/components/quotes/QuoteLogin";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default function QuoteLoginPage() {
-  return <QuoteLogin />;
+  redirect("/agent/quotes");
 }

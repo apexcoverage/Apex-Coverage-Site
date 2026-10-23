@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 import { agentUpdateLead } from "@/lib/agentAppsScript";
 import { policyPeriodIsTooShort } from "@/lib/insuranceCards";
 
 export async function POST(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
 

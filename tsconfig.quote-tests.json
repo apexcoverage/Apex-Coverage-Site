@@ -18,6 +18,9 @@
   },
   "include": [
     "lib/quotes/**/*.ts",
+    "lib/appsScriptResponse.ts",
+    "lib/agentLifecycle.ts",
+    "lib/agentOnboarding.ts",
     "tests/**/*.ts"
   ]
 }

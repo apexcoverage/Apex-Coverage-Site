@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 import { agentConvertCoveragePdf } from "@/lib/agentAppsScript";
 import {
   buildCoverageDocumentBuffer,
@@ -9,6 +10,8 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const input = (await req.json().catch(() => null)) as CoverageDocumentData | null;
     if (!input || (input.type !== "auto" && input.type !== "build")) {

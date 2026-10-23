@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 import Stripe from "stripe";
 import {
   agentUpdateLead,
@@ -110,6 +111,8 @@ async function getOrCreateStripeCustomer(params: {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const stripe = mustGetStripe();
     const stripeMode = getStripeModeFromSecretKey(STRIPE_SECRET_KEY!);

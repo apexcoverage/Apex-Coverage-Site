@@ -1,6 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { AsyncLocalStorage } from "async_hooks";
 import {
   AUTO_RATE_TABLE,
   MVP_RATE_TABLE,
@@ -13,6 +14,12 @@ export type RateConfig = {
   updatedAt: string;
   updatedBy: string;
 };
+
+const requestRates = new AsyncLocalStorage<RateConfig>();
+
+export function withRateConfig<T>(config: RateConfig, work: () => T): T {
+  return requestRates.run(config, work);
+}
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
@@ -60,6 +67,8 @@ export function getDefaultRateConfig(): RateConfig {
 }
 
 export function getActiveRateConfig(): RateConfig {
+  const requestConfig = requestRates.getStore();
+  if (requestConfig) return requestConfig;
   const defaults = getDefaultRateConfig();
   const file = rateConfigPath();
 
@@ -76,6 +85,16 @@ export function getActiveRateConfig(): RateConfig {
   } catch {
     return defaults;
   }
+}
+
+export function mergeRateConfig(override: Partial<RateConfig>): RateConfig {
+  const defaults = getDefaultRateConfig();
+  return {
+    auto: deepMerge(defaults.auto, override.auto),
+    mvp: deepMerge(defaults.mvp, override.mvp),
+    updatedAt: String(override.updatedAt || ""),
+    updatedBy: String(override.updatedBy || "System default"),
+  };
 }
 
 export function updateActiveRateConfig(

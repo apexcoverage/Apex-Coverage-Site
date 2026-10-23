@@ -38,7 +38,7 @@ export default function QuotesDashboard({
         { cache: "no-store" }
       );
       if (res.status === 401) {
-        router.push("/agent/quotes/login");
+        router.push("/employee-sign-in");
         return;
       }
       const data = await readJsonResponse(res);
@@ -58,7 +58,7 @@ export default function QuotesDashboard({
 
   async function logout() {
     await fetch("/api/internal/auth/logout", { method: "POST" });
-    router.push("/agent/quotes/login");
+    router.push("/employee-sign-in");
     router.refresh();
   }
 
@@ -94,6 +94,7 @@ export default function QuotesDashboard({
             >
               Rate Matrix
             </Link>
+            {currentUser.role === "ADMIN" && <Link href="/agent/team" className="apex-agent-button-secondary px-3 py-2 text-center text-sm">Team</Link>}
             <button
               type="button"
               onClick={logout}

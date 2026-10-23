@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 
 // Reuse the same env vars pattern as your /api/agent/leads route
 const AGENT_URL =
@@ -22,6 +23,8 @@ if (!AGENT_SECRET) {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     if (!AGENT_URL || !AGENT_SECRET) {
       return NextResponse.json(

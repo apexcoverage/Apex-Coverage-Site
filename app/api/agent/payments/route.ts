@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireEmployeeApi } from "@/lib/internalAuth";
 
 const AGENT_URL =
   process.env.APPSCRIPT_AGENT_WEBHOOK_URL ||
@@ -44,6 +45,8 @@ async function callAgentListPayments(leadId: number) {
 }
 
 export async function GET(req: Request) {
+  const denied = await requireEmployeeApi(req);
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const leadIdRaw = searchParams.get("leadId");

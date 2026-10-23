@@ -3,6 +3,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextRequest, NextResponse } from "next/server";
 import type { EmployeeRole, EmployeeUser } from "./quotes/types";
+import {
+  authenticateEmployee,
+  createEmployeeSession,
+  employeeDatabaseConfigured,
+  resolveEmployeeSession,
+  revokeEmployeeSession,
+} from "./employeeStore";
 
 export const INTERNAL_SESSION_COOKIE = "apex_internal_session";
 
@@ -76,7 +83,7 @@ function constantTimeEqual(a: string, b: string) {
   return crypto.timingSafeEqual(left, right);
 }
 
-export function verifyEmployeeCredentials(email: string, password: string) {
+function verifyLegacyCredentials(email: string, password: string) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   const account = getEmployeeAccounts().find(
     (item) => item.email === normalizedEmail
@@ -100,6 +107,19 @@ export function verifyEmployeeCredentials(email: string, password: string) {
   } satisfies EmployeeUser;
 }
 
+export async function signInEmployee(email: string, password: string, remember: boolean) {
+  if (employeeDatabaseConfigured()) {
+    const account = await authenticateEmployee(email, password, getEmployeeAccounts());
+    if (!account) return null;
+    const session = await createEmployeeSession(account.id, remember);
+    return { user: { email: account.email, name: account.name, role: account.role }, cookie: `db:${session.token}`, expiresAt: session.expiresAt.getTime(), remember };
+  }
+  const user = verifyLegacyCredentials(email, password);
+  if (!user) return null;
+  const expiresAt = Date.now() + (remember ? 30 : 1) * 24 * 60 * 60 * 1000;
+  return { user, cookie: createEmployeeSessionCookie(user, expiresAt), expiresAt, remember };
+}
+
 function base64UrlEncode(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");
 }
@@ -114,8 +134,7 @@ function signPayload(payload: string) {
   return crypto.createHmac("sha256", secret).update(payload).digest("base64url");
 }
 
-export function createEmployeeSessionCookie(user: EmployeeUser) {
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 12;
+export function createEmployeeSessionCookie(user: EmployeeUser, expiresAt = Date.now() + 1000 * 60 * 60 * 12) {
   const payload = base64UrlEncode(JSON.stringify({ user, expiresAt }));
   return `${payload}.${signPayload(payload)}`;
 }
@@ -144,38 +163,59 @@ export function verifyEmployeeSessionCookie(value?: string | null) {
   }
 }
 
-export function getEmployeeSessionFromRequest(request: NextRequest) {
-  return verifyEmployeeSessionCookie(
-    request.cookies.get(INTERNAL_SESSION_COOKIE)?.value
-  );
+async function resolveSession(value?: string | null) {
+  if (employeeDatabaseConfigured()) {
+    return value?.startsWith("db:") ? resolveEmployeeSession(value.slice(3)) : null;
+  }
+  return verifyEmployeeSessionCookie(value);
 }
 
-export function getEmployeeSessionFromCookies() {
-  return verifyEmployeeSessionCookie(cookies().get(INTERNAL_SESSION_COOKIE)?.value);
+export async function getEmployeeSessionFromRequest(request: Request) {
+  const cookie = request.headers.get("cookie")?.split(";").map((item) => item.trim())
+    .find((item) => item.startsWith(`${INTERNAL_SESSION_COOKIE}=`));
+  return resolveSession(cookie ? decodeURIComponent(cookie.slice(INTERNAL_SESSION_COOKIE.length + 1)) : null);
 }
 
-export function requireEmployeeSession(nextPath = "/agent/quotes") {
-  const session = getEmployeeSessionFromCookies();
+export async function requireEmployeeApi(request: Request) {
+  try {
+    if (await getEmployeeSessionFromRequest(request)) return null;
+  } catch {
+    return NextResponse.json({ ok: false, error: "Employee sign-in is temporarily unavailable." }, { status: 503 });
+  }
+  return NextResponse.json({ ok: false, error: "Employee sign-in is required." }, { status: 401 });
+}
+
+export async function getEmployeeSessionFromCookies() {
+  return resolveSession(cookies().get(INTERNAL_SESSION_COOKIE)?.value);
+}
+
+export async function requireEmployeeSession(nextPath = "/agent") {
+  const session = await getEmployeeSessionFromCookies();
   if (!session) {
-    redirect(`/agent/quotes/login?next=${encodeURIComponent(nextPath)}`);
+    redirect(`/employee-sign-in?next=${encodeURIComponent(nextPath)}`);
   }
   return session;
 }
 
 export function setEmployeeSessionCookie(
   response: NextResponse,
-  user: EmployeeUser
+  signedIn: { cookie: string; expiresAt: number; remember: boolean }
 ) {
-  response.cookies.set(INTERNAL_SESSION_COOKIE, createEmployeeSessionCookie(user), {
+  const maxAge = Math.max(0, Math.floor((signedIn.expiresAt - Date.now()) / 1000));
+  response.cookies.set(INTERNAL_SESSION_COOKIE, signedIn.cookie, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 12,
+    ...(signedIn.remember ? { maxAge } : {}),
   });
 }
 
-export function clearEmployeeSessionCookie(response: NextResponse) {
+export async function clearEmployeeSessionCookie(response: NextResponse, request?: NextRequest) {
+  const value = request?.cookies.get(INTERNAL_SESSION_COOKIE)?.value;
+  if (employeeDatabaseConfigured() && value?.startsWith("db:")) {
+    await revokeEmployeeSession(value.slice(3));
+  }
   response.cookies.set(INTERNAL_SESSION_COOKIE, "", {
     httpOnly: true,
     sameSite: "lax",
