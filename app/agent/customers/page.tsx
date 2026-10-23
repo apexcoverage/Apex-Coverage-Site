@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { isCoverageCustomer } from "@/lib/agentLifecycle";
 
 type AutoLead = {
   id: number;
@@ -75,23 +76,12 @@ function recordKey(item: { email?: string; phone?: string; name?: string }) {
   return email || phone || name;
 }
 
-function normalizedStatus(value?: string) {
-  return String(value || "").trim().toLowerCase();
-}
-
 function isAutoCustomer(lead: AutoLead) {
-  const status = normalizedStatus(lead.status);
-  return (
-    status === "won" ||
-    status === "active" ||
-    status === "customer" ||
-    !!String(lead.policyNumber || "").trim()
-  );
+  return isCoverageCustomer("auto", lead);
 }
 
 function isBuildCustomer(review: BuildReview) {
-  const status = normalizedStatus(review.status);
-  return status === "active" || status === "won" || status === "customer";
+  return isCoverageCustomer("build", review);
 }
 
 function recordSortValue(item?: { id?: number; when?: string }) {

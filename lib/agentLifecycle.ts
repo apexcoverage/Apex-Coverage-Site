@@ -9,6 +9,13 @@ export function coverageStage(kind: "auto" | "build", status?: string): Coverage
   return "pipeline";
 }
 
+export function isCoverageCustomer(
+  kind: "auto" | "build",
+  record: { status?: string; policyNumber?: string }
+) {
+  return coverageStage(kind, record.status) === "active";
+}
+
 export function sameContact(a: { email?: string; phone?: string }, b: { email?: string; phone?: string }) {
   const emailA = String(a.email || "").trim().toLowerCase();
   const emailB = String(b.email || "").trim().toLowerCase();
