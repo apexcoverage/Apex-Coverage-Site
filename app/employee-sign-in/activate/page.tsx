@@ -1,9 +1,15 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function ActivateEmployeePage() {
+  return <Suspense fallback={<main className="apex-agent-shell min-h-screen" />}>
+    <ActivateEmployeeForm />
+  </Suspense>;
+}
+
+function ActivateEmployeeForm() {
   const router = useRouter();
   const token = useSearchParams().get("token") || "";
   const [password, setPassword] = useState("");

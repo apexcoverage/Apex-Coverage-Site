@@ -5,6 +5,7 @@ import Link from "next/link";
 
 type AutoLead = {
   id: number;
+  when?: string;
   name: string;
   email: string;
   phone: string;
@@ -20,6 +21,7 @@ type AutoLead = {
 
 type BuildReview = {
   id: number;
+  when?: string;
   name: string;
   email: string;
   phone: string;
@@ -52,6 +54,8 @@ type CustomerRecord = {
   autoLead?: AutoLead;
   buildReviews: BuildReview[];
   searchText: string;
+  sortValue: number;
+  lastSeen: string;
 };
 
 const AGENTS = ["", "Lewis", "Brandon", "Kelly"];
@@ -71,8 +75,37 @@ function recordKey(item: { email?: string; phone?: string; name?: string }) {
   return email || phone || name;
 }
 
+function normalizedStatus(value?: string) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isAutoCustomer(lead: AutoLead) {
+  const status = normalizedStatus(lead.status);
+  return (
+    status === "won" ||
+    status === "active" ||
+    status === "customer" ||
+    !!String(lead.policyNumber || "").trim()
+  );
+}
+
 function isBuildCustomer(review: BuildReview) {
-  return (review.status || "") === "Active";
+  const status = normalizedStatus(review.status);
+  return status === "active" || status === "won" || status === "customer";
+}
+
+function recordSortValue(item?: { id?: number; when?: string }) {
+  if (!item) return 0;
+  const parsed = Date.parse(String(item.when || ""));
+  if (Number.isFinite(parsed)) return parsed;
+  return Number(item.id || 0);
+}
+
+function displayDate(value?: string) {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString();
 }
 
 function coverageLabel(record: CustomerRecord) {
@@ -138,9 +171,25 @@ export default function CustomersPage() {
     const map = new Map<string, CustomerRecord>();
 
     autoLeads
-      .filter((lead) => (lead.status || "") === "Won")
+      .filter(isAutoCustomer)
       .forEach((lead) => {
         const key = recordKey(lead) || `auto-${lead.id}`;
+        const existing = map.get(key);
+        const sortValue = recordSortValue(lead);
+
+        if (existing) {
+          if (!existing.autoLead || sortValue >= recordSortValue(existing.autoLead)) {
+            existing.autoLead = lead;
+          }
+          existing.sortValue = Math.max(existing.sortValue, sortValue);
+          existing.lastSeen =
+            sortValue >= recordSortValue({ when: existing.lastSeen })
+              ? lead.when || existing.lastSeen
+              : existing.lastSeen;
+          if (!existing.agent) existing.agent = lead.agent || "";
+          return;
+        }
+
         map.set(key, {
           key,
           name: lead.name,
@@ -151,15 +200,22 @@ export default function CustomersPage() {
           autoLead: lead,
           buildReviews: [],
           searchText: "",
+          sortValue,
+          lastSeen: lead.when || "",
         });
       });
 
     buildReviews.filter(isBuildCustomer).forEach((review) => {
       const key = recordKey(review) || `build-${review.id}`;
       const existing = map.get(key);
+      const sortValue = recordSortValue(review);
 
       if (existing) {
         existing.buildReviews.push(review);
+        existing.sortValue = Math.max(existing.sortValue, sortValue);
+        if (sortValue >= recordSortValue({ when: existing.lastSeen })) {
+          existing.lastSeen = review.when || existing.lastSeen;
+        }
         if (!existing.agent) existing.agent = review.agent || "";
         return;
       }
@@ -173,28 +229,32 @@ export default function CustomersPage() {
         agent: review.agent || "",
         buildReviews: [review],
         searchText: "",
+        sortValue,
+        lastSeen: review.when || "",
       });
     });
 
-    return Array.from(map.values()).map((record) => {
-      const autoVehicle = record.autoLead ? vehicleLabel(record.autoLead) : "";
-      const buildVehicles = record.buildReviews.map(vehicleLabel).join(" ");
-      return {
-        ...record,
-        searchText: [
-          record.name,
-          record.email,
-          record.phone,
-          record.zip,
-          record.agent,
-          autoVehicle,
-          buildVehicles,
-          coverageLabel(record),
-        ]
-          .join(" ")
-          .toLowerCase(),
-      };
-    });
+    return Array.from(map.values())
+      .map((record) => {
+        const autoVehicle = record.autoLead ? vehicleLabel(record.autoLead) : "";
+        const buildVehicles = record.buildReviews.map(vehicleLabel).join(" ");
+        return {
+          ...record,
+          searchText: [
+            record.name,
+            record.email,
+            record.phone,
+            record.zip,
+            record.agent,
+            autoVehicle,
+            buildVehicles,
+            coverageLabel(record),
+          ]
+            .join(" ")
+            .toLowerCase(),
+        };
+      })
+      .sort((a, b) => b.sortValue - a.sortValue);
   }, [autoLeads, buildReviews]);
 
   const visibleCustomers = useMemo(() => {
@@ -317,6 +377,7 @@ export default function CustomersPage() {
                   <th className="px-3 py-2 font-semibold">Customer</th>
                   <th className="px-3 py-2 font-semibold">Coverage</th>
                   <th className="px-3 py-2 font-semibold">Vehicles</th>
+                  <th className="px-3 py-2 font-semibold">Received</th>
                   <th className="px-3 py-2 font-semibold">Build Status</th>
                   <th className="px-3 py-2 font-semibold">Auto Policy</th>
                   <th className="px-3 py-2 font-semibold">Agent</th>
@@ -355,6 +416,9 @@ export default function CustomersPage() {
                             <div key={vehicle}>Build: {vehicle}</div>
                           ))}
                         </div>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-700">
+                        {displayDate(record.lastSeen)}
                       </td>
                       <td className="px-3 py-3 text-xs text-gray-700">
                         {record.buildReviews.length === 0
